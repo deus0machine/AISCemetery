@@ -1,6 +1,9 @@
 package ru.sevostyanov.aiscemetery
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
@@ -13,17 +16,22 @@ class MainActivity : AppCompatActivity() {
         // BottomNavigationView setup
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
-        // FragmentManager для управления фрагментами
+        // Устанавливаем начальный фрагмент
         supportFragmentManager.beginTransaction().replace(R.id.nav_host_fragment, OrderFragment()).commit()
 
+        // Обработка навигации
         navView.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.navigation_order -> {
-                    supportFragmentManager.beginTransaction().replace(R.id.nav_host_fragment, OrderFragment()).commit()
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.nav_host_fragment, OrderFragment())
+                        .commit()
                     true
                 }
                 R.id.navigation_profile -> {
-                    supportFragmentManager.beginTransaction().replace(R.id.nav_host_fragment, ProfileFragment()).commit()
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.nav_host_fragment, ProfileFragment())
+                        .commit()
                     true
                 }
                 else -> false
@@ -31,3 +39,5 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
+
+

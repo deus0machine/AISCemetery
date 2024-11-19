@@ -1,5 +1,6 @@
 package ru.sevostyanov.aiscemetery
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
@@ -16,36 +17,57 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 class LoginActivity : AppCompatActivity() {
+
     private lateinit var loginService: LoginService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.0.101:8080") // URL бэкэнда
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
-        loginService = retrofit.create(LoginService::class.java)
+        // Инициализация API-сервиса через RetrofitClient
+        loginService = RetrofitClient.getApiService()
 
         val loginButton = findViewById<Button>(R.id.login_button)
         val registerLink = findViewById<TextView>(R.id.register_link)
         val loginField = findViewById<EditText>(R.id.login_email)
         val passwordField = findViewById<EditText>(R.id.login_password)
 
+        // Авторизация
         loginButton.setOnClickListener {
-            val login = loginField.text.toString()
-            val password = passwordField.text.toString()
-            authenticateUser(login, password)
+            val login = loginField.text.toString().trim()
+            val password = passwordField.text.toString().trim()
+
+            if (login.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "Введите логин и пароль", Toast.LENGTH_SHORT).show()
+            } else {
+                authenticateUser(login, password)
+            }
         }
 
         // Переход на экран регистрации
         registerLink.setOnClickListener {
-            val intent = Intent(this, RegisterActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
+
+    companion object {
+        const val KEY_USER_ID = "user_id"
+        const val KEY_USER_NAME = "user_fio"
+        const val KEY_USER_CONTACTS = "user_contacts"
+        const val KEY_USER_REG_DATE = "user_dateOfRegistration"
+    }
+
+    private fun saveUserData(userId: Long, fio: String, contacts: String, regDate: String) {
+        val sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            putLong(KEY_USER_ID, userId)
+            putString(KEY_USER_NAME, fio)
+            putString(KEY_USER_CONTACTS, contacts)
+            putString(KEY_USER_REG_DATE, regDate)
+            apply()
+        }
+    }
+
     private fun authenticateUser(login: String, password: String) {
         val call = loginService.login(UserCredentials(login, password))
 
@@ -53,15 +75,15 @@ class LoginActivity : AppCompatActivity() {
             override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
                 if (response.isSuccessful && response.body()?.status == "SUCCESS") {
                     val userProfile = response.body()
+                    saveUserData(
+                        userProfile?.id ?: -1L,
+                        userProfile?.fio ?: "Неизвестно",
+                        userProfile?.contacts ?: "Неизвестно",
+                        userProfile?.dateOfRegistration ?: "Неизвестно"
+                    )
 
-                    // Переход в MainActivity с данными профиля
-                    val intent = Intent(this@LoginActivity, MainActivity::class.java).apply {
-                        putExtra("user_id", userProfile?.id)
-                        putExtra("user_fio", userProfile?.fio)
-                        putExtra("user_contacts", userProfile?.contacts)
-                        putExtra("user_dateOfRegistration", userProfile?.dateOfRegistration)
-                        putExtra("user_login", userProfile?.login)
-                    }
+                    // Запуск MainActivity
+                    val intent = Intent(this@LoginActivity, MainActivity::class.java)
                     startActivity(intent)
                     finish()
                 } else {
@@ -74,6 +96,7 @@ class LoginActivity : AppCompatActivity() {
             }
         })
     }
+
     // Данные для запроса
     data class UserCredentials(val login: String, val password: String)
 
@@ -87,9 +110,10 @@ class LoginActivity : AppCompatActivity() {
         val login: String?
     )
 
-    // Интерфейс для Retrofit
+    // Интерфейс для LoginService
     interface LoginService {
         @POST("/api/login")
         fun login(@Body credentials: UserCredentials): Call<LoginResponse>
     }
 }
+
