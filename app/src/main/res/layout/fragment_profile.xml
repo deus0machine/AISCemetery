@@ -7,24 +7,61 @@
 
     <!-- Данные профиля -->
     <TextView
+        android:id="@+id/profile_name_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Имя пользователя:"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
         android:id="@+id/profile_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Имя пользователя"
-        android:textSize="18sp" />
+        android:textSize="18sp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/profile_contacts_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Контакты:"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:layout_marginBottom="4dp" />
 
     <TextView
         android:id="@+id/profile_contacts"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Контакты пользователя" />
+        android:text="Контакты пользователя"
+        android:textSize="18sp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/profile_reg_date_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Дата регистрации:"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:layout_marginBottom="4dp" />
 
     <TextView
         android:id="@+id/profile_reg_date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Дата регистрации" />
-
+        android:text="Дата регистрации"
+        android:textSize="18sp"
+        android:layout_marginBottom="16dp" />
+    <Button
+        android:id="@+id/btn_logout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Выйти из аккаунта"
+        android:layout_marginTop="16dp" />
     <!-- Кнопка загрузки заказов -->
     <Button
         android:id="@+id/btn_load_orders"

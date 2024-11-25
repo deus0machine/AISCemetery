@@ -1,9 +1,6 @@
 package ru.sevostyanov.aiscemetery
 
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
@@ -29,8 +26,9 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navigation_profile -> {
+                    val profileFragment = ProfileFragment()
                     supportFragmentManager.beginTransaction()
-                        .replace(R.id.nav_host_fragment, ProfileFragment())
+                        .replace(R.id.nav_host_fragment, profileFragment)
                         .commit()
                     true
                 }

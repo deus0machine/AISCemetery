@@ -1,50 +1,46 @@
-<!-- res/layout/activity_register.xml -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Регистрация"
-        android:textSize="24sp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="24dp" />
-
     <EditText
-        android:id="@+id/register_name"
+        android:id="@+id/fio_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Имя" />
+        android:hint="Введите ФИО" />
 
     <EditText
-        android:id="@+id/register_email"
+        android:id="@+id/login_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Email"
-        android:inputType="textEmailAddress" />
+        android:hint="Введите логин" />
 
     <EditText
-        android:id="@+id/register_password"
+        android:id="@+id/password_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Пароль"
+        android:hint="Введите пароль"
         android:inputType="textPassword" />
+
+    <EditText
+        android:id="@+id/contacts_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Введите контакты" />
 
     <Button
         android:id="@+id/register_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Зарегистрироваться"
-        android:layout_marginTop="16dp" />
+        android:text="Зарегистрироваться" />
+
     <TextView
         android:id="@+id/back_to_autorize_link"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Вернуться ко входу"
-        android:textColor="@color/purple_500"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="16dp" />
+        android:text="Вернуться к авторизации"
+        android:textColor="@android:color/holo_blue_dark"
+        android:paddingTop="8dp" />
 </LinearLayout>

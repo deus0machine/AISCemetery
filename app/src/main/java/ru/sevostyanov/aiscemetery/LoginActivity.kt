@@ -18,14 +18,11 @@ import retrofit2.http.POST
 
 class LoginActivity : AppCompatActivity() {
 
-    private lateinit var loginService: LoginService
+    val loginService = RetrofitClient.getLoginService()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
-
-        // Инициализация API-сервиса через RetrofitClient
-        loginService = RetrofitClient.getApiService()
 
         val loginButton = findViewById<Button>(R.id.login_button)
         val registerLink = findViewById<TextView>(R.id.register_link)

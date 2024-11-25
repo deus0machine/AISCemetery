@@ -1,6 +1,7 @@
 package ru.sevostyanov.aiscemetery
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -29,16 +30,19 @@ class ProfileFragment : Fragment() {
         setupRecyclerView(view)
         setupApiService()
         setupLoadOrdersButton(view)
+        setupLogoutButton(view)
         loadUserData() // Загружаем данные пользователя для отображения
         return view
     }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Теперь безопасно вызываем showUserData, так как view уже доступен
-        val userName = arguments?.getString(LoginActivity.KEY_USER_NAME)
-        val userContacts = arguments?.getString(LoginActivity.KEY_USER_CONTACTS)
-        val userRegDate = arguments?.getString(LoginActivity.KEY_USER_REG_DATE)
+        // Загружаем данные пользователя из SharedPreferences
+        val sharedPreferences = requireActivity().getSharedPreferences("user_data", Context.MODE_PRIVATE)
+        val userName = sharedPreferences.getString(LoginActivity.KEY_USER_NAME, "Неизвестно")
+        val userContacts = sharedPreferences.getString(LoginActivity.KEY_USER_CONTACTS, "Неизвестно")
+        val userRegDate = sharedPreferences.getString(LoginActivity.KEY_USER_REG_DATE, "Неизвестно")
+
 
         showUserData(userName, userContacts, userRegDate)
     }
@@ -120,7 +124,22 @@ class ProfileFragment : Fragment() {
 
         nameTextView?.text = name
         contactsTextView?.text = contacts
-        regDateTextView?.text = regDate
+        val formattedRegDate = regDate?.substringBefore("T") // Если формат ISO 8601 (yyyy-MM-ddTHH:mm:ss)
+            ?: regDate?.takeWhile { it.isDigit() || it == '-' } // Общий случай, оставляем только часть с датой
+
+        regDateTextView?.text = formattedRegDate
+    }
+    private fun setupLogoutButton(view: View) {
+        val logoutButton = view.findViewById<Button>(R.id.btn_logout)
+        logoutButton.setOnClickListener {
+            val sharedPreferences = requireActivity().getSharedPreferences("user_data", Context.MODE_PRIVATE)
+            sharedPreferences.edit().clear().apply() // Очищаем данные пользователя
+
+            // Перенаправляем пользователя на экран авторизации
+            val intent = Intent(requireContext(), LoginActivity::class.java)
+            startActivity(intent)
+            requireActivity().finish() // Завершаем текущую Activity, чтобы предотвратить возврат назад
+        }
     }
 }
 
