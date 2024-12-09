@@ -1,8 +1,14 @@
-<!-- res/layout/fragment_order.xml -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorPrimary"
+        android:theme="?attr/actionBarTheme" />
 
     <TextView
         android:id="@+id/title"
@@ -11,6 +17,7 @@
         android:text="Выберите услугу"
         android:textSize="24sp"
         android:layout_centerHorizontal="true"
+        android:layout_below="@id/toolbar"
         android:layout_marginBottom="16dp" />
 
     <androidx.recyclerview.widget.RecyclerView

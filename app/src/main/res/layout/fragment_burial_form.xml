@@ -1,0 +1,45 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorPrimary"
+        android:theme="?attr/actionBarTheme" />
+    <EditText
+        android:id="@+id/fioEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="ФИО"
+        android:inputType="text" />
+
+    <EditText
+        android:id="@+id/birthDateEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Дата рождения (yyyy-MM-dd)"
+        android:inputType="date" />
+
+    <EditText
+        android:id="@+id/deathDateEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Дата смерти (yyyy-MM-dd)"
+        android:inputType="date" />
+
+    <EditText
+        android:id="@+id/biographyEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Биография (необязательно)"
+        android:inputType="text" />
+
+    <Button
+        android:id="@+id/submitButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Создать захоронение" />
+</LinearLayout>

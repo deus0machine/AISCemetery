@@ -29,6 +29,8 @@ object RetrofitClient {
     interface ApiService : ru.sevostyanov.aiscemetery.ApiService {
         @POST("/api/register") // Убедись, что эндпоинт правильный
         fun registerUser(@Body registerRequest: RegisterRequest): Call<RegisterResponse>
+        @POST("/api/burials")
+        fun registerBurial(@Body burial: Burial): Call<Void>
     }
     // Интерфейс для LoginService
     interface LoginService {

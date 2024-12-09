@@ -14,14 +14,14 @@ class MainActivity : AppCompatActivity() {
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
         // Устанавливаем начальный фрагмент
-        supportFragmentManager.beginTransaction().replace(R.id.nav_host_fragment, OrderFragment()).commit()
+        supportFragmentManager.beginTransaction().replace(R.id.nav_host_fragment, BurialsFragment()).commit()
 
         // Обработка навигации
         navView.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.navigation_order -> {
                     supportFragmentManager.beginTransaction()
-                        .replace(R.id.nav_host_fragment, OrderFragment())
+                        .replace(R.id.nav_host_fragment, TaskChoiceFragment())
                         .commit()
                     true
                 }
@@ -29,6 +29,12 @@ class MainActivity : AppCompatActivity() {
                     val profileFragment = ProfileFragment()
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.nav_host_fragment, profileFragment)
+                        .commit()
+                    true
+                }
+                R.id.navigation_graves -> {
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.nav_host_fragment, BurialsFragment())
                         .commit()
                     true
                 }
