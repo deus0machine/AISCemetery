@@ -1,5 +1,6 @@
 package ru.sevostyanov.aiscemetery
 
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
@@ -15,6 +17,9 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.text.ParseException
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.util.Date
 import java.util.Locale
 
@@ -32,15 +37,6 @@ class BurialFormFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_burial_form, container, false)
 
-        val toolbar = view.findViewById<Toolbar>(R.id.toolbar)
-        (activity as AppCompatActivity).setSupportActionBar(toolbar)
-
-        (activity as AppCompatActivity).supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        toolbar.setNavigationOnClickListener {
-            parentFragmentManager.popBackStack() // Возврат назад
-        }
-
         fioEditText = view.findViewById(R.id.fioEditText)
         birthDateEditText = view.findViewById(R.id.birthDateEditText)
         deathDateEditText = view.findViewById(R.id.deathDateEditText)
@@ -54,9 +50,6 @@ class BurialFormFragment : Fragment() {
             val biography = biographyEditText.text.toString()
 
             if (fio.isNotEmpty() && birthDate.isNotEmpty() && deathDate.isNotEmpty()) {
-                val birthDate = parseDate(birthDate)
-                val deathDate = parseDate(deathDate)
-
                 if (birthDate != null && deathDate != null) {
                     val burial = Burial(
                         fio = fio,
@@ -75,14 +68,7 @@ class BurialFormFragment : Fragment() {
 
         return view
     }
-    private fun parseDate(dateStr: String): Date? {
-        return try {
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            dateFormat.parse(dateStr)
-        } catch (e: ParseException) {
-            null // Возвращаем null, если не удалось распарсить дату
-        }
-    }
+
     private fun submitBurialData(burial: Burial) {
         val apiService = RetrofitClient.getApiService()
         val call = apiService.registerBurial(burial)

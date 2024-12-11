@@ -1,6 +1,7 @@
 package ru.sevostyanov.aiscemetery
 import java.util.Date
 import com.google.gson.annotations.SerializedName
+import java.time.LocalDate
 
 data class Burial(
       @SerializedName("id")
@@ -9,20 +10,20 @@ data class Burial(
       @SerializedName("fio")
       val fio: String,
 
-      @SerializedName("birth_date")
-      val birthDate: Date,
+      @SerializedName("birthDate")
+      val birthDate: String,
 
-      @SerializedName("death_date")
-      val deathDate: Date,
+      @SerializedName("deathDate")
+      val deathDate: String,
 
       @SerializedName("biography")
-      val biography: String? = null,  // Biography может быть пустым
+      val biography: String? = null,
 
       @SerializedName("photo")
-      val photo: ByteArray? = null,  // Фото может быть пустым
+      val photo: ByteArray? = null,
 
       @SerializedName("xCoord")
-      val xCoord: Long? = null,  // Координаты могут быть пустыми
+      val xCoord: Long? = null,
 
       @SerializedName("yCoord")
       val yCoord: Long? = null  )

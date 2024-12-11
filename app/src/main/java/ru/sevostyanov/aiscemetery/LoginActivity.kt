@@ -2,11 +2,13 @@ package ru.sevostyanov.aiscemetery
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import retrofit2.Call
 import retrofit2.Callback
@@ -18,8 +20,10 @@ import retrofit2.http.POST
 
 class LoginActivity : AppCompatActivity() {
 
+    @RequiresApi(Build.VERSION_CODES.O)
     val loginService = RetrofitClient.getLoginService()
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
@@ -65,6 +69,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun authenticateUser(login: String, password: String) {
         val call = loginService.login(UserCredentials(login, password))
 
