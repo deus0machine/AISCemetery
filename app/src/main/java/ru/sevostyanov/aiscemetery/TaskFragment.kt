@@ -35,19 +35,19 @@ class TaskFragment : Fragment() {
         return view
     }
 
-//    private fun loadTasks(view: View) {
-//        val recyclerView = view.findViewById<RecyclerView>(R.id.recycler_view_services)
-//        recyclerView.layoutManager = LinearLayoutManager(context)
-//
-//        // Эмуляция загрузки из базы
-//        val apiService = RetrofitClient.getApiService()
-//        lifecycleScope.launch {
-//            try {
-//                val services = apiService.getServices() // Подгрузка услуг из API
-//                recyclerView.adapter = ServiceAdapter(services)
-//            } catch (e: Exception) {
-//                Toast.makeText(context, "Не можем загрузить услуги", Toast.LENGTH_SHORT).show()
-//            }
-//        }
-//    }
+    private fun loadTasks(view: View) {
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recycler_view_services)
+        recyclerView.layoutManager = LinearLayoutManager(context)
+
+        // Эмуляция загрузки из базы
+        val apiService = RetrofitClient.getApiService()
+        lifecycleScope.launch {
+            try {
+                //val services = apiService.getServices() // Подгрузка услуг из API
+                //recyclerView.adapter = ServiceAdapter(services)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Не можем загрузить услуги", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 }

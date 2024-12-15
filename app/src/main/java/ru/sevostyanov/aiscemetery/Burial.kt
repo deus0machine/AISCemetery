@@ -1,11 +1,12 @@
 package ru.sevostyanov.aiscemetery
-import java.util.Date
 import com.google.gson.annotations.SerializedName
-import java.time.LocalDate
 
 data class Burial(
       @SerializedName("id")
       val id: Long? = null,
+
+      @SerializedName("guest")
+      val guest: Guest,
 
       @SerializedName("fio")
       val fio: String,

@@ -42,9 +42,9 @@ class ProfileFragment : Fragment() {
         val userName = sharedPreferences.getString(LoginActivity.KEY_USER_NAME, "Неизвестно")
         val userContacts = sharedPreferences.getString(LoginActivity.KEY_USER_CONTACTS, "Неизвестно")
         val userRegDate = sharedPreferences.getString(LoginActivity.KEY_USER_REG_DATE, "Неизвестно")
+        val userBalance = sharedPreferences.getLong(LoginActivity.KEY_USER_BALANCE, -1)
 
-
-        showUserData(userName, userContacts, userRegDate)
+        showUserData(userName, userContacts, userRegDate, userBalance.toString())
     }
 
     private fun setupRecyclerView(view: View) {
@@ -109,25 +109,29 @@ class ProfileFragment : Fragment() {
         val userName = sharedPreferences.getString(LoginActivity.KEY_USER_NAME, "Неизвестно")
         val userContacts = sharedPreferences.getString(LoginActivity.KEY_USER_CONTACTS, "Неизвестно")
         val userRegDate = sharedPreferences.getString(LoginActivity.KEY_USER_REG_DATE, "Неизвестно")
+        val userBalance = sharedPreferences.getLong(LoginActivity.KEY_USER_BALANCE, -1)
 
         if (userId != -1L) {
-            showUserData(userName, userContacts, userRegDate)
+            showUserData(userName, userContacts, userRegDate, userBalance.toString())
         } else {
             Toast.makeText(requireContext(), "Пользователь не найден", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun showUserData(name: String?, contacts: String?, regDate: String?) {
+    private fun showUserData(name: String?, contacts: String?, regDate: String?, balance: String?) {
         val nameTextView = view?.findViewById<TextView>(R.id.profile_name)
         val contactsTextView = view?.findViewById<TextView>(R.id.profile_contacts)
         val regDateTextView = view?.findViewById<TextView>(R.id.profile_reg_date)
+        val balanceTextView = view?.findViewById<TextView>(R.id.profile_balance)  // Баланс
 
         nameTextView?.text = name
         contactsTextView?.text = contacts
+
         val formattedRegDate = regDate?.substringBefore("T") // Если формат ISO 8601 (yyyy-MM-ddTHH:mm:ss)
             ?: regDate?.takeWhile { it.isDigit() || it == '-' } // Общий случай, оставляем только часть с датой
 
         regDateTextView?.text = formattedRegDate
+        balanceTextView?.text = "Баланс: $balance" // Обновляем текст с балансом
     }
     private fun setupLogoutButton(view: View) {
         val logoutButton = view.findViewById<Button>(R.id.btn_logout)

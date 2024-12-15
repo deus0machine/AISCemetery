@@ -13,4 +13,8 @@
     <color name="icon_color">#FFFFFF</color>
     <color name="text_color">#FFFFFF</color>
     <color name="grey">#EBEBEB</color>
+    <color name="background_color">#F5F5F5</color> <!-- Фон для контейнера -->
+    <color name="primary_text">#212121</color> <!-- Темный текст для заголовков -->
+    <color name="secondary_text">#757575</color> <!-- Светлый текст для данных -->
+    <color name="red">#D32F2F</color> <!-- Цвет для кнопки выхода -->
 </resources>

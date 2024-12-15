@@ -41,8 +41,10 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_mine"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="80dp"
                 android:text="Мои"
+                android:textSize="25sp"
+                android:textStyle="bold"
                 android:textColor="@android:color/white"
                 android:backgroundTint="@color/purple_200"
                 app:cornerRadius="8dp"
@@ -54,8 +56,10 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_all"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="80dp"
                 android:text="Все"
+                android:textSize="25sp"
+                android:textStyle="bold"
                 android:textColor="@android:color/white"
                 android:backgroundTint="@color/purple_300"
                 app:cornerRadius="8dp"
@@ -71,7 +75,7 @@
         android:id="@+id/recycler_view_burials"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="5dp"
         android:scrollbars="vertical"
         android:padding="8dp"
         android:layout_below="@id/toolbar" />

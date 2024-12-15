@@ -1,14 +1,16 @@
 package ru.sevostyanov.aiscemetery
 
 import BurialAdapter
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -16,15 +18,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class BurialsFragment : Fragment() {
     private lateinit var apiService: RetrofitClient.ApiService
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: BurialAdapter
+    private  var isMine : Boolean = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -53,12 +53,33 @@ class BurialsFragment : Fragment() {
                 } else {
                     apiService.getAllBurials()  // Получаем "Все"
                 }
-                adapter = BurialAdapter(burials)
+                adapter = BurialAdapter(burials) { burial ->
+                    openBurialDetails(burial, isMine) // Открываем детали
+                }
                 recyclerView.adapter = adapter
             } catch (e: Exception) {
                 Toast.makeText(context, "Ошибка загрузки данных: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+    private val deleteBurialLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val isDeleted = result.data?.getBooleanExtra("isDeleted", false) ?: false
+            if (isDeleted) {
+                // Перезагружаем список захоронений после успешного удаления
+                loadBurials(isMine = true)
+            } else {
+                Toast.makeText(context, "Ошибка удаления", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
+    private fun openBurialDetails(burial: Burial , isMine: Boolean) {
+        val intent = Intent(requireContext(), BurialDetailsActivity::class.java)
+        intent.putExtra("burial_id", burial.id)
+        intent.putExtra("isMine", isMine)
+        deleteBurialLauncher.launch(intent)
     }
 
     private fun getGuestIdFromPreferences(): Long {
@@ -92,5 +113,6 @@ class BurialsFragment : Fragment() {
 
         (activity as AppCompatActivity).setSupportActionBar(toolbar)
     }
+
 }
 

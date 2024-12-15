@@ -13,8 +13,6 @@ import androidx.appcompat.app.AppCompatActivity
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.POST
 
@@ -56,15 +54,17 @@ class LoginActivity : AppCompatActivity() {
         const val KEY_USER_NAME = "user_fio"
         const val KEY_USER_CONTACTS = "user_contacts"
         const val KEY_USER_REG_DATE = "user_dateOfRegistration"
+        const val KEY_USER_BALANCE = "user_balance"
     }
 
-    private fun saveUserData(userId: Long, fio: String, contacts: String, regDate: String) {
+    private fun saveUserData(userId: Long, fio: String, contacts: String, regDate: String, balance: Long) {
         val sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE)
         with(sharedPreferences.edit()) {
             putLong(KEY_USER_ID, userId)
             putString(KEY_USER_NAME, fio)
             putString(KEY_USER_CONTACTS, contacts)
             putString(KEY_USER_REG_DATE, regDate)
+            putLong(KEY_USER_BALANCE, balance)
             apply()
         }
     }
@@ -81,7 +81,8 @@ class LoginActivity : AppCompatActivity() {
                         userProfile?.id ?: -1L,
                         userProfile?.fio ?: "Неизвестно",
                         userProfile?.contacts ?: "Неизвестно",
-                        userProfile?.dateOfRegistration ?: "Неизвестно"
+                        userProfile?.dateOfRegistration ?: "Неизвестно",
+                        userProfile?.balance ?: -1L
                     )
 
                     // Запуск MainActivity
@@ -109,7 +110,8 @@ class LoginActivity : AppCompatActivity() {
         val fio: String?,
         val contacts: String?,
         val dateOfRegistration: String?,
-        val login: String?
+        val login: String?,
+        val balance: Long?
     )
 
     // Интерфейс для LoginService

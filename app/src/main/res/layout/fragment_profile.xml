@@ -1,7 +1,7 @@
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="16dp">
 
@@ -56,19 +56,37 @@
         android:text="Дата регистрации"
         android:textSize="18sp"
         android:layout_marginBottom="16dp" />
-    <Button
+    <TextView
+        android:id="@+id/profile_balance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Баланс:"
+        android:textSize="18sp"
+        android:layout_marginTop="16dp"
+        android:textColor="@android:color/black" />
+
+    <!-- Кнопки для выхода и загрузки заказов -->
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_logout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Выйти из аккаунта"
-        android:layout_marginTop="16dp" />
-    <!-- Кнопка загрузки заказов -->
-    <Button
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/red"
+        app:cornerRadius="8dp"
+        android:layout_marginTop="16dp"
+        android:elevation="4dp" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_load_orders"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Загрузить заказы"
-        android:layout_marginTop="16dp" />
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/purple_200"
+        app:cornerRadius="8dp"
+        android:layout_marginTop="16dp"
+        android:elevation="4dp" />
 
     <!-- RecyclerView для заказов -->
     <androidx.recyclerview.widget.RecyclerView
@@ -76,4 +94,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="16dp" />
+
+    <!-- Баланс в правом верхнем углу -->
+
+
+
 </LinearLayout>

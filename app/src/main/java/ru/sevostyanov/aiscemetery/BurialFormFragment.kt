@@ -1,6 +1,6 @@
 package ru.sevostyanov.aiscemetery
 
-import android.os.Build
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,20 +8,10 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
-import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
-import java.text.SimpleDateFormat
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.text.ParseException
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
-import java.util.Date
-import java.util.Locale
 
 class BurialFormFragment : Fragment() {
 
@@ -55,7 +45,8 @@ class BurialFormFragment : Fragment() {
                         fio = fio,
                         birthDate = birthDate,
                         deathDate = deathDate,
-                        biography = biography
+                        biography = biography,
+                        guest = Guest(id = getGuestIdFromPreferences())
                     )
 
                 // Отправляем данные на сервер
@@ -68,7 +59,10 @@ class BurialFormFragment : Fragment() {
 
         return view
     }
-
+    private fun getGuestIdFromPreferences(): Long {
+        val sharedPreferences = requireActivity().getSharedPreferences("user_data", Context.MODE_PRIVATE)
+        return sharedPreferences.getLong(LoginActivity.KEY_USER_ID, -1)
+    }
     private fun submitBurialData(burial: Burial) {
         val apiService = RetrofitClient.getApiService()
         val call = apiService.registerBurial(burial)
