@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 
 class ProfileFragment : Fragment() {
@@ -21,6 +22,7 @@ class ProfileFragment : Fragment() {
     private lateinit var orderAdapter: OrderAdapter
     private lateinit var apiService: ApiService
     private lateinit var loadOrdersButton: Button
+    private lateinit var updateBalanceButton: Button
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -30,6 +32,7 @@ class ProfileFragment : Fragment() {
         setupRecyclerView(view)
         setupApiService()
         setupLoadOrdersButton(view)
+        setupUpdateBalanceButton(view)
         setupLogoutButton(view)
         loadUserData() // Загружаем данные пользователя для отображения
         return view
@@ -62,7 +65,29 @@ class ProfileFragment : Fragment() {
             loadOrders() // Обрабатываем нажатие
         }
     }
+    private fun setupUpdateBalanceButton(view: View) {
+        updateBalanceButton = view.findViewById(R.id.btn_update_balance) // Ищем кнопку
+        updateBalanceButton.setOnClickListener {
+            updateBalance() // Обрабатываем нажатие
+        }
+    }
+    private fun updateBalance() {
+        val guestId = getGuestIdFromPreferences()
+        if (guestId == -1L) {
+            Toast.makeText(requireContext(), "Ошибка: пользователь не найден.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
+        lifecycleScope.launch {
+            try {
+                val guest = apiService.getGuest(guestId)
+                val textBalance = view?.findViewById<TextView>(R.id.profile_balance)
+                textBalance?.text = "Баланс: ${guest.balance} рублей"
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Ошибка загрузки данных: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
     private fun loadOrders() {
         val guestId = getGuestIdFromPreferences()
 
@@ -131,7 +156,7 @@ class ProfileFragment : Fragment() {
             ?: regDate?.takeWhile { it.isDigit() || it == '-' } // Общий случай, оставляем только часть с датой
 
         regDateTextView?.text = formattedRegDate
-        balanceTextView?.text = "Баланс: $balance" // Обновляем текст с балансом
+        balanceTextView?.text = "Баланс: $balance рублей" // Обновляем текст с балансом
     }
     private fun setupLogoutButton(view: View) {
         val logoutButton = view.findViewById<Button>(R.id.btn_logout)

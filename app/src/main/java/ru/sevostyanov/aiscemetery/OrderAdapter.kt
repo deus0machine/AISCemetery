@@ -44,6 +44,8 @@ data class Order(
 interface ApiService : LoginActivity.LoginService {
     @GET("api/orders/guest/{guestId}")
     suspend fun getOrdersByGuest(@Path("guestId") guestId: Long): List<Order>
+    @GET("/api/guest/get/{guestId}")
+    suspend fun getGuest(@Path("guestId") guestId: Long): Guest
 }
 
 

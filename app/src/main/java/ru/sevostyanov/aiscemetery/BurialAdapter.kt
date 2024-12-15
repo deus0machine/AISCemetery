@@ -10,7 +10,8 @@ import ru.sevostyanov.aiscemetery.R
 
 class BurialAdapter(
     private val burials: List<Burial>,
-    private val onItemClick: (Burial) -> Unit
+    private val onItemClick: ((Burial) -> Unit)? = null, // Делается nullable
+    private val isSelectable: Boolean = false // Режим работы адаптера
 ) : RecyclerView.Adapter<BurialAdapter.BurialViewHolder>() {
 
     class BurialViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -19,7 +20,11 @@ class BurialAdapter(
         val biography: TextView = itemView.findViewById(R.id.tv_biography)
         val photo: ImageView = itemView.findViewById(R.id.iv_photo)
 
-        fun bind(burial: Burial, onItemClick: (Burial) -> Unit) {
+        fun bind(
+            burial: Burial,
+            onItemClick: ((Burial) -> Unit)?,
+            isSelectable: Boolean
+        ) {
             fio.text = burial.fio
 
             val birthDeathText = "${burial.birthDate} - ${burial.deathDate}"
@@ -34,8 +39,10 @@ class BurialAdapter(
                 photo.setImageResource(R.drawable.amogus) // Плейсхолдер, если фото нет
             }
 
-            // Устанавливаем обработчик клика
-            itemView.setOnClickListener { onItemClick(burial) }
+            // Клик работает в любом режиме, если есть обработчик
+            itemView.setOnClickListener {
+                onItemClick?.invoke(burial)
+            }
         }
     }
 
@@ -46,10 +53,11 @@ class BurialAdapter(
 
     override fun onBindViewHolder(holder: BurialViewHolder, position: Int) {
         val burial = burials[position]
-        holder.bind(burial, onItemClick) // Передаём данные и обработчик клика
+        holder.bind(burial, onItemClick, isSelectable) // Передаём режим работы
     }
 
     override fun getItemCount(): Int {
         return burials.size
     }
 }
+

@@ -1,0 +1,54 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/edit_fio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="ФИО"
+        android:inputType="textPersonName"
+        android:textColor="@android:color/black" />
+
+    <EditText
+        android:id="@+id/edit_birth_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Дата рождения"
+        android:inputType="date"
+        android:textColor="@android:color/black"
+        android:layout_marginTop="8dp" />
+
+    <EditText
+        android:id="@+id/edit_death_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Дата смерти"
+        android:inputType="date"
+        android:textColor="@android:color/black"
+        android:layout_marginTop="8dp" />
+
+    <EditText
+        android:id="@+id/edit_biography"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Биография"
+        android:inputType="textMultiLine"
+        android:lines="3"
+        android:gravity="top"
+        android:textColor="@android:color/black"
+        android:layout_marginTop="8dp" />
+
+    <Button
+        android:id="@+id/button_save"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сохранить"
+        android:backgroundTint="?attr/colorPrimary"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>

@@ -64,7 +64,16 @@
         android:textSize="18sp"
         android:layout_marginTop="16dp"
         android:textColor="@android:color/black" />
-
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_update_balance"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Обновить баланс"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/purple_200"
+        app:cornerRadius="8dp"
+        android:layout_marginTop="16dp"
+        android:elevation="4dp" />
     <!-- Кнопки для выхода и загрузки заказов -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_logout"

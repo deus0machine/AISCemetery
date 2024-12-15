@@ -4,4 +4,6 @@ import com.google.gson.annotations.SerializedName
 
 data class Guest(
     @SerializedName("id")
-     val id: Long)
+     val id: Long,
+    @SerializedName("balance")
+    val balance: Long)

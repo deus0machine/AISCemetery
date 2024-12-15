@@ -11,6 +11,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import ru.sevostyanov.aiscemetery.LoginActivity.LoginResponse
 import ru.sevostyanov.aiscemetery.LoginActivity.UserCredentials
@@ -56,6 +57,14 @@ object RetrofitClient {
         suspend fun getBurialById(@Path("burialId") burialId: Long): Burial
         @DELETE("/api/burials/{id}")
         suspend fun deleteBurialById(@Path("id") burialId: Long) : Response<Void>
+        @PUT("api/burials/{id}")
+        suspend fun updateBurial(@Path("id") id: Long, @Body burial: Burial): Response<Void>
+        @GET("/api/tasks/all")
+        suspend fun getTasks(): List<Task>
+        @POST("/api/tasks/perform")
+        suspend fun performTask(@Body requestBody: Map<String, String>): Response<Unit>
+
+
     }
     // Интерфейс для LoginService
     interface LoginService {

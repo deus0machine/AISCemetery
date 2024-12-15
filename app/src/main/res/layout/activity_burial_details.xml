@@ -20,7 +20,14 @@
 
 
 </com.google.android.material.appbar.MaterialToolbar>
-
+    <ImageView
+        android:id="@+id/image_burial"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_marginTop="16dp"
+        android:scaleType="centerCrop"
+        android:layout_gravity="center"
+        android:src="@drawable/amogus" />
     <!-- Описание захоронения -->
 <TextView
 android:id="@+id/text_burial_details"

@@ -43,7 +43,7 @@ class BurialsFragment : Fragment() {
         apiService = RetrofitClient.getApiService()
     }
 
-    private fun loadBurials(isMine: Boolean) {
+    private fun loadBurials(isMine: Boolean, isSelectionMode: Boolean = false, onBurialSelected: ((Burial) -> Unit)? = null) {
         val guestId = getGuestIdFromPreferences()
 
         lifecycleScope.launch {
@@ -53,15 +53,22 @@ class BurialsFragment : Fragment() {
                 } else {
                     apiService.getAllBurials()  // Получаем "Все"
                 }
-                adapter = BurialAdapter(burials) { burial ->
-                    openBurialDetails(burial, isMine) // Открываем детали
-                }
+
+                adapter = BurialAdapter(
+                    burials,
+                    onItemClick = if (isSelectionMode) onBurialSelected else { burial ->
+                        openBurialDetails(burial, isMine) // Открываем детали
+                    },
+                    isSelectable = isSelectionMode
+                )
+
                 recyclerView.adapter = adapter
             } catch (e: Exception) {
                 Toast.makeText(context, "Ошибка загрузки данных: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
     private val deleteBurialLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val isDeleted = result.data?.getBooleanExtra("isDeleted", false) ?: false
@@ -79,6 +86,7 @@ class BurialsFragment : Fragment() {
         val intent = Intent(requireContext(), BurialDetailsActivity::class.java)
         intent.putExtra("burial_id", burial.id)
         intent.putExtra("isMine", isMine)
+        intent.putExtra("guestId", getGuestIdFromPreferences())
         deleteBurialLauncher.launch(intent)
     }
 

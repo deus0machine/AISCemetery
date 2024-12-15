@@ -3,17 +3,22 @@ package ru.sevostyanov.aiscemetery
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class BurialDetailsActivity : AppCompatActivity() {
     private lateinit var apiService: RetrofitClient.ApiService
@@ -21,13 +26,15 @@ class BurialDetailsActivity : AppCompatActivity() {
     private lateinit var editButton: Button
     private lateinit var deleteButton: Button
     private var burialId: Long = -1
+    private lateinit var burialImageView: ImageView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_burial_details)
+
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
-
+        burialImageView = findViewById(R.id.image_burial)
         // Включаем кнопку "Назад"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setHomeButtonEnabled(true)
@@ -41,7 +48,7 @@ class BurialDetailsActivity : AppCompatActivity() {
         loadBurialDetails()
 
         editButton.setOnClickListener {
-            // Логика редактирования
+            showEditBurialBottomSheet()
         }
 
         deleteButton.setOnClickListener {
@@ -74,14 +81,89 @@ class BurialDetailsActivity : AppCompatActivity() {
                     deleteButton.visibility = View.GONE
                 }
 
-                burialDetailsTextView.text = "Название: ${burial.fio}\nОписание: ${burial.biography}"
+                // Установка текста деталей
+                burialDetailsTextView.text = "Название: ${burial.fio}\n" +
+                        "Дата рождения: ${burial.birthDate}" +
+                        "\nДата смерти: ${burial.deathDate}" +
+                        "\nОписание: ${burial.biography}"
+
+                // Установка изображения
+                if (burial.photo != null && burial.photo.isNotEmpty()) {
+                    val bitmap = BitmapFactory.decodeByteArray(burial.photo, 0, burial.photo.size)
+                    burialImageView.setImageBitmap(bitmap)
+                } else {
+                    burialImageView.setImageResource(R.drawable.amogus)
+                }
             } catch (e: Exception) {
                 Log.e("BurialDetailsActivity", "Ошибка загрузки: ${e.message}", e)
                 Toast.makeText(this@BurialDetailsActivity, "Ошибка загрузки: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
+    private fun showEditBurialBottomSheet() {
+        val bottomSheetDialog = BottomSheetDialog(this)
+        val bottomSheetView = layoutInflater.inflate(R.layout.bottom_sheet_edit_burial, null)
+        bottomSheetDialog.setContentView(bottomSheetView)
+        var guestId = 0L
+        var balance = 0L
+        // Получение ссылок на элементы внутри BottomSheet
+        val fioEditText = bottomSheetView.findViewById<EditText>(R.id.edit_fio)
+        val birthDateEditText = bottomSheetView.findViewById<EditText>(R.id.edit_birth_date)
+        val deathDateEditText = bottomSheetView.findViewById<EditText>(R.id.edit_death_date)
+        val biographyEditText = bottomSheetView.findViewById<EditText>(R.id.edit_biography)
+        val saveButton = bottomSheetView.findViewById<Button>(R.id.button_save)
+        // Установка текущих данных захоронения
+        lifecycleScope.launch {
+            try {
+                val burial = apiService.getBurialById(burialId)
+                guestId = intent.getLongExtra("guestId", -1)
+                balance = apiService.getGuest(guestId = guestId).balance
+                fioEditText.setText(burial.fio)
+                birthDateEditText.setText(burial.birthDate)
+                deathDateEditText.setText(burial.deathDate)
+                biographyEditText.setText(burial.biography ?: "")
+            } catch (e: Exception) {
+                Log.e("BurialDetailsActivity", "Ошибка загрузки данных: ${e.message}", e)
+                Toast.makeText(this@BurialDetailsActivity, "Ошибка загрузки данных", Toast.LENGTH_SHORT).show()
+            }
+        }
 
+        // Логика сохранения изменений
+        saveButton.setOnClickListener {
+            val updatedFio = fioEditText.text.toString()
+            val updatedBirthDate = birthDateEditText.text.toString()
+            val updatedDeathDate = deathDateEditText.text.toString()
+            val updatedBiography = biographyEditText.text.toString()
+
+
+            lifecycleScope.launch {
+                try {
+                    // Создание объекта с обновлёнными данными
+                    val updatedBurial = Burial(
+                        id = burialId,
+                        guest = Guest(guestId, balance), // сохраняем гостя без изменений
+                        fio = updatedFio,
+                        birthDate = updatedBirthDate,
+                        deathDate = updatedDeathDate,
+                        biography = if (updatedBiography.isBlank()) null else updatedBiography
+                    )
+
+                    // Отправка данных на сервер
+                    apiService.updateBurial(burialId, updatedBurial)
+                    Toast.makeText(this@BurialDetailsActivity, "Изменения сохранены", Toast.LENGTH_SHORT).show()
+                    bottomSheetDialog.dismiss()
+
+                    // Перезагрузка данных
+                    loadBurialDetails()
+                } catch (e: Exception) {
+                    Log.e("BurialDetailsActivity", "Ошибка сохранения: ${e.message}", e)
+                    Toast.makeText(this@BurialDetailsActivity, "Ошибка сохранения", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        bottomSheetDialog.show()
+    }
     private fun deleteBurial() {
         lifecycleScope.launch {
             try {
@@ -99,4 +181,5 @@ class BurialDetailsActivity : AppCompatActivity() {
             }
         }
     }
+
 }
