@@ -1,8 +1,10 @@
 package ru.sevostyanov.aiscemetery
 
+import android.content.Context
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import ru.sevostyanov.aiscemetery.LoginActivity.Companion.KEY_USER_ROLE
 
 class MainActivity : AppCompatActivity() {
 
@@ -10,8 +12,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // BottomNavigationView setup
+        val sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE)
+        val role = sharedPreferences.getString(KEY_USER_ROLE, null)
+
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
+
+        // Скрываем Admin-фрагмент, если пользователь не Admin
+        if (role != "ADMIN") {
+            val menu = navView.menu
+            menu.removeItem(R.id.navigation_admin)
+        }
 
         // Устанавливаем начальный фрагмент
         supportFragmentManager.beginTransaction().replace(R.id.nav_host_fragment, BurialsFragment()).commit()
@@ -26,15 +36,20 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navigation_profile -> {
-                    val profileFragment = ProfileFragment()
                     supportFragmentManager.beginTransaction()
-                        .replace(R.id.nav_host_fragment, profileFragment)
+                        .replace(R.id.nav_host_fragment, ProfileFragment())
                         .commit()
                     true
                 }
                 R.id.navigation_graves -> {
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.nav_host_fragment, BurialsFragment())
+                        .commit()
+                    true
+                }
+                R.id.navigation_admin -> { // Добавьте обработку для Admin
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.nav_host_fragment, AdminFragment())
                         .commit()
                     true
                 }

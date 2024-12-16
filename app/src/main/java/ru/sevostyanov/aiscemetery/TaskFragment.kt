@@ -113,7 +113,7 @@ class TaskFragment : Fragment() {
                     val imageBytes = inputStream?.readBytes()
                     inputStream?.close()
 
-                    requestBody["image"] = Base64.encodeToString(imageBytes, Base64.DEFAULT)
+                    requestBody["image"] = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
                 }
 
                 // Send request to server

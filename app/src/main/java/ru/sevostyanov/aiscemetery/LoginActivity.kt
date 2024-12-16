@@ -55,9 +55,10 @@ class LoginActivity : AppCompatActivity() {
         const val KEY_USER_CONTACTS = "user_contacts"
         const val KEY_USER_REG_DATE = "user_dateOfRegistration"
         const val KEY_USER_BALANCE = "user_balance"
+        const val KEY_USER_ROLE = "user_role" // Новый ключ для роли
     }
 
-    private fun saveUserData(userId: Long, fio: String, contacts: String, regDate: String, balance: Long) {
+    private fun saveUserData(userId: Long, fio: String, contacts: String, regDate: String, balance: Long, role: String) {
         val sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE)
         with(sharedPreferences.edit()) {
             putLong(KEY_USER_ID, userId)
@@ -65,6 +66,7 @@ class LoginActivity : AppCompatActivity() {
             putString(KEY_USER_CONTACTS, contacts)
             putString(KEY_USER_REG_DATE, regDate)
             putLong(KEY_USER_BALANCE, balance)
+            putString(KEY_USER_ROLE, role) // Сохраняем роль
             apply()
         }
     }
@@ -82,7 +84,8 @@ class LoginActivity : AppCompatActivity() {
                         userProfile?.fio ?: "Неизвестно",
                         userProfile?.contacts ?: "Неизвестно",
                         userProfile?.dateOfRegistration ?: "Неизвестно",
-                        userProfile?.balance ?: -1L
+                        userProfile?.balance ?: -1L,
+                        userProfile?.role ?: "USER" // Передаём роль, по умолчанию "USER"
                     )
 
                     // Запуск MainActivity
@@ -111,7 +114,8 @@ class LoginActivity : AppCompatActivity() {
         val contacts: String?,
         val dateOfRegistration: String?,
         val login: String?,
-        val balance: Long?
+        val balance: Long?,
+        val role: String? // Новое поле для роли
     )
 
     // Интерфейс для LoginService

@@ -1,4 +1,6 @@
 import android.graphics.BitmapFactory
+import android.util.Base64
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -32,9 +34,15 @@ class BurialAdapter(
 
             biography.text = burial.biography ?: "Нет данных о биографии"
 
-            burial.photo?.let {
-                val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
-                photo.setImageBitmap(bitmap)
+            burial.photo?.let { base64String ->
+                try {
+                    val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
+                    val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                    photo.setImageBitmap(bitmap)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    photo.setImageResource(R.drawable.amogus) // Плейсхолдер
+                }
             } ?: run {
                 photo.setImageResource(R.drawable.amogus) // Плейсхолдер, если фото нет
             }

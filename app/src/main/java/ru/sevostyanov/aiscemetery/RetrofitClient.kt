@@ -13,13 +13,14 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 import ru.sevostyanov.aiscemetery.LoginActivity.LoginResponse
 import ru.sevostyanov.aiscemetery.LoginActivity.UserCredentials
 import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterRequest
 import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterResponse
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.0.100:8080" // Твой бэкэнд URL
+    private const val BASE_URL = "http://192.168.0.101:8080" // Твой бэкэнд URL
     val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
@@ -59,11 +60,18 @@ object RetrofitClient {
         suspend fun deleteBurialById(@Path("id") burialId: Long) : Response<Void>
         @PUT("api/burials/{id}")
         suspend fun updateBurial(@Path("id") id: Long, @Body burial: Burial): Response<Void>
+        @PUT("api/burials/part/{id}")
+        suspend fun updatePartBurial(@Path("id") id: Long, @Body burial: Burial): Response<Void>
         @GET("/api/tasks/all")
         suspend fun getTasks(): List<Task>
         @POST("/api/tasks/perform")
         suspend fun performTask(@Body requestBody: Map<String, String>): Response<Unit>
 
+        @GET("api/orders/all")
+        fun getOrdersBetweenDates(
+            @Query("startDate") startDate: Long,
+            @Query("endDate") endDate: Long
+        ): Call<List<Order>>
 
     }
     // Интерфейс для LoginService

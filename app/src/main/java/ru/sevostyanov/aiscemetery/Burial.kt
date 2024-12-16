@@ -21,7 +21,7 @@ data class Burial(
       val biography: String? = null,
 
       @SerializedName("photo")
-      val photo: ByteArray? = null,
+      val photo: String? = null,
 
       @SerializedName("xCoord")
       val xCoord: Long? = null,

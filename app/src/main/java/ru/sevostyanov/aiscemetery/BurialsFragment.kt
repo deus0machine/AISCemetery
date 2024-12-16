@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
+import java.io.File
 
 class BurialsFragment : Fragment() {
     private lateinit var apiService: RetrofitClient.ApiService
@@ -87,6 +89,12 @@ class BurialsFragment : Fragment() {
         intent.putExtra("burial_id", burial.id)
         intent.putExtra("isMine", isMine)
         intent.putExtra("guestId", getGuestIdFromPreferences())
+        burial.photo?.let { photoBase64 ->
+            val decodedBytes = Base64.decode(photoBase64, Base64.DEFAULT)
+            val photoFile = File(requireContext().cacheDir, "burial_${burial.id}.jpg")
+            photoFile.writeBytes(decodedBytes)
+            intent.putExtra("burialPhotoPath", photoFile.absolutePath) // Передаем путь к файлу
+        }
         deleteBurialLauncher.launch(intent)
     }
 

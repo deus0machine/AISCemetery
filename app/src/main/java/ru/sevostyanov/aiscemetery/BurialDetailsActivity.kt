@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.util.Base64
 import android.util.Log
 import android.view.MenuItem
 import android.view.View
@@ -27,6 +28,7 @@ class BurialDetailsActivity : AppCompatActivity() {
     private lateinit var deleteButton: Button
     private var burialId: Long = -1
     private lateinit var burialImageView: ImageView
+    private var burialPhoto: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +45,13 @@ class BurialDetailsActivity : AppCompatActivity() {
         deleteButton = findViewById(R.id.button_delete_burial)
 
         burialId = intent.getLongExtra("burial_id", -1)
+        burialPhoto = intent.getStringExtra("burialPhotoPath").toString()
+        if (!burialPhoto.isNullOrEmpty()) {
+            val bitmap = BitmapFactory.decodeFile(burialPhoto)
+            burialImageView.setImageBitmap(bitmap)
+        } else {
+            burialImageView.setImageResource(R.drawable.amogus) // Плейсхолдер
+        }
         apiService = RetrofitClient.getApiService()
 
         loadBurialDetails()
@@ -88,8 +97,9 @@ class BurialDetailsActivity : AppCompatActivity() {
                         "\nОписание: ${burial.biography}"
 
                 // Установка изображения
-                if (burial.photo != null && burial.photo.isNotEmpty()) {
-                    val bitmap = BitmapFactory.decodeByteArray(burial.photo, 0, burial.photo.size)
+                if (!burial.photo.isNullOrEmpty()) {
+                    val decodedBytes = Base64.decode(burial.photo, Base64.DEFAULT)
+                    val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
                     burialImageView.setImageBitmap(bitmap)
                 } else {
                     burialImageView.setImageResource(R.drawable.amogus)
@@ -145,11 +155,12 @@ class BurialDetailsActivity : AppCompatActivity() {
                         fio = updatedFio,
                         birthDate = updatedBirthDate,
                         deathDate = updatedDeathDate,
-                        biography = if (updatedBiography.isBlank()) null else updatedBiography
+                        biography = if (updatedBiography.isBlank()) null else updatedBiography,
+                        photo = null
                     )
 
                     // Отправка данных на сервер
-                    apiService.updateBurial(burialId, updatedBurial)
+                    apiService.updatePartBurial(burialId, updatedBurial)
                     Toast.makeText(this@BurialDetailsActivity, "Изменения сохранены", Toast.LENGTH_SHORT).show()
                     bottomSheetDialog.dismiss()
 
