@@ -1,6 +1,7 @@
 package ru.sevostyanov.aiscemetery
 
 import BurialAdapter
+import android.content.Context
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Call
@@ -24,10 +25,30 @@ object RetrofitClient {
     val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
+    private var appContext: Context? = null // Контекст для доступа к SharedPreferences
 
-    val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(logging)
-        .build()
+    fun initialize(context: Context) {
+        appContext = context.applicationContext // Сохраняем контекст приложения
+    }
+
+
+    private fun getToken(): String? {
+        val sharedPreferences = appContext?.getSharedPreferences("user_data", Context.MODE_PRIVATE)
+        return sharedPreferences?.getString("user_token", null) // Считываем токен из SharedPreferences
+    }
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .addInterceptor { chain ->
+                val token = getToken()
+                val requestBuilder = chain.request().newBuilder()
+                if (!token.isNullOrEmpty()) {
+                    requestBuilder.addHeader("Authorization", "Bearer $token") // Добавляем заголовок Authorization
+                }
+                chain.proceed(requestBuilder.build())
+            }
+            .build()
+    }
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
@@ -67,7 +88,7 @@ object RetrofitClient {
         @POST("/api/tasks/perform")
         suspend fun performTask(@Body requestBody: Map<String, String>): Response<Unit>
 
-        @GET("api/orders/all")
+        @GET("/api/orders/all")
         fun getOrdersBetweenDates(
             @Query("startDate") startDate: Long,
             @Query("endDate") endDate: Long

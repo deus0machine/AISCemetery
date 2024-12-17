@@ -1,8 +1,12 @@
 package ru.sevostyanov.aiscemetery
 
+import android.content.ContentValues
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -90,18 +94,41 @@ class AdminFragment : Fragment() {
 
         var yOffset = 100f
         orders.forEach { order ->
-            val orderDetails = "ID: ${order.id}, Дата: ${order.orderDate}, Клиент: ${order.orderName}, Сумма: ${order.orderCost}"
+            val orderDetails = "ID: ${order.id}, Дата: ${order.orderDate}, Клиент: , Захоронение:  Заказ: ${order.orderName}, Сумма: ${order.orderCost}"
             canvas.drawText(orderDetails, 50f, yOffset, paint) //ПЕРЕДЕЛАТЬ ЛВЫАОДЫВЛАДВОД!!
             yOffset += 20f
         }
 
         pdfDocument.finishPage(page)
 
-        val filePath = requireContext().getExternalFilesDir(null)?.absolutePath + "/OrdersReport.pdf"
-        val file = File(filePath)
-        pdfDocument.writeTo(FileOutputStream(file))
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "OrdersReport.pdf")
+            put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS)
+        }
+
+        val resolver = requireContext().contentResolver
+        val uri = resolver.insert(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), contentValues)
+
+        uri?.let {
+            Log.d("PDFReport", "URI: $it")
+            resolver.openOutputStream(it)?.use { outputStream ->
+                pdfDocument.writeTo(outputStream)
+            }
+        }
+        uri?.let {
+            val cursor = resolver.query(it, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    Log.d("PDFReport", "File exists")
+                } else {
+                    Log.d("PDFReport", "File does not exist")
+                }
+            }
+        }
+
         pdfDocument.close()
 
-        Toast.makeText(requireContext(), "Отчет сохранён: $filePath", Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), "Отчет сохранён: $uri", Toast.LENGTH_LONG).show()
     }
 }

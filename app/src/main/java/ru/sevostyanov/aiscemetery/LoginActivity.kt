@@ -24,6 +24,7 @@ class LoginActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        RetrofitClient.initialize(this)
         setContentView(R.layout.activity_login)
 
         val loginButton = findViewById<Button>(R.id.login_button)
@@ -56,9 +57,10 @@ class LoginActivity : AppCompatActivity() {
         const val KEY_USER_REG_DATE = "user_dateOfRegistration"
         const val KEY_USER_BALANCE = "user_balance"
         const val KEY_USER_ROLE = "user_role" // Новый ключ для роли
+        const val KEY_USER_TOKEN = "user_token"
     }
 
-    private fun saveUserData(userId: Long, fio: String, contacts: String, regDate: String, balance: Long, role: String) {
+    private fun saveUserData(userId: Long, fio: String, contacts: String, regDate: String, balance: Long, role: String, token: String) {
         val sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE)
         with(sharedPreferences.edit()) {
             putLong(KEY_USER_ID, userId)
@@ -67,6 +69,7 @@ class LoginActivity : AppCompatActivity() {
             putString(KEY_USER_REG_DATE, regDate)
             putLong(KEY_USER_BALANCE, balance)
             putString(KEY_USER_ROLE, role) // Сохраняем роль
+            putString(KEY_USER_TOKEN, token)
             apply()
         }
     }
@@ -85,7 +88,8 @@ class LoginActivity : AppCompatActivity() {
                         userProfile?.contacts ?: "Неизвестно",
                         userProfile?.dateOfRegistration ?: "Неизвестно",
                         userProfile?.balance ?: -1L,
-                        userProfile?.role ?: "USER" // Передаём роль, по умолчанию "USER"
+                        userProfile?.role ?: "USER", // Передаём роль, по умолчанию "USER"
+                        userProfile?.token ?: "" // Сохраняем токен
                     )
 
                     // Запуск MainActivity
@@ -115,7 +119,8 @@ class LoginActivity : AppCompatActivity() {
         val dateOfRegistration: String?,
         val login: String?,
         val balance: Long?,
-        val role: String? // Новое поле для роли
+        val role: String?, // Новое поле для роли
+        val token: String? // Новое поле для токена
     )
 
     // Интерфейс для LoginService

@@ -32,6 +32,7 @@ class BurialDetailsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        RetrofitClient.initialize(this)
         setContentView(R.layout.activity_burial_details)
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
@@ -151,11 +152,11 @@ class BurialDetailsActivity : AppCompatActivity() {
                     // Создание объекта с обновлёнными данными
                     val updatedBurial = Burial(
                         id = burialId,
-                        guest = Guest(guestId, balance), // сохраняем гостя без изменений
+                        guest = Guest(-1,-1), // сохраняем гостя без изменений
                         fio = updatedFio,
                         birthDate = updatedBirthDate,
                         deathDate = updatedDeathDate,
-                        biography = if (updatedBiography.isBlank()) null else updatedBiography,
+                        biography = updatedBiography,
                         photo = null
                     )
 

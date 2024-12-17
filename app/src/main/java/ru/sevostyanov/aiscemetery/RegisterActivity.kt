@@ -15,6 +15,7 @@ import retrofit2.Response
 class RegisterActivity : AppCompatActivity(){
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        RetrofitClient.initialize(this)
         setContentView(R.layout.activity_register)
 
         val backToAuthorize = findViewById<TextView>(R.id.back_to_autorize_link)

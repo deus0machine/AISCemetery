@@ -11,7 +11,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        RetrofitClient.initialize(this)
         val sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE)
         val role = sharedPreferences.getString(KEY_USER_ROLE, null)
 
