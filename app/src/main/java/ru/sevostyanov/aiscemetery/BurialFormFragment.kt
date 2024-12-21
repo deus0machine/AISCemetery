@@ -10,12 +10,16 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class BurialFormFragment : Fragment() {
 
@@ -44,6 +48,12 @@ class BurialFormFragment : Fragment() {
         biographyEditText = view.findViewById(R.id.biographyEditText)
         submitButton = view.findViewById(R.id.submitButton)
 
+        birthDateEditText.addTextChangedListener {
+            validateDates()
+        }
+        deathDateEditText.addTextChangedListener {
+            validateDates()
+        }
         submitButton.setOnClickListener {
             val fio = fioEditText.text.toString()
             val birthDate = birthDateEditText.text.toString()
@@ -76,6 +86,31 @@ class BurialFormFragment : Fragment() {
         }
 
         return view
+    }
+    private fun validateDates() {
+        val birthDateString = birthDateEditText.text.toString()
+        val deathDateString = deathDateEditText.text.toString()
+
+        try {
+            val birthDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(birthDateString)
+            val deathDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(deathDateString)
+
+            if (birthDate != null && deathDate != null) {
+                if (deathDate.before(birthDate)) {
+                    deathDateEditText.error = "Дата смерти не может быть раньше даты рождения"
+                } else {
+                    deathDateEditText.error = null
+                }
+
+                if (birthDate.after(deathDate)) {
+                    birthDateEditText.error = "Дата рождения не может быть позже даты смерти"
+                } else {
+                    birthDateEditText.error = null
+                }
+            }
+        } catch (e: ParseException) {
+            // Обработка ошибки парсинга дат, если формат не совпадает
+        }
     }
     private fun getGuestIdFromPreferences(): Long {
         val sharedPreferences = requireActivity().getSharedPreferences("user_data", Context.MODE_PRIVATE)

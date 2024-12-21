@@ -21,7 +21,7 @@ import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterRequest
 import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterResponse
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.0.101:8080" // Твой бэкэнд URL
+    private const val BASE_URL = "http://192.168.0.102:8080"
     val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
@@ -65,7 +65,7 @@ object RetrofitClient {
         return retrofit.create(LoginService::class.java)
     }
     interface ApiService : ru.sevostyanov.aiscemetery.ApiService {
-        @POST("/api/register") // Убедись, что эндпоинт правильный
+        @POST("/api/register")
         fun registerUser(@Body registerRequest: RegisterRequest): Call<RegisterResponse>
         @POST("/api/burials")
         fun registerBurial(@Body burial: Burial): Call<Void>
@@ -93,6 +93,13 @@ object RetrofitClient {
             @Query("startDate") startDate: Long,
             @Query("endDate") endDate: Long
         ): Call<List<Order>>
+
+        @GET("/api/orders/orders/all")
+        fun getAllOrders(): Call<List<OrderReport>>
+        @PUT("/api/orders/update/{id}")
+        fun updateOrderStatus(@Path("id") id: Long, @Body isCompleted: Boolean): Call<Void>
+        @DELETE("/api/orders/{id}")
+        fun deleteOrder(@Path("id") id: Long): Call<Void>
 
     }
     // Интерфейс для LoginService

@@ -1,6 +1,7 @@
 package ru.sevostyanov.aiscemetery
 
 import android.content.ContentValues
+import android.content.Intent
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import android.os.Bundle
@@ -21,24 +22,54 @@ import java.io.File
 import java.io.FileOutputStream
 
 class AdminFragment : Fragment() {
-
+    private lateinit var apiService: RetrofitClient.ApiService
     private lateinit var generateReportButton: Button
+    private lateinit var viewGuestButton: Button
+    private lateinit var viewOrdersButton: Button
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_admin, container, false)
-
+        viewGuestButton = view.findViewById(R.id.view_guest_button)
+        viewOrdersButton = view.findViewById(R.id.view_orders_button)
         generateReportButton = view.findViewById(R.id.generate_report_button)
-
+        viewGuestButton.setOnClickListener{
+            //openListOfClient()
+        }
+        viewOrdersButton.setOnClickListener{
+            setupApiService()
+            openListOfOrders()
+        }
         generateReportButton.setOnClickListener {
             openDateRangePicker()
         }
 
         return view
     }
+    private fun openListOfOrders() {
+        apiService.getAllOrders().enqueue(object : Callback<List<OrderReport>> {
+            override fun onResponse(call: Call<List<OrderReport>>, response: Response<List<OrderReport>>) {
+                response.body()?.takeIf { response.isSuccessful }?.let { orders ->
+                    val intent = Intent(context, OrdersActivity::class.java).apply {
+                        putParcelableArrayListExtra("orders", ArrayList(orders))
+                    }
+                    startActivity(intent)
+                } ?: run {
+                    Toast.makeText(context, "Ошибка загрузки заказов", Toast.LENGTH_SHORT).show()
+                }
+            }
 
+            override fun onFailure(call: Call<List<OrderReport>>, t: Throwable) {
+                Toast.makeText(context, "Ошибка загрузки заказов: ${t.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun setupApiService() {
+        apiService = RetrofitClient.getApiService()
+    }
     private fun openDateRangePicker() {
         val datePicker = MaterialDatePicker.Builder.dateRangePicker()
             .setTitleText("Выберите диапазон дат")

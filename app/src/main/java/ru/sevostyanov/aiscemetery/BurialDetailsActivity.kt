@@ -19,7 +19,10 @@ import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.launch
+import java.text.ParseException
+import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.util.Locale
 
 class BurialDetailsActivity : AppCompatActivity() {
     private lateinit var apiService: RetrofitClient.ApiService
@@ -146,35 +149,60 @@ class BurialDetailsActivity : AppCompatActivity() {
             val updatedDeathDate = deathDateEditText.text.toString()
             val updatedBiography = biographyEditText.text.toString()
 
+            if (isDateValid(updatedBirthDate, updatedDeathDate)) {
+                lifecycleScope.launch {
+                    try {
+                        // Создание объекта с обновлёнными данными
+                        val updatedBurial = Burial(
+                            id = burialId,
+                            guest = Guest(-1,-1), // сохраняем гостя без изменений
+                            fio = updatedFio,
+                            birthDate = updatedBirthDate,
+                            deathDate = updatedDeathDate,
+                            biography = updatedBiography,
+                            photo = null
+                        )
 
-            lifecycleScope.launch {
-                try {
-                    // Создание объекта с обновлёнными данными
-                    val updatedBurial = Burial(
-                        id = burialId,
-                        guest = Guest(-1,-1), // сохраняем гостя без изменений
-                        fio = updatedFio,
-                        birthDate = updatedBirthDate,
-                        deathDate = updatedDeathDate,
-                        biography = updatedBiography,
-                        photo = null
-                    )
+                        // Отправка данных на сервер
+                        apiService.updatePartBurial(burialId, updatedBurial)
+                        Toast.makeText(this@BurialDetailsActivity, "Изменения сохранены", Toast.LENGTH_SHORT).show()
+                        bottomSheetDialog.dismiss()
 
-                    // Отправка данных на сервер
-                    apiService.updatePartBurial(burialId, updatedBurial)
-                    Toast.makeText(this@BurialDetailsActivity, "Изменения сохранены", Toast.LENGTH_SHORT).show()
-                    bottomSheetDialog.dismiss()
-
-                    // Перезагрузка данных
-                    loadBurialDetails()
-                } catch (e: Exception) {
-                    Log.e("BurialDetailsActivity", "Ошибка сохранения: ${e.message}", e)
-                    Toast.makeText(this@BurialDetailsActivity, "Ошибка сохранения", Toast.LENGTH_SHORT).show()
+                        // Перезагрузка данных
+                        loadBurialDetails()
+                    } catch (e: Exception) {
+                        Log.e("BurialDetailsActivity", "Ошибка сохранения: ${e.message}", e)
+                        Toast.makeText(this@BurialDetailsActivity, "Ошибка сохранения", Toast.LENGTH_SHORT).show()
+                    }
                 }
+            } else {
+                // Показать ошибку, если даты некорректны
+                Toast.makeText(this@BurialDetailsActivity, "Дата смерти не может быть раньше даты рождения", Toast.LENGTH_SHORT).show()
             }
         }
 
         bottomSheetDialog.show()
+    }
+    private fun isDateValid(birthDateString: String, deathDateString: String): Boolean {
+        try {
+            val birthDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(birthDateString)
+            val deathDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(deathDateString)
+
+            // Если хотя бы одна из дат некорректна, вернуть false
+            if (birthDate == null || deathDate == null) {
+                return false
+            }
+
+            // Проверка, что дата смерти не раньше даты рождения
+            if (deathDate.before(birthDate)) {
+                return false
+            }
+
+            return true
+        } catch (e: ParseException) {
+            // Если произошла ошибка при парсинге даты, возвращаем false
+            return false
+        }
     }
     private fun deleteBurial() {
         lifecycleScope.launch {

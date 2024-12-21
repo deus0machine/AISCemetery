@@ -12,6 +12,18 @@
         android:textSize="20sp"
         android:textStyle="bold" />
     <Button
+        android:id="@+id/view_guest_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Все пользователи"
+        android:layout_gravity="center" />
+    <Button
+        android:id="@+id/view_orders_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Все заказы"
+        android:layout_gravity="center" />
+    <Button
         android:id="@+id/generate_report_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

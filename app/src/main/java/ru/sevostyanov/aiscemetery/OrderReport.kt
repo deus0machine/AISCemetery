@@ -1,11 +1,18 @@
 package ru.sevostyanov.aiscemetery
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
 data class OrderReport(
     val id: Long,
     val orderName: String,
     val orderDescription: String,
     val orderCost: Long,
     val orderDate: String, // Формат: "yyyy-MM-dd"
-    val guest: Long,
-    val burial: Long
-)
+    val guestId: Long,
+    val guestName: String,
+    val burialId: Long,
+    val burialName: String,
+    var isCompleted: Boolean
+) : Parcelable

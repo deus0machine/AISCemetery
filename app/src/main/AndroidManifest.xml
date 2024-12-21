@@ -23,6 +23,7 @@
         <activity android:name=".RegisterActivity" />
 
         <activity android:name=".MainActivity" />
+        <activity android:name=".OrdersActivity" />
         <activity android:name=".BurialDetailsActivity" />
         <activity android:name=".LoginActivity"
             android:exported="true">
