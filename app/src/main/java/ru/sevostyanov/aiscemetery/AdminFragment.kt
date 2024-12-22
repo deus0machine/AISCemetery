@@ -36,7 +36,8 @@ class AdminFragment : Fragment() {
         viewOrdersButton = view.findViewById(R.id.view_orders_button)
         generateReportButton = view.findViewById(R.id.generate_report_button)
         viewGuestButton.setOnClickListener{
-            //openListOfClient()
+            setupApiService()
+            openListOfGuest()
         }
         viewOrdersButton.setOnClickListener{
             setupApiService()
@@ -47,6 +48,24 @@ class AdminFragment : Fragment() {
         }
 
         return view
+    }
+    private fun openListOfGuest() {
+        apiService.getAllGuests().enqueue(object : Callback<List<GuestItem>> {
+            override fun onResponse(call: Call<List<GuestItem>>, response: Response<List<GuestItem>>) {
+                response.body()?.takeIf { response.isSuccessful }?.let { guests ->
+                    val intent = Intent(context, GuestListActivity::class.java).apply {
+                        putParcelableArrayListExtra("guests", ArrayList(guests))
+                    }
+                    startActivity(intent)
+                } ?: run {
+                    Toast.makeText(context, "Ошибка загрузки гостей", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<List<GuestItem>>, t: Throwable) {
+                Toast.makeText(context, "Ошибка загрузки гостей: ${t.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
     private fun openListOfOrders() {
         apiService.getAllOrders().enqueue(object : Callback<List<OrderReport>> {

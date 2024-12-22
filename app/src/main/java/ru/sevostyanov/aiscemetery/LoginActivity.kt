@@ -44,7 +44,6 @@ class LoginActivity : AppCompatActivity() {
             }
         }
 
-        // Переход на экран регистрации
         registerLink.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
@@ -56,7 +55,7 @@ class LoginActivity : AppCompatActivity() {
         const val KEY_USER_CONTACTS = "user_contacts"
         const val KEY_USER_REG_DATE = "user_dateOfRegistration"
         const val KEY_USER_BALANCE = "user_balance"
-        const val KEY_USER_ROLE = "user_role" // Новый ключ для роли
+        const val KEY_USER_ROLE = "user_role"
         const val KEY_USER_TOKEN = "user_token"
     }
 
@@ -107,10 +106,8 @@ class LoginActivity : AppCompatActivity() {
         })
     }
 
-    // Данные для запроса
     data class UserCredentials(val login: String, val password: String)
 
-    // Ожидаемый ответ от сервера
     data class LoginResponse(
         val status: String,
         val id: Long?,
@@ -119,8 +116,8 @@ class LoginActivity : AppCompatActivity() {
         val dateOfRegistration: String?,
         val login: String?,
         val balance: Long?,
-        val role: String?, // Новое поле для роли
-        val token: String? // Новое поле для токена
+        val role: String?,
+        val token: String?
     )
 
     // Интерфейс для LoginService

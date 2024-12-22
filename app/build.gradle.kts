@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("org.jetbrains.kotlin.plugin.parcelize")
+    id("org.jetbrains.dokka") version "1.9.0"
 }
 
 android {

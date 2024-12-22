@@ -100,6 +100,10 @@ object RetrofitClient {
         fun updateOrderStatus(@Path("id") id: Long, @Body isCompleted: Boolean): Call<Void>
         @DELETE("/api/orders/{id}")
         fun deleteOrder(@Path("id") id: Long): Call<Void>
+        @GET("/api/guest/all")
+        fun getAllGuests(): Call<List<GuestItem>>
+        @DELETE("/api/guest/{id}")
+        fun deleteGuest(@Path("id") id: Long): Call<Void>
 
     }
     // Интерфейс для LoginService
