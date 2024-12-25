@@ -185,8 +185,8 @@ class BurialDetailsActivity : AppCompatActivity() {
     }
     private fun isDateValid(birthDateString: String, deathDateString: String): Boolean {
         try {
-            val birthDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(birthDateString)
-            val deathDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(deathDateString)
+            val birthDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(birthDateString)
+            val deathDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(deathDateString)
 
             // Если хотя бы одна из дат некорректна, вернуть false
             if (birthDate == null || deathDate == null) {

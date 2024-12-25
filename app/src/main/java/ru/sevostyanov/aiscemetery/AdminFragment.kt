@@ -1,5 +1,6 @@
 package ru.sevostyanov.aiscemetery
 
+import android.app.AlertDialog
 import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Paint
@@ -12,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -26,6 +28,7 @@ class AdminFragment : Fragment() {
     private lateinit var generateReportButton: Button
     private lateinit var viewGuestButton: Button
     private lateinit var viewOrdersButton: Button
+    private lateinit var sendRequestButton: Button
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -35,6 +38,7 @@ class AdminFragment : Fragment() {
         viewGuestButton = view.findViewById(R.id.view_guest_button)
         viewOrdersButton = view.findViewById(R.id.view_orders_button)
         generateReportButton = view.findViewById(R.id.generate_report_button)
+        sendRequestButton = view.findViewById(R.id.send_request_button)
         viewGuestButton.setOnClickListener{
             setupApiService()
             openListOfGuest()
@@ -46,8 +50,39 @@ class AdminFragment : Fragment() {
         generateReportButton.setOnClickListener {
             openDateRangePicker()
         }
+        sendRequestButton.setOnClickListener {
+            setupApiService()
+            sendEmailToServer()
+        }
 
         return view
+    }
+    private fun sendEmailToServer(){
+        val editText = EditText(context).apply { hint = "Введите email" }
+        AlertDialog.Builder(requireContext())
+            .setTitle("Отправка запроса")
+            .setView(editText)
+            .setPositiveButton("ОК") { _, _ ->
+                val email = editText.text.toString()
+                if (email.isNotEmpty()) {
+                    apiService.sendRequest(email).enqueue(object : Callback<Void> {
+                        override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                            if (response.isSuccessful) {
+                                Toast.makeText(context, "Запрос отправлен", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Ошибка отправки", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        override fun onFailure(call: Call<Void>, t: Throwable) {
+                            Toast.makeText(context, "Ошибка: ${t.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    })
+                } else {
+                    Toast.makeText(context, "Введите email", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
     }
     private fun openListOfGuest() {
         apiService.getAllGuests().enqueue(object : Callback<List<GuestItem>> {

@@ -21,7 +21,7 @@ import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterRequest
 import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterResponse
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.0.102:8080"
+    private const val BASE_URL = "http://192.168.0.101:8080"
     val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
@@ -104,6 +104,8 @@ object RetrofitClient {
         fun getAllGuests(): Call<List<GuestItem>>
         @DELETE("/api/guest/{id}")
         fun deleteGuest(@Path("id") id: Long): Call<Void>
+        @POST("/api/admin/request/email")
+        fun sendRequest(@Body email: String): Call<Void>
 
     }
     // Интерфейс для LoginService

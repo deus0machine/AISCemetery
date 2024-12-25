@@ -29,5 +29,11 @@
         android:layout_height="wrap_content"
         android:text="Создать отчет"
         android:layout_gravity="center" />
+    <Button
+        android:id="@+id/send_request_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Отправить отчёт на почту"
+        android:layout_gravity="center" />
 
 </LinearLayout>
