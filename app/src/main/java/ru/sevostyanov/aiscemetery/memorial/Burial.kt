@@ -1,5 +1,6 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.memorial
 import com.google.gson.annotations.SerializedName
+import ru.sevostyanov.aiscemetery.user.Guest
 
 data class Burial(
       @SerializedName("id")

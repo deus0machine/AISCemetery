@@ -3,7 +3,7 @@
     <item
         android:id="@+id/navigation_graves"
         android:icon="@drawable/memorial"
-        android:title="Захоронения" />
+        android:title="Мемориалы" />
     <item
         android:id="@+id/navigation_order"
         android:icon="@drawable/baseline_shopping_cart_24"
@@ -15,5 +15,5 @@
     <item
         android:id="@+id/navigation_admin"
         android:icon="@drawable/admin"
-        android:title="Admin" />
+        android:title="Админ" />
 </menu>

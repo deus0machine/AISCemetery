@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.fragments
 
 import android.app.AlertDialog
 import android.content.ContentValues
@@ -20,8 +20,13 @@ import com.google.android.material.datepicker.MaterialDatePicker
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.File
-import java.io.FileOutputStream
+import ru.sevostyanov.aiscemetery.user.GuestItem
+import ru.sevostyanov.aiscemetery.user.GuestListActivity
+import ru.sevostyanov.aiscemetery.order.Order
+import ru.sevostyanov.aiscemetery.order.OrderReport
+import ru.sevostyanov.aiscemetery.order.OrdersActivity
+import ru.sevostyanov.aiscemetery.R
+import ru.sevostyanov.aiscemetery.RetrofitClient
 
 class AdminFragment : Fragment() {
     private lateinit var apiService: RetrofitClient.ApiService

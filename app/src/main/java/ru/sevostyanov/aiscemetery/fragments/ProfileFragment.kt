@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.fragments
 
 import android.content.Context
 import android.content.Intent
@@ -13,8 +13,13 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
+import ru.sevostyanov.aiscemetery.order.ApiService
+import ru.sevostyanov.aiscemetery.LoginActivity
+import ru.sevostyanov.aiscemetery.order.Order
+import ru.sevostyanov.aiscemetery.order.OrderAdapter
+import ru.sevostyanov.aiscemetery.R
+import ru.sevostyanov.aiscemetery.RetrofitClient
 
 class ProfileFragment : Fragment() {
 

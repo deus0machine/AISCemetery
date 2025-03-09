@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.order
 
 import android.graphics.Color
 import android.view.LayoutInflater
@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import ru.sevostyanov.aiscemetery.R
 
 class OrdersReportAdapter(
     private val orders: List<OrderReport>,

@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.user
 
 import android.view.LayoutInflater
 import android.view.View
@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import ru.sevostyanov.aiscemetery.R
 
 class GuestAdapter(
     private val guests: MutableList<GuestItem>,

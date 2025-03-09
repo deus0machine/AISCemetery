@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.task
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -6,6 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.fragment.app.Fragment
+import ru.sevostyanov.aiscemetery.R
+import ru.sevostyanov.aiscemetery.fragments.TaskFragment
+import ru.sevostyanov.aiscemetery.memorial.BurialFormFragment
 
 class TaskChoiceFragment : Fragment() {
 

@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.memorial
 
 import android.content.Context
 import android.os.Bundle
@@ -17,6 +17,11 @@ import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import ru.sevostyanov.aiscemetery.user.Guest
+import ru.sevostyanov.aiscemetery.LoginActivity
+import ru.sevostyanov.aiscemetery.R
+import ru.sevostyanov.aiscemetery.RetrofitClient
+import ru.sevostyanov.aiscemetery.fragments.TaskFragment
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -92,8 +97,8 @@ class BurialFormFragment : Fragment() {
         val deathDateString = deathDateEditText.text.toString()
 
         try {
-            val birthDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(birthDateString)
-            val deathDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(deathDateString)
+            val birthDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(birthDateString)
+            val deathDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(deathDateString)
 
             if (birthDate != null && deathDate != null) {
                 if (deathDate.before(birthDate)) {

@@ -21,10 +21,10 @@
         android:theme="@style/Theme.AISCemetery"
         tools:targetApi="31">
         <activity android:name=".RegisterActivity" />
-        <activity android:name=".GuestListActivity" />
+        <activity android:name=".user.GuestListActivity" />
         <activity android:name=".MainActivity" />
-        <activity android:name=".OrdersActivity" />
-        <activity android:name=".BurialDetailsActivity" />
+        <activity android:name=".order.OrdersActivity" />
+        <activity android:name=".memorial.BurialDetailsActivity" />
         <activity android:name=".LoginActivity"
             android:exported="true">
             <intent-filter>

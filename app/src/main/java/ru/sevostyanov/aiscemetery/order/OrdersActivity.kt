@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.order
 
 import android.os.Bundle
 import android.widget.Button
@@ -9,6 +9,8 @@ import androidx.recyclerview.widget.RecyclerView
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import ru.sevostyanov.aiscemetery.R
+import ru.sevostyanov.aiscemetery.RetrofitClient
 
 class OrdersActivity : AppCompatActivity() {
 

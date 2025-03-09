@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.fragments
 
 import android.content.Context
 import android.net.Uri
@@ -16,6 +16,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.launch
+import ru.sevostyanov.aiscemetery.LoginActivity
+import ru.sevostyanov.aiscemetery.R
+import ru.sevostyanov.aiscemetery.RetrofitClient
+import ru.sevostyanov.aiscemetery.task.Task
+import ru.sevostyanov.aiscemetery.task.TaskAdapter
+import ru.sevostyanov.aiscemetery.memorial.Burial
+import ru.sevostyanov.aiscemetery.memorial.BurialSelectionBottomSheet
 
 class TaskFragment : Fragment() {
 

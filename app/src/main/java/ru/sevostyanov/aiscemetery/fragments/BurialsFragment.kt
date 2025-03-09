@@ -1,6 +1,5 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.fragments
 
-import BurialAdapter
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -23,6 +22,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
+import ru.sevostyanov.aiscemetery.LoginActivity
+import ru.sevostyanov.aiscemetery.R
+import ru.sevostyanov.aiscemetery.RetrofitClient
+import ru.sevostyanov.aiscemetery.memorial.Burial
+import ru.sevostyanov.aiscemetery.memorial.BurialAdapter
+import ru.sevostyanov.aiscemetery.memorial.BurialDetailsActivity
 import java.io.File
 
 class BurialsFragment : Fragment() {
@@ -119,7 +124,7 @@ class BurialsFragment : Fragment() {
     }
 
 
-    private fun openBurialDetails(burial: Burial , isMine: Boolean) {
+    private fun openBurialDetails(burial: Burial, isMine: Boolean) {
         val intent = Intent(requireContext(), BurialDetailsActivity::class.java)
         intent.putExtra("burial_id", burial.id)
         intent.putExtra("isMine", isMine)

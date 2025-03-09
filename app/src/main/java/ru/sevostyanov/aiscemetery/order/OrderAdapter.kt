@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.order
 
 import android.view.LayoutInflater
 import android.view.View
@@ -7,6 +7,9 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import retrofit2.http.GET
 import retrofit2.http.Path
+import ru.sevostyanov.aiscemetery.LoginActivity
+import ru.sevostyanov.aiscemetery.R
+import ru.sevostyanov.aiscemetery.user.Guest
 
 class OrderAdapter(private val orders: List<Order>) : RecyclerView.Adapter<OrderAdapter.OrderViewHolder>() {
 

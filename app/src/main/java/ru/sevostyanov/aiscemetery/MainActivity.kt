@@ -5,6 +5,10 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import ru.sevostyanov.aiscemetery.LoginActivity.Companion.KEY_USER_ROLE
+import ru.sevostyanov.aiscemetery.fragments.AdminFragment
+import ru.sevostyanov.aiscemetery.fragments.ProfileFragment
+import ru.sevostyanov.aiscemetery.fragments.BurialsFragment
+import ru.sevostyanov.aiscemetery.task.TaskChoiceFragment
 
 class MainActivity : AppCompatActivity() {
 

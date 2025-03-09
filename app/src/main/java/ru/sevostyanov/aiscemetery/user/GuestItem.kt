@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.user
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize

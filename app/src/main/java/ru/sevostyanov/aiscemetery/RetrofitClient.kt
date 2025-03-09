@@ -1,6 +1,5 @@
 package ru.sevostyanov.aiscemetery
 
-import BurialAdapter
 import android.content.Context
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -19,9 +18,14 @@ import ru.sevostyanov.aiscemetery.LoginActivity.LoginResponse
 import ru.sevostyanov.aiscemetery.LoginActivity.UserCredentials
 import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterRequest
 import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterResponse
+import ru.sevostyanov.aiscemetery.memorial.Burial
+import ru.sevostyanov.aiscemetery.order.Order
+import ru.sevostyanov.aiscemetery.order.OrderReport
+import ru.sevostyanov.aiscemetery.task.Task
+import ru.sevostyanov.aiscemetery.user.GuestItem
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.0.101:8080"
+    private const val BASE_URL = "http://192.168.0.102:8080"
     val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
@@ -30,8 +34,6 @@ object RetrofitClient {
     fun initialize(context: Context) {
         appContext = context.applicationContext // Сохраняем контекст приложения
     }
-
-
     private fun getToken(): String? {
         val sharedPreferences = appContext?.getSharedPreferences("user_data", Context.MODE_PRIVATE)
         return sharedPreferences?.getString("user_token", null) // Считываем токен из SharedPreferences
@@ -64,7 +66,7 @@ object RetrofitClient {
     fun getLoginService(): LoginService {
         return retrofit.create(LoginService::class.java)
     }
-    interface ApiService : ru.sevostyanov.aiscemetery.ApiService {
+    interface ApiService : ru.sevostyanov.aiscemetery.order.ApiService {
         @POST("/api/register")
         fun registerUser(@Body registerRequest: RegisterRequest): Call<RegisterResponse>
         @POST("/api/burials")

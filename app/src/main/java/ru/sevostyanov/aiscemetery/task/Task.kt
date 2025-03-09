@@ -1,4 +1,4 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.task
 
 import com.google.gson.annotations.SerializedName
 

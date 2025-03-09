@@ -1,7 +1,6 @@
-package ru.sevostyanov.aiscemetery
+package ru.sevostyanov.aiscemetery.memorial
 
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.os.Bundle
@@ -19,9 +18,11 @@ import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.launch
+import ru.sevostyanov.aiscemetery.user.Guest
+import ru.sevostyanov.aiscemetery.R
+import ru.sevostyanov.aiscemetery.RetrofitClient
 import java.text.ParseException
 import java.text.SimpleDateFormat
-import java.time.LocalDate
 import java.util.Locale
 
 class BurialDetailsActivity : AppCompatActivity() {
@@ -185,8 +186,8 @@ class BurialDetailsActivity : AppCompatActivity() {
     }
     private fun isDateValid(birthDateString: String, deathDateString: String): Boolean {
         try {
-            val birthDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(birthDateString)
-            val deathDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(deathDateString)
+            val birthDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(birthDateString)
+            val deathDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(deathDateString)
 
             // Если хотя бы одна из дат некорректна, вернуть false
             if (birthDate == null || deathDate == null) {
