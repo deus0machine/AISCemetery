@@ -52,6 +52,9 @@ android {
 }
 
 dependencies {
+    implementation("com.yandex.android:maps.mobile:4.4.0-lite")
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.16.0")
     implementation ("com.squareup.okhttp3:logging-interceptor:4.11.0")
     implementation ("com.google.code.gson:gson:2.9.0")
     implementation ("com.google.android.material:material:1.8.0")

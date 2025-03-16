@@ -27,6 +27,9 @@ class LoginActivity : AppCompatActivity() {
         RetrofitClient.initialize(this)
         setContentView(R.layout.activity_login)
 
+        // Очищаем старые данные при запуске активити
+        clearUserData()
+
         val loginButton = findViewById<Button>(R.id.login_button)
         val registerLink = findViewById<TextView>(R.id.register_link)
         val loginField = findViewById<EditText>(R.id.login_email)
@@ -124,6 +127,11 @@ class LoginActivity : AppCompatActivity() {
     interface LoginService {
         @POST("/api/login")
         fun login(@Body credentials: UserCredentials): Call<LoginResponse>
+    }
+
+    private fun clearUserData() {
+        val sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE)
+        sharedPreferences.edit().clear().apply()
     }
 }
 

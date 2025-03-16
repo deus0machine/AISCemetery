@@ -1,19 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/navigation_graves"
+        android:id="@+id/navigation_memorials"
         android:icon="@drawable/memorial"
         android:title="Мемориалы" />
     <item
-        android:id="@+id/navigation_order"
-        android:icon="@drawable/baseline_shopping_cart_24"
-        android:title="Услуги" />
+        android:id="@+id/navigation_trees"
+        android:icon="@drawable/ic_family_tree"
+        android:title="Древо" />
+    <item
+        android:id="@+id/navigation_map"
+        android:icon="@drawable/ic_map"
+        android:title="Карта" />
+    <item
+        android:id="@+id/navigation_notifications"
+        android:icon="@drawable/ic_notifications"
+        android:title="Уведомления" />
     <item
         android:id="@+id/navigation_profile"
         android:icon="@drawable/baseline_person_24"
         android:title="Профиль" />
-    <item
-        android:id="@+id/navigation_admin"
-        android:icon="@drawable/admin"
-        android:title="Админ" />
 </menu>
