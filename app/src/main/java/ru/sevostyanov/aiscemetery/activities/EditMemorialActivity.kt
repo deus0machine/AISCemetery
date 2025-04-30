@@ -150,6 +150,10 @@ class EditMemorialActivity : AppCompatActivity() {
             // TODO: Открыть карту для выбора местоположения
             showMessage("Функция выбора местоположения будет добавлена позже")
         }
+
+        findViewById<Button>(R.id.button_save).setOnClickListener {
+            saveMemorial()
+        }
     }
 
     private fun showDatePicker(title: String, onDateSelected: (Long) -> Unit) {
@@ -219,7 +223,7 @@ class EditMemorialActivity : AppCompatActivity() {
             return
         }
 
-        println("Loading image from URL: $url")
+        println("EditMemorialActivity: Loading image from URL: $url")
 
         if (!isInternetAvailable()) {
             showMessage("Нет подключения к интернету. Изображение не может быть загружено")
@@ -227,13 +231,18 @@ class EditMemorialActivity : AppCompatActivity() {
             return
         }
 
-        Glide.with(this)
-            .load(url)
-            .placeholder(R.drawable.placeholder_photo)
-            .error(R.drawable.placeholder_photo)
-            .diskCacheStrategy(DiskCacheStrategy.ALL) // Кэшируем изображения
-            .centerCrop()
-            .into(photoImageView)
+        try {
+            Glide.with(this)
+                .load(url)
+                .placeholder(R.drawable.placeholder_photo)
+                .error(R.drawable.placeholder_photo)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .centerCrop()
+                .into(photoImageView)
+        } catch (e: Exception) {
+            println("EditMemorialActivity: Ошибка при загрузке изображения: ${e.message}")
+            photoImageView.setImageResource(R.drawable.placeholder_photo)
+        }
     }
 
     private fun loadMemorial() {
@@ -241,7 +250,7 @@ class EditMemorialActivity : AppCompatActivity() {
             fioEdit.setText(memorial.fio)
             biographyEdit.setText(memorial.biography)
 
-            loadImage(memorial.photoUrl)
+            loadMemorialPhoto()
 
             memorial.birthDate?.let {
                 birthDateButton.text = it
@@ -265,6 +274,27 @@ class EditMemorialActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadMemorialPhoto() {
+        if (!memorial?.photoUrl.isNullOrBlank()) {
+            println("EditMemorialActivity: Загрузка изображения из URL: ${memorial?.photoUrl}")
+            try {
+                Glide.with(this)
+                    .load(memorial?.photoUrl)
+                    .placeholder(R.drawable.placeholder_photo)
+                    .error(R.drawable.placeholder_photo)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .centerCrop()
+                    .into(photoImageView)
+            } catch (e: Exception) {
+                println("EditMemorialActivity: Ошибка при загрузке изображения: ${e.message}")
+                photoImageView.setImageResource(R.drawable.placeholder_photo)
+            }
+        } else {
+            println("EditMemorialActivity: URL изображения пустой или null, загружаем placeholder")
+            photoImageView.setImageResource(R.drawable.placeholder_photo)
+        }
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_edit_memorial, menu)
         return true
@@ -285,49 +315,59 @@ class EditMemorialActivity : AppCompatActivity() {
     }
 
     private fun saveMemorial() {
-        val fio = fioEdit.text.toString()
-        if (fio.isBlank()) {
-            showError("Введите ФИО")
-            return
-        }
-
-        if (birthDate == null) {
-            showError("Выберите дату рождения")
-            return
-        }
-
         if (!isInternetAvailable()) {
-            showError("Нет подключения к интернету. Пожалуйста, проверьте подключение и попробуйте снова")
+            showMessage("Нет подключения к интернету")
             return
         }
+
+        val name = fioEdit.text.toString().trim()
+        val description = biographyEdit.text.toString().trim()
+        val birthDate = birthDateButton.text.toString().trim()
+        val deathDate = deathDateButton.text.toString().trim()
+        val location = mainLocationButton.text.toString().trim()
+
+        if (name.isEmpty() || birthDate.isEmpty() || deathDate.isEmpty() || location.isEmpty()) {
+            showMessage("Пожалуйста, заполните обязательные поля")
+            return
+        }
+
+        val currentMemorial = memorial
+        val newMemorial = Memorial(
+            id = currentMemorial?.id,
+            fio = name,
+            biography = description,
+            birthDate = birthDate.takeIf { it != "Выбрать дату рождения" },
+            deathDate = deathDate.takeIf { it != "Выбрать дату смерти" },
+            mainLocation = mainLocation,
+            burialLocation = burialLocation,
+            photoUrl = currentMemorial?.photoUrl,
+            isPublic = true,
+            treeId = null,
+            createdBy = null,
+            createdAt = null,
+            updatedAt = null
+        )
 
         lifecycleScope.launch {
             try {
-                val newMemorial = Memorial(
-                    id = memorial?.id,
-                    fio = fio,
-                    birthDate = birthDate?.let { formatDate(it) },
-                    deathDate = deathDate?.let { formatDate(it) },
-                    biography = biographyEdit.text.toString().takeIf { it.isNotBlank() },
-                    mainLocation = mainLocation,
-                    burialLocation = burialLocation,
-                    isPublic = memorial?.isPublic ?: false,
-                    treeId = memorial?.treeId,
-                    photoUrl = if (shouldDeletePhoto) null else memorial?.photoUrl
-                )
-
-                val savedMemorial = if (newMemorial.id == null) {
+                var savedMemorial = if (newMemorial.id == null) {
+                    println("Создание нового мемориала")
                     repository.createMemorial(newMemorial)
                 } else {
-                    repository.updateMemorial(newMemorial.id, newMemorial)
+                    println("Обновление существующего мемориала с id: ${newMemorial.id}")
+                    repository.updateMemorial(newMemorial.id!!, newMemorial)
                 }
 
+                println("Сохраненный мемориал: $savedMemorial")
+
                 // Если нужно удалить фото
-                if (shouldDeletePhoto && memorial?.photoUrl != null) {
+                if (shouldDeletePhoto && newMemorial.photoUrl != null) {
                     try {
-                        repository.deletePhoto(savedMemorial.id!!)
-                        runOnUiThread {
-                            loadImage(null)
+                        savedMemorial.id?.let { id ->
+                            repository.deletePhoto(id)
+                            runOnUiThread {
+                                loadMemorialPhoto()
+                            }
                         }
                     } catch (e: Exception) {
                         showError("Ошибка при удалении фото: ${e.message}")
@@ -336,7 +376,8 @@ class EditMemorialActivity : AppCompatActivity() {
                 }
 
                 // Если есть новое фото для загрузки
-                selectedPhotoUri?.let { uri ->
+                val currentPhotoUri = selectedPhotoUri
+                if (currentPhotoUri != null) {
                     if (!isInternetAvailable()) {
                         showError("Нет подключения к интернету. Фото будет загружено позже")
                         setResult(Activity.RESULT_OK)
@@ -345,7 +386,7 @@ class EditMemorialActivity : AppCompatActivity() {
                     }
 
                     try {
-                        contentResolver.openInputStream(uri)?.use { inputStream ->
+                        contentResolver.openInputStream(currentPhotoUri)?.use { inputStream ->
                             val fileSize = inputStream.available()
                             if (fileSize > MAX_FILE_SIZE) {
                                 showError("Размер файла не должен превышать 10MB")
@@ -353,34 +394,38 @@ class EditMemorialActivity : AppCompatActivity() {
                             }
                         }
                         try {
-                            val photoUrl = repository.uploadPhoto(savedMemorial.id!!, uri, this@EditMemorialActivity)
-                            try {
-                                // Обновляем мемориал с новым URL фото, сохраняя все остальные поля
-                                val updatedMemorial = Memorial(
-                                    id = savedMemorial.id,
-                                    fio = savedMemorial.fio,
-                                    birthDate = savedMemorial.birthDate,
-                                    deathDate = savedMemorial.deathDate,
-                                    biography = savedMemorial.biography,
-                                    mainLocation = savedMemorial.mainLocation,
-                                    burialLocation = savedMemorial.burialLocation,
-                                    photoUrl = photoUrl,
-                                    isPublic = savedMemorial.isPublic,
-                                    treeId = savedMemorial.treeId,
-                                    createdBy = null,
-                                    createdAt = null,
-                                    updatedAt = null
-                                )
-                                val finalMemorial = repository.updateMemorial(savedMemorial.id, updatedMemorial)
-                                
-                                // Обновляем UI с новым URL фото
-                                runOnUiThread {
-                                    loadImage(finalMemorial.photoUrl)
+                            savedMemorial.id?.let { id ->
+                                val photoUrl = repository.uploadPhoto(id, currentPhotoUri, this@EditMemorialActivity)
+                                try {
+                                    // Обновляем мемориал с новым URL фото, сохраняя все остальные поля
+                                    val updatedMemorial = Memorial(
+                                        id = savedMemorial.id,
+                                        fio = savedMemorial.fio,
+                                        birthDate = savedMemorial.birthDate,
+                                        deathDate = savedMemorial.deathDate,
+                                        biography = savedMemorial.biography,
+                                        mainLocation = savedMemorial.mainLocation,
+                                        burialLocation = savedMemorial.burialLocation,
+                                        photoUrl = photoUrl,
+                                        isPublic = savedMemorial.isPublic,
+                                        treeId = savedMemorial.treeId,
+                                        createdBy = null,
+                                        createdAt = null,
+                                        updatedAt = null
+                                    )
+                                    savedMemorial = repository.updateMemorial(id, updatedMemorial)
+                                    println("Мемориал обновлен с новым фото: $savedMemorial")
+                                    
+                                    // Обновляем локальную переменную и UI
+                                    memorial = savedMemorial
+                                    runOnUiThread {
+                                        loadMemorialPhoto()
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    showError("Ошибка при обновлении фото: ${e.message}")
+                                    return@launch
                                 }
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                                showError("Ошибка при обновлении фото: ${e.message}")
-                                return@launch
                             }
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -393,7 +438,12 @@ class EditMemorialActivity : AppCompatActivity() {
                     }
                 }
 
-                setResult(Activity.RESULT_OK)
+                // Возвращаем обновленный мемориал
+                val resultIntent = Intent().apply {
+                    putExtra(EXTRA_MEMORIAL, savedMemorial)
+                }
+                println("Возвращаем результат: $savedMemorial")
+                setResult(Activity.RESULT_OK, resultIntent)
                 finish()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -416,7 +466,7 @@ class EditMemorialActivity : AppCompatActivity() {
 
     companion object {
         private const val MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-        private const val EXTRA_MEMORIAL = "extra_memorial"
+        const val EXTRA_MEMORIAL = "extra_memorial"
         const val REQUEST_CREATE = 100
         const val REQUEST_EDIT = 101
 

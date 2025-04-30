@@ -21,14 +21,11 @@ import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.RetrofitClient
 import ru.sevostyanov.aiscemetery.task.Task
 import ru.sevostyanov.aiscemetery.task.TaskAdapter
-import ru.sevostyanov.aiscemetery.memorial.Burial
-import ru.sevostyanov.aiscemetery.memorial.BurialSelectionBottomSheet
 
 class TaskFragment : Fragment() {
 
     private lateinit var apiService: RetrofitClient.ApiService
     private var selectedTask: Task? = null
-    private var selectedBurial: Burial? = null
     private var selectedImageUri: Uri? = null
 
     // ActivityResultLauncher for selecting an image
@@ -36,9 +33,8 @@ class TaskFragment : Fragment() {
         uri?.let {
             selectedImageUri = it
             // Send the task to the server with the selected burial and image
-            if (selectedTask != null && selectedBurial != null) {
-                sendTaskToServer(getGuestIdFromPreferences(), selectedBurial!!, selectedTask!!, selectedImageUri)
-
+            if (selectedTask != null) {
+                sendTaskToServer(getGuestIdFromPreferences(), selectedTask!!, selectedImageUri)
             }
         }
     }
@@ -75,27 +71,20 @@ class TaskFragment : Fragment() {
             try {
                 val tasks = apiService.getTasks()
                 val guestId = getGuestIdFromPreferences()
-                val burials = apiService.getBurialsByGuest(guestId) // Load user's burials
 
                 recyclerView.adapter = TaskAdapter(tasks) { task ->
                     selectedTask = task
 
-                    // Show BottomSheetDialog to select a burial
-                    val burialSheet = BurialSelectionBottomSheet(burials) { selectedBurial ->
-                        this@TaskFragment.selectedBurial = selectedBurial
-
-                        // Check task type and act accordingly
-                        if (task.name == "Добавить фотографию") {
-                            openGalleryForImage() // Prompt user to select an image
-                        } else {
-                            sendTaskToServer(getGuestIdFromPreferences(), selectedBurial, task, null) // Send task without image
-                        }
+                    // Check task type and act accordingly
+                    if (task.name == "Добавить фотографию") {
+                        openGalleryForImage() // Prompt user to select an image
+                    } else {
+                        sendTaskToServer(getGuestIdFromPreferences(), task, null) // Send task without image
                     }
-                    burialSheet.show(parentFragmentManager, "BurialSelection")
                 }
 
             } catch (e: Exception) {
-                Toast.makeText(context, "Не можем загрузить данные", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Ошибка загрузки задач: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -104,13 +93,12 @@ class TaskFragment : Fragment() {
         imagePickerLauncher.launch("image/*")
     }
 
-    private fun sendTaskToServer(guestId: Long, burial: Burial, task: Task, imageUri: Uri?) {
+    private fun sendTaskToServer(guestId: Long, task: Task, imageUri: Uri?) {
         lifecycleScope.launch {
             try {
                 // Prepare request payload
                 val requestBody = mutableMapOf(
                     "guestId" to guestId.toString(),
-                    "burialId" to burial.id.toString(),
                     "taskId" to task.id.toString()
                 )
 
@@ -137,7 +125,7 @@ class TaskFragment : Fragment() {
     }
 
     private fun getGuestIdFromPreferences(): Long {
-        val sharedPreferences = requireActivity().getSharedPreferences("user_data", Context.MODE_PRIVATE)
-        return sharedPreferences.getLong(LoginActivity.KEY_USER_ID, -1)
+        val sharedPreferences = requireContext().getSharedPreferences("user_data", Context.MODE_PRIVATE)
+        return sharedPreferences.getLong("guest_id", -1)
     }
 }

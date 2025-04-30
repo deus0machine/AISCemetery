@@ -32,12 +32,17 @@ class OrdersActivity : AppCompatActivity() {
         ordersAdapter = OrdersReportAdapter(
             orders,
             onMarkAsCompleted = { order ->
-                // Тут обновляем статус в адаптере и на сервере
-                updateOrderStatus(order, true)
+                // Просто обновляем статус в адаптере
+                order.isCompleted = true
+                ordersRecyclerView.adapter?.notifyItemChanged(orders.indexOf(order))
+                Toast.makeText(this@OrdersActivity, "Статус обновлен", Toast.LENGTH_SHORT).show()
             },
             onDelete = { order ->
-                // Тут удаляем элемент из списка и отправляем запрос на сервер
-                deleteOrder(order)
+                // Просто удаляем из списка
+                val position = orders.indexOf(order)
+                orders.removeAt(position)
+                ordersRecyclerView.adapter?.notifyItemRemoved(position)
+                Toast.makeText(this@OrdersActivity, "Заказ удален", Toast.LENGTH_SHORT).show()
             }
         )
 
@@ -48,30 +53,16 @@ class OrdersActivity : AppCompatActivity() {
             finish() // Закрываем активность
         }
     }
+
     private fun setupApiService() {
         apiService = RetrofitClient.getApiService()
     }
-    private fun updateOrderStatus(order: OrderReport, isCompleted: Boolean) {
-        apiService.updateOrderStatus(order.id, isCompleted).enqueue(object : Callback<Void> {
-            override fun onResponse(call: Call<Void>, response: Response<Void>) {
-                if (response.isSuccessful) {
-                    order.isCompleted = isCompleted
-                    ordersRecyclerView.adapter?.notifyItemChanged(orders.indexOf(order))
-                    Toast.makeText(this@OrdersActivity, "Статус обновлен", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this@OrdersActivity, "Ошибка обновления", Toast.LENGTH_SHORT).show()
-                }
-            }
 
-            override fun onFailure(call: Call<Void>, t: Throwable) {
-                Toast.makeText(this@OrdersActivity, "Ошибка: ${t.message}", Toast.LENGTH_SHORT).show()
-            }
-        })
-    }
     override fun onResume() {
         super.onResume()
         loadOrders() // Запрашиваем обновленный список заказов с сервера
     }
+
     private fun loadOrders() {
         apiService.getAllOrders().enqueue(object : Callback<List<OrderReport>> {
             override fun onResponse(call: Call<List<OrderReport>>, response: Response<List<OrderReport>>) {
@@ -84,24 +75,6 @@ class OrdersActivity : AppCompatActivity() {
 
             override fun onFailure(call: Call<List<OrderReport>>, t: Throwable) {
                 Toast.makeText(this@OrdersActivity, "Ошибка загрузки: ${t.message}", Toast.LENGTH_SHORT).show()
-            }
-        })
-    }
-    private fun deleteOrder(order: OrderReport) {
-        apiService.deleteOrder(order.id).enqueue(object : Callback<Void> {
-            override fun onResponse(call: Call<Void>, response: Response<Void>) {
-                if (response.isSuccessful) {
-                    val position = orders.indexOf(order)
-                    orders.removeAt(position)
-                    ordersRecyclerView.adapter?.notifyItemRemoved(position)
-                    Toast.makeText(this@OrdersActivity, "Заказ удален", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this@OrdersActivity, "Ошибка удаления", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            override fun onFailure(call: Call<Void>, t: Throwable) {
-                Toast.makeText(this@OrdersActivity, "Ошибка: ${t.message}", Toast.LENGTH_SHORT).show()
             }
         })
     }

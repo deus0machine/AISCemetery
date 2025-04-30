@@ -22,7 +22,6 @@ import ru.sevostyanov.aiscemetery.LoginActivity.LoginResponse
 import ru.sevostyanov.aiscemetery.LoginActivity.UserCredentials
 import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterRequest
 import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterResponse
-import ru.sevostyanov.aiscemetery.memorial.Burial
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.models.PrivacyUpdateRequest
 import ru.sevostyanov.aiscemetery.models.User
@@ -36,7 +35,7 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.0.14:8080"
+    private const val BASE_URL = "http://192.168.0.103:8080"
     private val MEDIA_TYPE_JSON = "application/json; charset=utf-8".toMediaType()
     
     val logging = HttpLoggingInterceptor().apply {
@@ -65,7 +64,7 @@ object RetrofitClient {
                             id = id,
                             fio = "",
                             contacts = null,
-                            dateOfRegistration = Date(),
+                            dateOfRegistration = null,
                             login = "",
                             balance = 0
                         )
@@ -169,24 +168,10 @@ object RetrofitClient {
     interface ApiService : ru.sevostyanov.aiscemetery.order.ApiService {
         @POST("/api/register")
         fun registerUser(@Body registerRequest: RegisterRequest): Call<RegisterResponse>
-        @POST("/api/burials")
-        fun registerBurial(@Body burial: Burial): Call<Void>
-        @GET("/api/burials/guest/{guestId}")
-        suspend fun getBurialsByGuest(@Path("guestId") guestId: Long): List<Burial>
-        @GET("/api/burials/fio/{fio}")
-        suspend fun getBurialsByFio(@Path("fio") fio: String): List<Burial>
-        @GET("/api/burials/all")
-        suspend fun getAllBurials(): List<Burial>
-        @GET("/api/burials/burial/{burialId}")
-        suspend fun getBurialById(@Path("burialId") burialId: Long): Burial
-        @DELETE("/api/burials/{id}")
-        suspend fun deleteBurialById(@Path("id") burialId: Long) : Response<Void>
-        @PUT("api/burials/{id}")
-        suspend fun updateBurial(@Path("id") id: Long, @Body burial: Burial): Response<Void>
-        @PUT("api/burials/part/{id}")
-        suspend fun updatePartBurial(@Path("id") id: Long, @Body burial: Burial): Response<Void>
+
         @GET("/api/tasks/all")
         suspend fun getTasks(): List<Task>
+        
         @POST("/api/tasks/perform")
         suspend fun performTask(@Body requestBody: Map<String, String>): Response<Unit>
 
@@ -198,10 +183,7 @@ object RetrofitClient {
 
         @GET("/api/orders/orders/all")
         fun getAllOrders(): Call<List<OrderReport>>
-        @PUT("/api/orders/update/{id}")
-        fun updateOrderStatus(@Path("id") id: Long, @Body isCompleted: Boolean): Call<Void>
-        @DELETE("/api/orders/{id}")
-        fun deleteOrder(@Path("id") id: Long): Call<Void>
+
         @GET("/api/guest/all")
         fun getAllGuests(): Call<List<GuestItem>>
         @DELETE("/api/guest/{id}")

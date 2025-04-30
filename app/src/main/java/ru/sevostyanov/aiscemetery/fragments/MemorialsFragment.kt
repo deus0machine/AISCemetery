@@ -35,6 +35,7 @@ class MemorialsFragment : Fragment() {
     private lateinit var adapter: MemorialAdapter
     private val repository = MemorialRepository()
     private var currentMemorials = listOf<Memorial>()
+    private var isFirstLoad = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -52,7 +53,27 @@ class MemorialsFragment : Fragment() {
         setupTabLayout()
         setupSearchView()
         setupListeners()
-        loadMemorials(showOnlyMine = true)
+        
+        // Загружаем данные только при первом создании фрагмента
+        if (isFirstLoad) {
+            loadMemorials(showOnlyMine = true)
+            isFirstLoad = false
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Перезагружаем список только если были изменения
+        if (!isFirstLoad) {
+            loadMemorials(tabLayout.selectedTabPosition == 0)
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Очищаем ресурсы
+        adapter.clear()
+        currentMemorials = emptyList()
     }
 
     private fun initializeViews(view: View) {
@@ -84,7 +105,7 @@ class MemorialsFragment : Fragment() {
             onPrivacyClick = { memorial ->
                 updateMemorialPrivacy(memorial)
             },
-            showControls = tabLayout.selectedTabPosition == 0
+            showControls = true
         )
         recyclerView.adapter = adapter
     }
@@ -96,8 +117,20 @@ class MemorialsFragment : Fragment() {
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 when (tab?.position) {
-                    0 -> loadMemorials(showOnlyMine = true)
-                    1 -> loadMemorials(showOnlyMine = false)
+                    0 -> {
+                        adapter.updateControlsVisibility(true)
+                        // Загружаем данные только если они еще не загружены
+                        if (currentMemorials.isEmpty()) {
+                            loadMemorials(showOnlyMine = true)
+                        }
+                    }
+                    1 -> {
+                        adapter.updateControlsVisibility(false)
+                        // Загружаем данные только если они еще не загружены
+                        if (currentMemorials.isEmpty()) {
+                            loadMemorials(showOnlyMine = false)
+                        }
+                    }
                 }
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
@@ -168,7 +201,8 @@ class MemorialsFragment : Fragment() {
                 println("Текущий таб: ${if (showOnlyMine) "Мои" else "Публичные"}")
                 println("Количество мемориалов в списке: ${currentMemorials.size}")
                 
-                updateAdapter(showOnlyMine)
+                // Обновляем данные в адаптере
+                adapter.updateData(currentMemorials)
                 
                 if (currentMemorials.isEmpty()) {
                     showMessage(if (showOnlyMine) "У вас пока нет мемориалов" else "Нет доступных публичных мемориалов")
@@ -183,30 +217,6 @@ class MemorialsFragment : Fragment() {
                 showError(errorMessage)
             }
         }
-    }
-
-    private fun updateAdapter(showOnlyMine: Boolean) {
-        adapter = MemorialAdapter(
-            memorials = currentMemorials,
-            onItemClick = { memorial ->
-                if (showOnlyMine) {
-                    EditMemorialActivity.start(requireActivity(), memorial)
-                } else {
-                    showMemorialDetails(memorial)
-                }
-            },
-            onEditClick = { memorial ->
-                EditMemorialActivity.start(requireActivity(), memorial)
-            },
-            onDeleteClick = { memorial ->
-                showDeleteConfirmationDialog(memorial)
-            },
-            onPrivacyClick = { memorial ->
-                updateMemorialPrivacy(memorial)
-            },
-            showControls = showOnlyMine
-        )
-        recyclerView.adapter = adapter
     }
 
     private fun searchMemorials(query: String) {
@@ -299,7 +309,11 @@ class MemorialsFragment : Fragment() {
             when (requestCode) {
                 EditMemorialActivity.REQUEST_CREATE,
                 EditMemorialActivity.REQUEST_EDIT -> {
-                    loadMemorials(tabLayout.selectedTabPosition == 0)
+                    val updatedMemorial = data?.getParcelableExtra<Memorial>(EditMemorialActivity.EXTRA_MEMORIAL)
+                    if (updatedMemorial != null) {
+                        // Обновляем список мемориалов
+                        loadMemorials(tabLayout.selectedTabPosition == 0)
+                    }
                 }
             }
         }

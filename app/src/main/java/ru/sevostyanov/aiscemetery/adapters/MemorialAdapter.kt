@@ -9,7 +9,9 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.android.material.card.MaterialCardView
 import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.models.Memorial
@@ -20,7 +22,7 @@ class MemorialAdapter(
     private val onEditClick: (Memorial) -> Unit,
     private val onDeleteClick: (Memorial) -> Unit,
     private val onPrivacyClick: (Memorial) -> Unit,
-    private val showControls: Boolean = true // По умолчанию показываем кнопки управления
+    private var showControls: Boolean = true // По умолчанию показываем кнопки управления
 ) : RecyclerView.Adapter<MemorialAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -94,12 +96,19 @@ class MemorialAdapter(
         }
 
         // Загрузка фото
-        Glide.with(holder.itemView.context)
-            .load(memorial.photoUrl)
-            .placeholder(R.drawable.placeholder_photo)
-            .error(R.drawable.placeholder_photo)
-            .centerCrop()
-            .into(holder.photoImage)
+        if (!memorial.photoUrl.isNullOrBlank()) {
+            println("MemorialAdapter: Загрузка изображения из URL: ${memorial.photoUrl}")
+            Glide.with(holder.itemView.context)
+                .load(memorial.photoUrl)
+                .placeholder(R.drawable.placeholder_photo)
+                .error(R.drawable.placeholder_photo)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .centerCrop()
+                .into(holder.photoImage)
+        } else {
+            println("MemorialAdapter: URL изображения пустой или null, загружаем placeholder")
+            holder.photoImage.setImageResource(R.drawable.placeholder_photo)
+        }
 
         // Настройка обработчиков нажатий
         holder.itemView.setOnClickListener { onItemClick(memorial) }
@@ -113,12 +122,50 @@ class MemorialAdapter(
     override fun getItemCount() = memorials.size
 
     fun updateData(newMemorials: List<Memorial>) {
-        println("Обновление данных в адаптере:")
-        println("Количество мемориалов: ${newMemorials.size}")
-        println("Статусы мемориалов: ${newMemorials.map { "${it.id}: isPublic=${it.isPublic}" }}")
+        val diffCallback = object : DiffUtil.Callback() {
+            override fun getOldListSize(): Int = memorials.size
+            override fun getNewListSize(): Int = newMemorials.size
+
+            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                return memorials[oldItemPosition].id == newMemorials[newItemPosition].id
+            }
+
+            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                val oldMemorial = memorials[oldItemPosition]
+                val newMemorial = newMemorials[newItemPosition]
+                return oldMemorial == newMemorial
+            }
+        }
+
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
         memorials = newMemorials
+        diffResult.dispatchUpdatesTo(this)
+    }
+
+    fun updateControlsVisibility(showControls: Boolean) {
+        this.showControls = showControls
         notifyDataSetChanged()
     }
 
+    fun updateMemorial(updatedMemorial: Memorial) {
+        println("Обновление мемориала в адаптере: $updatedMemorial")
+        val index = memorials.indexOfFirst { it.id == updatedMemorial.id }
+        println("Индекс мемориала в списке: $index")
+        if (index != -1) {
+            val newList = memorials.toMutableList()
+            newList[index] = updatedMemorial
+            memorials = newList
+            println("Список мемориалов после обновления: $memorials")
+            notifyItemChanged(index)
+        } else {
+            println("Мемориал не найден в списке")
+        }
+    }
+
     fun getMemorials(): List<Memorial> = memorials
+
+    fun clear() {
+        memorials = emptyList()
+        notifyDataSetChanged()
+    }
 } 
