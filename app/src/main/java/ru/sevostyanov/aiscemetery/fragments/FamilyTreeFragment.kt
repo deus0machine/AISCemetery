@@ -4,25 +4,29 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import dagger.hilt.android.AndroidEntryPoint
 import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.models.FamilyTree
+import ru.sevostyanov.aiscemetery.viewmodels.FamilyTreeDetailViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
+@AndroidEntryPoint
 class FamilyTreeFragment : Fragment() {
 
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var createTreeButton: FloatingActionButton
-    private lateinit var searchTreeButton: Button
-    private val testTrees = listOf(
-        FamilyTree(1, "Род Ивановых", 1, true, "История рода с 1800 года", "2024-03-20", "2024-03-20"),
-        FamilyTree(2, "Род Петровых", 1, false, "Семейная история", "2024-03-20", "2024-03-20"),
-        FamilyTree(3, "Род Сидоровых", 2, true, "Наша семья", "2024-03-20", "2024-03-20")
-    )
+    private val viewModel: FamilyTreeDetailViewModel by viewModels()
+    private lateinit var nameTextView: TextView
+    private lateinit var descriptionTextView: TextView
+    private lateinit var ownerTextView: TextView
+    private lateinit var createdAtTextView: TextView
+    private lateinit var memorialCountTextView: TextView
+    private lateinit var addRelationFab: FloatingActionButton
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -34,31 +38,67 @@ class FamilyTreeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        initializeViews(view)
+        setupListeners()
+        observeViewModel()
+        
+        // Загрузка данных
+        arguments?.let { args ->
+            val familyTreeId = FamilyTreeFragmentArgs.fromBundle(args).familyTreeId
+            viewModel.loadFamilyTree(familyTreeId)
+        }
+    }
 
-        // Инициализация UI компонентов
-        recyclerView = view.findViewById(R.id.recycler_view_trees)
-        createTreeButton = view.findViewById(R.id.fab_create_tree)
-        searchTreeButton = view.findViewById(R.id.btn_search_tree)
+    private fun initializeViews(view: View) {
+        nameTextView = view.findViewById(R.id.text_name)
+        descriptionTextView = view.findViewById(R.id.text_description)
+        ownerTextView = view.findViewById(R.id.text_owner)
+        createdAtTextView = view.findViewById(R.id.text_created_at)
+        memorialCountTextView = view.findViewById(R.id.text_memorial_count)
+        addRelationFab = view.findViewById(R.id.fab_add_relation)
+    }
 
-        // Настройка RecyclerView
-        recyclerView.layoutManager = LinearLayoutManager(context)
-        // TODO: Создать и установить адаптер для деревьев
+    private fun setupListeners() {
+        addRelationFab.setOnClickListener {
+            // TODO: Реализовать навигацию к экрану добавления связи
+            // Можно использовать viewModel.availableMemorials для выбора мемориала
+        }
+    }
 
-        // Обработчики нажатий
-        createTreeButton.setOnClickListener {
-            // TODO: Открыть экран создания нового дерева
+    private fun observeViewModel() {
+        viewModel.familyTree.observe(viewLifecycleOwner) { tree ->
+            tree?.let { updateUI(it) }
         }
 
-        searchTreeButton.setOnClickListener {
-            // TODO: Открыть экран поиска деревьев
+        viewModel.memorialRelations.observe(viewLifecycleOwner) { relations ->
+            memorialCountTextView.text = getString(R.string.memorial_count, relations.size)
         }
 
-        // Временно отображаем тестовые данные
-        val testDataView = view.findViewById<TextView>(R.id.text_test_data)
-        testDataView.text = testTrees.joinToString("\n\n") { tree ->
-            "Название: ${tree.name}\n" +
-            "Статус: ${if (tree.isPublic) "Публичное" else "Приватное"}\n" +
-            "Описание: ${tree.description}"
+        viewModel.error.observe(viewLifecycleOwner) { error ->
+            error?.let {
+                Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            }
         }
+
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            // TODO: Показать/скрыть индикатор загрузки
+        }
+
+        viewModel.isAuthorized.observe(viewLifecycleOwner) { isAuthorized ->
+            if (!isAuthorized) {
+                // TODO: Перенаправить на экран авторизации
+            }
+        }
+    }
+
+    private fun updateUI(tree: FamilyTree) {
+        nameTextView.text = tree.name
+        descriptionTextView.text = tree.description
+        ownerTextView.text = getString(R.string.tree_owner, tree.ownerId.toString())
+        
+        val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+        createdAtTextView.text = getString(R.string.tree_created_at, 
+            dateFormat.format(tree.createdAt))
     }
 } 

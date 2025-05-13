@@ -17,7 +17,9 @@ import kotlinx.coroutines.launch
 import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.repository.MemorialRepository
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MapFragment : Fragment() {
     private lateinit var mapView: MapView
     private val repository = MemorialRepository()
@@ -36,7 +38,7 @@ class MapFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        mapView = view.findViewById(R.id.mapview)
+        mapView = view.findViewById(R.id.map_view)
         
         // Устанавливаем начальное положение карты
         mapView.map.move(
@@ -85,8 +87,8 @@ class MapFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        mapView.onStart()
         MapKitFactory.getInstance().onStart()
+        mapView.onStart()
     }
 
     override fun onStop() {

@@ -30,7 +30,8 @@ class MemorialAdapter(
         val photoImage: ImageView = view.findViewById(R.id.image_photo)
         val nameTextView: TextView = view.findViewById(R.id.text_name)
         val datesTextView: TextView = view.findViewById(R.id.text_dates)
-        val locationTextView: TextView = view.findViewById(R.id.text_location)
+        val burialLocationTextView: TextView = view.findViewById(R.id.text_burial_location)
+        val mainLocationTextView: TextView = view.findViewById(R.id.text_main_location)
         val editButton: ImageButton = view.findViewById(R.id.button_edit)
         val deleteButton: ImageButton = view.findViewById(R.id.button_delete)
         val privacyButton: ImageButton = view.findViewById(R.id.button_privacy)
@@ -54,7 +55,30 @@ class MemorialAdapter(
             append("${memorial.birthDate}")
             memorial.deathDate?.let { append(" - $it") }
         }
-        holder.locationTextView.text = memorial.mainLocation?.address ?: "Место не указано"
+
+        // Отображаем местоположение
+        memorial.mainLocation?.let { location ->
+            holder.mainLocationTextView.visibility = View.VISIBLE
+            holder.mainLocationTextView.text = if (!location.address.isNullOrBlank()) {
+                "Местоположение: ${location.address}"
+            } else {
+                "Местоположение: ${location.latitude}, ${location.longitude}"
+            }
+        } ?: run {
+            holder.mainLocationTextView.visibility = View.GONE
+        }
+
+        // Отображаем место захоронения
+        memorial.burialLocation?.let { location ->
+            holder.burialLocationTextView.visibility = View.VISIBLE
+            holder.burialLocationTextView.text = if (!location.address.isNullOrBlank()) {
+                "Место захоронения: ${location.address}"
+            } else {
+                "Место захоронения: ${location.latitude}, ${location.longitude}"
+            }
+        } ?: run {
+            holder.burialLocationTextView.visibility = View.GONE
+        }
 
         // Настройка видимости кнопок управления
         val controlsVisibility = if (showControls) View.VISIBLE else View.GONE

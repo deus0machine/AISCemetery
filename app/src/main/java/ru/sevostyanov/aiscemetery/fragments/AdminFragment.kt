@@ -20,7 +20,7 @@ import com.google.android.material.datepicker.MaterialDatePicker
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import ru.sevostyanov.aiscemetery.user.GuestItem
+import ru.sevostyanov.aiscemetery.user.Guest
 import ru.sevostyanov.aiscemetery.user.GuestListActivity
 import ru.sevostyanov.aiscemetery.order.Order
 import ru.sevostyanov.aiscemetery.order.OrderReport
@@ -90,8 +90,8 @@ class AdminFragment : Fragment() {
             .show()
     }
     private fun openListOfGuest() {
-        apiService.getAllGuests().enqueue(object : Callback<List<GuestItem>> {
-            override fun onResponse(call: Call<List<GuestItem>>, response: Response<List<GuestItem>>) {
+        apiService.getAllGuests().enqueue(object : Callback<List<Guest>> {
+            override fun onResponse(call: Call<List<Guest>>, response: Response<List<Guest>>) {
                 response.body()?.takeIf { response.isSuccessful }?.let { guests ->
                     val intent = Intent(context, GuestListActivity::class.java).apply {
                         putParcelableArrayListExtra("guests", ArrayList(guests))
@@ -102,7 +102,7 @@ class AdminFragment : Fragment() {
                 }
             }
 
-            override fun onFailure(call: Call<List<GuestItem>>, t: Throwable) {
+            override fun onFailure(call: Call<List<Guest>>, t: Throwable) {
                 Toast.makeText(context, "Ошибка загрузки гостей: ${t.message}", Toast.LENGTH_SHORT).show()
             }
         })
@@ -185,7 +185,7 @@ class AdminFragment : Fragment() {
         var yOffset = 100f
         orders.forEach { order ->
             val orderDetails = "ID: ${order.id}, Дата: ${order.orderDate}, Клиент: , Захоронение:  Заказ: ${order.orderName}, Сумма: ${order.orderCost}"
-            canvas.drawText(orderDetails, 50f, yOffset, paint) //ПЕРЕДЕЛАТЬ ЛВЫАОДЫВЛАДВОД!!
+            canvas.drawText(orderDetails, 50f, yOffset, paint)
             yOffset += 20f
         }
 
@@ -201,24 +201,18 @@ class AdminFragment : Fragment() {
         val uri = resolver.insert(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), contentValues)
 
         uri?.let {
-            Log.d("PDFReport", "URI: $it")
-            resolver.openOutputStream(it)?.use { outputStream ->
-                pdfDocument.writeTo(outputStream)
-            }
-        }
-        uri?.let {
-            val cursor = resolver.query(it, null, null, null, null)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    Log.d("PDFReport", "File exists")
-                } else {
-                    Log.d("PDFReport", "File does not exist")
+            try {
+                resolver.openOutputStream(it)?.use { outputStream ->
+                    pdfDocument.writeTo(outputStream)
                 }
+                Toast.makeText(requireContext(), "Отчет сохранен в Documents", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Ошибка сохранения отчета: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+        } ?: run {
+            Toast.makeText(requireContext(), "Ошибка создания файла", Toast.LENGTH_SHORT).show()
         }
 
         pdfDocument.close()
-
-        Toast.makeText(requireContext(), "Отчет сохранён: $uri", Toast.LENGTH_LONG).show()
     }
 }

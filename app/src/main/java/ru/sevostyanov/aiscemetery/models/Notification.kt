@@ -1,22 +1,43 @@
 package ru.sevostyanov.aiscemetery.models
 
+import com.google.gson.annotations.SerializedName
+
 data class Notification(
+    @SerializedName("id")
     val id: Long,
+    
+    @SerializedName("userId")
     val userId: Long,
+    
+    @SerializedName("type")
     val type: NotificationType,
+    
+    @SerializedName("title")
     val title: String,
+    
+    @SerializedName("message")
     val message: String,
-    val relatedId: Long? = null, // ID связанного объекта (мемориала, древа и т.д.)
-    val isRead: Boolean = false,
+    
+    @SerializedName("relatedId")
+    val relatedId: Long,
+    
+    @SerializedName("isRead")
+    val isRead: Boolean,
+    
+    @SerializedName("createdAt")
     val createdAt: String
 )
 
 enum class NotificationType {
+    @SerializedName("TREE_ACCESS_REQUEST")
     TREE_ACCESS_REQUEST,     // Запрос на доступ к древу
     TREE_ACCESS_RESPONSE,    // Ответ на запрос доступа
     TREE_EDIT_REQUEST,       // Запрос на подтверждение изменений
+    @SerializedName("MEMORIAL_COMMENT")
     MEMORIAL_COMMENT,        // Новый комментарий
+    @SerializedName("ANNIVERSARY")
     ANNIVERSARY,             // Годовщина
+    @SerializedName("SYSTEM")
     SYSTEM                   // Системное уведомление
 }
 

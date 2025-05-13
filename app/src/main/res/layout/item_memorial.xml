@@ -37,56 +37,6 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Иванов Иван Иванович" />
 
-        <TextView
-            android:id="@+id/text_dates"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="14sp"
-            app:layout_constraintEnd_toStartOf="@id/button_privacy"
-            app:layout_constraintStart_toStartOf="@id/text_name"
-            app:layout_constraintTop_toBottomOf="@id/text_name"
-            tools:text="1950-01-01 - 2020-01-01" />
-
-        <TextView
-            android:id="@+id/text_location"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="14sp"
-            app:layout_constraintEnd_toStartOf="@id/button_privacy"
-            app:layout_constraintStart_toStartOf="@id/text_name"
-            app:layout_constraintTop_toBottomOf="@id/text_dates"
-            tools:text="Москва, ул. Ленина, д. 1" />
-
-        <TextView
-            android:id="@+id/text_tree_indicator"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="14sp"
-            android:textColor="@android:color/holo_green_dark"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="@id/text_name"
-            app:layout_constraintTop_toBottomOf="@id/text_location"
-            tools:text="🌳 Древо #1"
-            tools:visibility="visible"/>
-
-        <TextView
-            android:id="@+id/text_public_indicator"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="14sp"
-            android:textColor="@android:color/holo_blue_dark"
-            android:drawablePadding="4dp"
-            android:visibility="gone"
-            app:layout_constraintStart_toEndOf="@id/text_tree_indicator"
-            app:layout_constraintTop_toBottomOf="@id/text_location"
-            android:layout_marginStart="8dp"
-            android:text="🌐 Публичный"
-            tools:visibility="visible"/>
-
         <ImageButton
             android:id="@+id/button_privacy"
             android:layout_width="wrap_content"
@@ -119,6 +69,76 @@
             android:src="@drawable/ic_delete"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/text_dates"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@id/text_name"
+            app:layout_constraintTop_toBottomOf="@id/text_name"
+            tools:text="1950-01-01 - 2020-01-01" />
+
+        <TextView
+            android:id="@+id/text_main_location"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="8dp"
+            android:textSize="13sp"
+            android:textColor="@android:color/darker_gray"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:lineSpacingExtra="2dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@id/text_name"
+            app:layout_constraintTop_toBottomOf="@id/text_dates"
+            tools:text="Местоположение: Москва, ул. Ленина, д. 1" />
+
+        <TextView
+            android:id="@+id/text_burial_location"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="8dp"
+            android:textSize="13sp"
+            android:textColor="@android:color/darker_gray"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:lineSpacingExtra="2dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@id/text_name"
+            app:layout_constraintTop_toBottomOf="@id/text_main_location"
+            tools:text="Место захоронения: Москва, ул. Ленина, д. 1" />
+
+        <TextView
+            android:id="@+id/text_tree_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="13sp"
+            android:textColor="@android:color/holo_green_dark"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="@id/text_name"
+            app:layout_constraintTop_toBottomOf="@id/text_burial_location"
+            tools:text="🌳 Древо #1"
+            tools:visibility="visible"/>
+
+        <TextView
+            android:id="@+id/text_public_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="13sp"
+            android:textColor="@android:color/holo_blue_dark"
+            android:drawablePadding="4dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_burial_location"
+            android:text="🌐 Публичный"
+            tools:visibility="visible"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

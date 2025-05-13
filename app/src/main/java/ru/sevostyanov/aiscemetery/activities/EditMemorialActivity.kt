@@ -24,12 +24,15 @@ import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import ru.sevostyanov.aiscemetery.R
+import ru.sevostyanov.aiscemetery.databinding.ActivityEditMemorialBinding
+import ru.sevostyanov.aiscemetery.fragments.LocationPickerFragment
 import ru.sevostyanov.aiscemetery.models.Location
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.repository.MemorialRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 class EditMemorialActivity : AppCompatActivity() {
 
@@ -49,8 +52,17 @@ class EditMemorialActivity : AppCompatActivity() {
     private var shouldDeletePhoto: Boolean = false
 
     private var memorial: Memorial? = null
-    private val repository = MemorialRepository()
+    private lateinit var repository: MemorialRepository
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+    private lateinit var binding: ActivityEditMemorialBinding
+    private lateinit var editFio: EditText
+    private lateinit var buttonBirthDate: Button
+    private lateinit var buttonDeathDate: Button
+    private lateinit var editBiography: EditText
+    private lateinit var buttonSave: Button
+    private lateinit var dateFormatter: SimpleDateFormat
+    private var memorialId: Long = -1L
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { selectedUri ->
@@ -95,31 +107,53 @@ class EditMemorialActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_edit_memorial)
+        
+        // Инициализация ViewBinding
+        binding = ActivityEditMemorialBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        memorial = intent.getParcelableExtra(EXTRA_MEMORIAL)
+        // Инициализация форматтера даты
+        dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
-        setupToolbar()
-        initializeViews()
-        setupListeners()
-        loadMemorial()
-    }
-
-    private fun setupToolbar() {
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
+        // Инициализация Toolbar
+        setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = if (memorial == null) "Новый мемориал" else "Редактирование"
-    }
+        supportActionBar?.setDisplayShowHomeEnabled(true)
 
-    private fun initializeViews() {
-        photoImageView = findViewById(R.id.image_photo)
-        fioEdit = findViewById(R.id.edit_fio)
-        birthDateButton = findViewById(R.id.button_birth_date)
-        deathDateButton = findViewById(R.id.button_death_date)
-        biographyEdit = findViewById(R.id.edit_biography)
-        mainLocationButton = findViewById(R.id.button_main_location)
-        burialLocationButton = findViewById(R.id.button_burial_location)
+        // Инициализация репозитория
+        repository = MemorialRepository()
+
+        // Инициализация кнопок
+        mainLocationButton = binding.mainLocationButton
+        burialLocationButton = binding.burialLocationButton
+
+        // Инициализация других view
+        editFio = binding.editFio
+        buttonBirthDate = binding.buttonBirthDate
+        buttonDeathDate = binding.buttonDeathDate
+        editBiography = binding.editBiography
+        buttonSave = binding.buttonSave
+        photoImageView = binding.photoImageView
+
+        // Загрузка мемориала, если он есть
+        val memorial = intent.getParcelableExtra<Memorial>(EXTRA_MEMORIAL)
+        if (memorial != null) {
+            this.memorial = memorial
+            memorialId = memorial.id ?: -1L
+            loadMemorial(memorialId)
+        } else {
+            // Если это новый мемориал, сбрасываем все поля
+            editFio.setText("")
+            editBiography.setText("")
+            buttonBirthDate.text = "Выбрать дату рождения"
+            buttonDeathDate.text = "Выбрать дату смерти"
+            mainLocationButton.text = "Выбрать основное местоположение"
+            burialLocationButton.text = "Выбрать место захоронения"
+            photoImageView.setImageResource(R.drawable.placeholder_photo)
+        }
+
+        // Настройка слушателей
+        setupListeners()
     }
 
     private fun setupListeners() {
@@ -127,32 +161,44 @@ class EditMemorialActivity : AppCompatActivity() {
             showPhotoOptions()
         }
 
-        birthDateButton.setOnClickListener {
-            showDatePicker("Дата рождения") { date ->
-                birthDate = date
-                birthDateButton.text = formatDate(date)
+        buttonBirthDate.setOnClickListener {
+            showDatePicker("Дата рождения") { timestamp ->
+                birthDate = timestamp
+                buttonBirthDate.text = dateFormatter.format(Date(timestamp))
             }
         }
 
-        deathDateButton.setOnClickListener {
-            showDatePicker("Дата смерти") { date ->
-                deathDate = date
-                deathDateButton.text = formatDate(date)
+        buttonDeathDate.setOnClickListener {
+            showDatePicker("Дата смерти") { timestamp ->
+                deathDate = timestamp
+                buttonDeathDate.text = dateFormatter.format(Date(timestamp))
             }
+        }
+
+        buttonSave.setOnClickListener {
+            saveMemorial()
         }
 
         mainLocationButton.setOnClickListener {
-            // TODO: Открыть карту для выбора местоположения
-            showMessage("Функция выбора местоположения будет добавлена позже")
+            showLocationPicker(true)
         }
 
         burialLocationButton.setOnClickListener {
-            // TODO: Открыть карту для выбора местоположения
-            showMessage("Функция выбора местоположения будет добавлена позже")
+            showLocationPicker(false)
         }
 
-        findViewById<Button>(R.id.button_save).setOnClickListener {
-            saveMemorial()
+        // Подписываемся на результат выбора местоположения
+        supportFragmentManager.setFragmentResultListener("location_picker_result", this) { _, bundle ->
+            val location = bundle.getParcelable<Location>("location")
+            if (location != null) {
+                if (bundle.getBoolean("is_main_location", true)) {
+                    mainLocation = location
+                    mainLocationButton.text = location.address ?: "Основное местоположение выбрано"
+                } else {
+                    burialLocation = location
+                    burialLocationButton.text = location.address ?: "Место захоронения выбрано"
+                }
+            }
         }
     }
 
@@ -161,8 +207,8 @@ class EditMemorialActivity : AppCompatActivity() {
             .setTitleText(title)
             .build()
 
-        picker.addOnPositiveButtonClickListener { date ->
-            onDateSelected(date)
+        picker.addOnPositiveButtonClickListener { timestamp ->
+            onDateSelected(timestamp)
         }
 
         picker.show(supportFragmentManager, null)
@@ -245,53 +291,103 @@ class EditMemorialActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadMemorial() {
-        memorial?.let { memorial ->
-            fioEdit.setText(memorial.fio)
-            biographyEdit.setText(memorial.biography)
-
-            loadMemorialPhoto()
-
-            memorial.birthDate?.let {
-                birthDateButton.text = it
-                birthDate = dateFormat.parse(it)?.time
-            }
-
-            memorial.deathDate?.let {
-                deathDateButton.text = it
-                deathDate = dateFormat.parse(it)?.time
-            }
-
-            mainLocation = memorial.mainLocation
-            mainLocation?.let {
-                mainLocationButton.text = it.address ?: "Местоположение выбрано"
-            }
-
-            burialLocation = memorial.burialLocation
-            burialLocation?.let {
-                burialLocationButton.text = it.address ?: "Место захоронения выбрано"
-            }
-        }
-    }
-
-    private fun loadMemorialPhoto() {
-        if (!memorial?.photoUrl.isNullOrBlank()) {
-            println("EditMemorialActivity: Загрузка изображения из URL: ${memorial?.photoUrl}")
+    private fun loadMemorial(id: Long) {
+        lifecycleScope.launch {
             try {
-                Glide.with(this)
-                    .load(memorial?.photoUrl)
-                    .placeholder(R.drawable.placeholder_photo)
-                    .error(R.drawable.placeholder_photo)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .centerCrop()
-                    .into(photoImageView)
+                val memorial = repository.getMemorialById(id)
+                println("Загруженный мемориал: $memorial")
+                memorial?.let {
+                    editFio.setText(it.fio)
+                    editBiography.setText(it.biography)
+                    
+                    // Установка дат
+                    it.birthDate?.let { date ->
+                        try {
+                            // Пробуем разные форматы даты
+                            val formats = listOf(
+                                "yyyy-MM-dd",
+                                "dd.MM.yyyy",
+                                "yyyy/MM/dd"
+                            )
+                            
+                            var parsedDate: Date? = null
+                            for (format in formats) {
+                                try {
+                                    val dateFormat = SimpleDateFormat(format, Locale.getDefault())
+                                    val tempDate = dateFormat.parse(date)
+                                    if (tempDate != null) {
+                                        parsedDate = tempDate
+                                        break
+                                    }
+                                } catch (e: Exception) {
+                                    continue
+                                }
+                            }
+                            
+                            parsedDate?.let { finalDate ->
+                                birthDate = finalDate.time
+                                buttonBirthDate.text = dateFormatter.format(finalDate)
+                            } ?: run {
+                                println("Не удалось распарсить дату рождения: $date")
+                            }
+                        } catch (e: Exception) {
+                            println("Ошибка при обработке даты рождения: ${e.message}")
+                        }
+                    }
+                    
+                    it.deathDate?.let { date ->
+                        try {
+                            // Пробуем разные форматы даты
+                            val formats = listOf(
+                                "yyyy-MM-dd",
+                                "dd.MM.yyyy",
+                                "yyyy/MM/dd"
+                            )
+                            
+                            var parsedDate: Date? = null
+                            for (format in formats) {
+                                try {
+                                    val dateFormat = SimpleDateFormat(format, Locale.getDefault())
+                                    val tempDate = dateFormat.parse(date)
+                                    if (tempDate != null) {
+                                        parsedDate = tempDate
+                                        break
+                                    }
+                                } catch (e: Exception) {
+                                    continue
+                                }
+                            }
+                            
+                            parsedDate?.let { finalDate ->
+                                deathDate = finalDate.time
+                                buttonDeathDate.text = dateFormatter.format(finalDate)
+                            } ?: run {
+                                println("Не удалось распарсить дату смерти: $date")
+                            }
+                        } catch (e: Exception) {
+                            println("Ошибка при обработке даты смерти: ${e.message}")
+                        }
+                    }
+
+                    // Установка местоположений
+                    it.mainLocation?.let { location ->
+                        mainLocation = location
+                        mainLocationButton.text = location.address ?: "Основное местоположение выбрано"
+                    }
+                    it.burialLocation?.let { location ->
+                        burialLocation = location
+                        burialLocationButton.text = location.address ?: "Место захоронения выбрано"
+                    }
+
+                    // Загрузка изображения
+                    it.photoUrl?.let { url ->
+                        loadImage(url)
+                    }
+                }
             } catch (e: Exception) {
-                println("EditMemorialActivity: Ошибка при загрузке изображения: ${e.message}")
-                photoImageView.setImageResource(R.drawable.placeholder_photo)
+                e.printStackTrace()
+                showError("Ошибка загрузки мемориала: ${e.message}")
             }
-        } else {
-            println("EditMemorialActivity: URL изображения пустой или null, загружаем placeholder")
-            photoImageView.setImageResource(R.drawable.placeholder_photo)
         }
     }
 
@@ -320,14 +416,11 @@ class EditMemorialActivity : AppCompatActivity() {
             return
         }
 
-        val name = fioEdit.text.toString().trim()
-        val description = biographyEdit.text.toString().trim()
-        val birthDate = birthDateButton.text.toString().trim()
-        val deathDate = deathDateButton.text.toString().trim()
-        val location = mainLocationButton.text.toString().trim()
+        val name = editFio.text.toString().trim()
+        val description = editBiography.text.toString().trim()
 
-        if (name.isEmpty() || birthDate.isEmpty() || deathDate.isEmpty() || location.isEmpty()) {
-            showMessage("Пожалуйста, заполните обязательные поля")
+        if (name.isEmpty()) {
+            showMessage("Пожалуйста, укажите ФИО")
             return
         }
 
@@ -336,8 +429,8 @@ class EditMemorialActivity : AppCompatActivity() {
             id = currentMemorial?.id,
             fio = name,
             biography = description,
-            birthDate = birthDate.takeIf { it != "Выбрать дату рождения" },
-            deathDate = deathDate.takeIf { it != "Выбрать дату смерти" },
+            birthDate = birthDate?.let { formatDateForServer(it) },
+            deathDate = deathDate?.let { formatDateForServer(it) },
             mainLocation = mainLocation,
             burialLocation = burialLocation,
             photoUrl = currentMemorial?.photoUrl,
@@ -366,7 +459,7 @@ class EditMemorialActivity : AppCompatActivity() {
                         savedMemorial.id?.let { id ->
                             repository.deletePhoto(id)
                             runOnUiThread {
-                                loadMemorialPhoto()
+                                loadMemorial(memorialId)
                             }
                         }
                     } catch (e: Exception) {
@@ -419,7 +512,7 @@ class EditMemorialActivity : AppCompatActivity() {
                                     // Обновляем локальную переменную и UI
                                     memorial = savedMemorial
                                     runOnUiThread {
-                                        loadMemorialPhoto()
+                                        loadMemorial(memorialId)
                                     }
                                 } catch (e: Exception) {
                                     e.printStackTrace()
@@ -452,8 +545,10 @@ class EditMemorialActivity : AppCompatActivity() {
         }
     }
 
-    private fun formatDate(timestamp: Long): String {
-        return dateFormat.format(Date(timestamp))
+    private fun formatDateForServer(timestamp: Long): String {
+        val date = Date(timestamp)
+        val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return format.format(date)
     }
 
     private fun showError(message: String) {
@@ -462,6 +557,16 @@ class EditMemorialActivity : AppCompatActivity() {
 
     private fun showMessage(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showLocationPicker(isMainLocation: Boolean) {
+        val fragment = LocationPickerFragment()
+        val bundle = Bundle().apply {
+            putBoolean("is_main_location", isMainLocation)
+        }
+        fragment.arguments = bundle
+        
+        fragment.show(supportFragmentManager, "location_picker")
     }
 
     companion object {

@@ -1,6 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">AIS Cemetery</string>
+    <string name="app_name">AI Cemetery</string>
     <string name="select_start_date">Дата от</string>
     <string name="select_end_date">Дата до</string>
+    <string name="delete_family_tree_title">Удалить генеалогическое дерево</string>
+    <string name="delete_family_tree_message">Вы уверены, что хотите удалить это генеалогическое дерево? Это действие нельзя отменить.</string>
+    <string name="delete">Удалить</string>
+    <string name="cancel">Отмена</string>
+    <string name="select_memorial">Выберите мемориал</string>
+    <string name="source_memorial">Исходный мемориал</string>
+    <string name="target_memorial">Целевой мемориал</string>
+    <string name="relation_type">Тип связи</string>
+    <string name="tree_name">Название</string>
+    <string name="tree_description">Описание</string>
+    <string name="tree_owner">Владелец: %s</string>
+    <string name="is_public">Публичный доступ</string>
+    <string name="public_tree">Публичное</string>
+    <string name="private_tree">Приватное</string>
+    <string name="add_memorial_title">Добавить мемориал</string>
+    <string name="add_relation_title">Добавить связь</string>
+    <string name="add">Добавить</string>
+    <string name="edit_tree">Редактировать дерево</string>
+    <string name="title_memorials">Мемориалы</string>
+    <string name="title_family_trees">Древо</string>
+    <string name="title_map">Карта</string>
+    <string name="title_notifications">Уведомления</string>
+    <string name="no_notifications">Нет новых уведомлений</string>
+    <string name="title_profile">Профиль</string>
+    <string name="add_family_tree">Добавить древо</string>
+    <string name="edit">Редактировать</string>
+    <string name="created_at">Создано: %s</string>
+    <string name="memorial_count">Мемориалов: %d</string>
+    <string name="tree_created_at">Создано: %s</string>
 </resources>

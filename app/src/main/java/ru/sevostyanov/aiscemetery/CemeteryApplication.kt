@@ -2,7 +2,9 @@ package ru.sevostyanov.aiscemetery
 
 import android.app.Application
 import com.yandex.mapkit.MapKitFactory
+import dagger.hilt.android.HiltAndroidApp
 
+@HiltAndroidApp
 class CemeteryApplication : Application() {
     override fun onCreate() {
         super.onCreate()

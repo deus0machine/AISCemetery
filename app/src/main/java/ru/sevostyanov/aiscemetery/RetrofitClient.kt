@@ -1,6 +1,7 @@
 package ru.sevostyanov.aiscemetery
 
 import android.content.Context
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.TypeAdapter
@@ -18,11 +19,9 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
-import ru.sevostyanov.aiscemetery.LoginActivity.LoginResponse
-import ru.sevostyanov.aiscemetery.LoginActivity.UserCredentials
-import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterRequest
-import ru.sevostyanov.aiscemetery.RegisterActivity.RegisterResponse
+import ru.sevostyanov.aiscemetery.models.FamilyTree
 import ru.sevostyanov.aiscemetery.models.Memorial
+import ru.sevostyanov.aiscemetery.models.MemorialRelation
 import ru.sevostyanov.aiscemetery.models.PrivacyUpdateRequest
 import ru.sevostyanov.aiscemetery.models.User
 import ru.sevostyanov.aiscemetery.order.Order
@@ -33,147 +32,133 @@ import java.lang.reflect.Type
 import java.nio.charset.Charset
 import java.util.Date
 import java.util.concurrent.TimeUnit
+import okhttp3.Interceptor
+import okhttp3.Request
+import ru.sevostyanov.aiscemetery.user.Guest
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.0.103:8080"
-    private val MEDIA_TYPE_JSON = "application/json; charset=utf-8".toMediaType()
-    
-    val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-        setLevel(HttpLoggingInterceptor.Level.BODY)
-    }
-    private var appContext: Context? = null // Контекст для доступа к SharedPreferences
-
-    class GuestItemTypeAdapter : TypeAdapter<GuestItem?>() {
-        private val gson = Gson()
-
-        override fun write(out: JsonWriter, value: GuestItem?) {
-            if (value == null) {
-                out.nullValue()
-            } else {
-                gson.toJson(value, GuestItem::class.java, out)
-            }
-        }
-
-        override fun read(reader: JsonReader): GuestItem? {
-            return try {
-                when (reader.peek()) {
-                    com.google.gson.stream.JsonToken.NUMBER -> {
-                        val id = reader.nextLong()
-                        GuestItem(
-                            id = id,
-                            fio = "",
-                            contacts = null,
-                            dateOfRegistration = null,
-                            login = "",
-                            balance = 0
-                        )
-                    }
-                    com.google.gson.stream.JsonToken.BEGIN_OBJECT -> {
-                        gson.fromJson(reader, GuestItem::class.java)
-                    }
-                    com.google.gson.stream.JsonToken.NULL -> {
-                        reader.nextNull()
-                        null
-                    }
-                    else -> {
-                        reader.skipValue()
-                        null
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
-            }
-        }
-    }
+    private const val TAG = "RetrofitClient"
+    private const val BASE_URL = "http://192.168.0.101:8080/"
+    private var token: String? = null
+    private var apiService: ApiService? = null
+    private var loginService: LoginService? = null
+    private var applicationContext: Context? = null
 
     fun initialize(context: Context) {
-        appContext = context.applicationContext // Сохраняем контекст приложения
-    }
-    private fun getToken(): String? {
-        val sharedPreferences = appContext?.getSharedPreferences("user_data", Context.MODE_PRIVATE)
-        return sharedPreferences?.getString("user_token", null) // Считываем токен из SharedPreferences
-    }
-    private val gson: Gson by lazy {
-        GsonBuilder()
-            .registerTypeAdapter(GuestItem::class.java, GuestItemTypeAdapter())
-            .setLenient()
-            .create()
-    }
-
-    private val stringConverter: Converter.Factory = object : Converter.Factory() {
-        override fun responseBodyConverter(
-            type: Type,
-            annotations: Array<out Annotation>,
-            retrofit: Retrofit
-        ): Converter<ResponseBody, *>? {
-            if (type == String::class.java) {
-                return Converter<ResponseBody, String> { body -> body.string() }
-            }
-            return null
+        if (applicationContext == null) {
+            applicationContext = context.applicationContext
+            setupRetrofit()
         }
     }
 
-    private val okHttpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .addInterceptor(logging)
+    private fun setupRetrofit() {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        val client = OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
             .addInterceptor { chain ->
-                val token = getToken()
-                val original = chain.request()
-                
-                // Добавляем кодировку UTF-8 для всех запросов
-                val requestBuilder = original.newBuilder()
-                    .header("Accept-Charset", "utf-8")
-                
-                // Устанавливаем Content-Type только для не-multipart запросов
-                if (!original.url.toString().contains("/photo")) {
-                    requestBuilder.header("Content-Type", "application/json; charset=utf-8")
+                val original: Request = chain.request()
+                val requestBuilder: Request.Builder = original.newBuilder()
+                    .header("Accept", "application/json")
+                    .method(original.method, original.body)
+
+                token?.let {
+                    requestBuilder.header("Authorization", "Bearer $it")
+                    Log.d(TAG, "Adding token to request: Bearer $it")
+                } ?: run {
+                    Log.d(TAG, "No token available for request")
                 }
-                
-                if (!token.isNullOrEmpty()) {
-                    requestBuilder.addHeader("Authorization", "Bearer $token")
-                }
-                
-                // Для GET-запросов с параметрами перекодируем их в UTF-8
-                if (original.method == "GET" && original.url.query != null) {
-                    val originalUrl = original.url.toString()
-                    val encodedUrl = originalUrl.replace("+", "%20")
-                    requestBuilder.url(encodedUrl)
-                }
-                
-                chain.proceed(requestBuilder.build())
+
+                val request: Request = requestBuilder.build()
+                chain.proceed(request)
             }
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
+
+        val gson: Gson = GsonBuilder()
+            .setLenient()
+            .create()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+
+        apiService = retrofit.create(ApiService::class.java)
+        loginService = retrofit.create(LoginService::class.java)
     }
 
-    private val retrofit: Retrofit by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(stringConverter)
-            .addConverterFactory(GsonConverterFactory.create(gson))
-            .client(okHttpClient)
-            .build()
+    fun setToken(newToken: String) {
+        Log.d(TAG, "Setting new token: $newToken")
+        token = newToken
+        setupRetrofit()
+    }
+
+    fun clearToken() {
+        Log.d(TAG, "Clearing token")
+        token = null
+        setupRetrofit()
     }
 
     fun getApiService(): ApiService {
-        return retrofit.create(ApiService::class.java)
+        if (apiService == null) {
+            throw IllegalStateException("RetrofitClient not initialized")
+        }
+        return apiService!!
     }
+
     fun getLoginService(): LoginService {
-        return retrofit.create(LoginService::class.java)
+        if (loginService == null) {
+            throw IllegalStateException("RetrofitClient not initialized")
+        }
+        return loginService!!
     }
-    interface ApiService : ru.sevostyanov.aiscemetery.order.ApiService {
+
+    interface LoginService {
+        @POST("/api/login")
+        fun login(@Body credentials: UserCredentials): Call<LoginResponse>
+    }
+
+    data class UserCredentials(val login: String, val password: String)
+
+    data class LoginResponse(
+        val status: String,
+        val id: Long?,
+        val fio: String?,
+        val contacts: String?,
+        val dateOfRegistration: String?,
+        val login: String?,
+        val balance: Long?,
+        val role: String?,
+        val token: String?
+    )
+
+    data class RegisterRequest(
+        val login: String,
+        val password: String,
+        val fio: String,
+        val contacts: String
+    )
+
+    data class RegisterResponse(
+        val status: String,
+        val message: String
+    )
+
+    interface ApiService {
         @POST("/api/register")
         fun registerUser(@Body registerRequest: RegisterRequest): Call<RegisterResponse>
 
-        @GET("/api/tasks/all")
-        suspend fun getTasks(): List<Task>
-        
-        @POST("/api/tasks/perform")
-        suspend fun performTask(@Body requestBody: Map<String, String>): Response<Unit>
+        @GET("api/orders/guest/{guestId}")
+        suspend fun getOrdersByGuest(@Path("guestId") guestId: Long): List<Order>
+
+        @GET("/api/guest/get/{guestId}")
+        suspend fun getGuest(@Path("guestId") guestId: Long): Guest
 
         @GET("/api/orders/all")
         fun getOrdersBetweenDates(
@@ -185,11 +170,19 @@ object RetrofitClient {
         fun getAllOrders(): Call<List<OrderReport>>
 
         @GET("/api/guest/all")
-        fun getAllGuests(): Call<List<GuestItem>>
+        fun getAllGuests(): Call<List<Guest>>
+
         @DELETE("/api/guest/{id}")
         fun deleteGuest(@Path("id") id: Long): Call<Void>
+
         @POST("/api/admin/request/email")
         fun sendRequest(@Body email: String): Call<Void>
+
+        @GET("/api/tasks/all")
+        suspend fun getTasks(): List<Task>
+        
+        @POST("/api/tasks/perform")
+        suspend fun performTask(@Body requestBody: Map<String, String>): Response<Unit>
 
         @GET("/api/memorials")
         suspend fun getAllMemorials(): List<Memorial>
@@ -230,10 +223,48 @@ object RetrofitClient {
             @Query("endDate") endDate: String?,
             @Query("isPublic") isPublic: Boolean?
         ): List<Memorial>
-    }
-    // Интерфейс для LoginService
-    interface LoginService {
-        @POST("/api/login")
-        fun login(@Body credentials: UserCredentials): Call<LoginResponse>
+
+        @GET("/api/family-trees/my")
+        suspend fun getMyFamilyTrees(): List<FamilyTree>
+
+        @GET("/api/family-trees/public")
+        suspend fun getPublicFamilyTrees(): List<FamilyTree>
+
+        @GET("/api/family-trees/accessible")
+        suspend fun getAccessibleFamilyTrees(): List<FamilyTree>
+
+        @GET("/api/family-trees/{id}")
+        suspend fun getFamilyTreeById(@Path("id") id: Long): FamilyTree
+
+        @POST("/api/family-trees")
+        suspend fun createFamilyTree(@Body familyTree: FamilyTree): FamilyTree
+
+        @PUT("/api/family-trees/{id}")
+        suspend fun updateFamilyTree(@Path("id") id: Long, @Body familyTree: FamilyTree): FamilyTree
+
+        @DELETE("/api/family-trees/{id}")
+        suspend fun deleteFamilyTree(@Path("id") id: Long)
+
+        @GET("/api/family-trees/{familyTreeId}/memorial-relations")
+        suspend fun getMemorialRelations(@Path("familyTreeId") familyTreeId: Long): List<MemorialRelation>
+
+        @POST("/api/family-trees/{familyTreeId}/memorial-relations")
+        suspend fun createMemorialRelation(
+            @Path("familyTreeId") familyTreeId: Long,
+            @Body relation: MemorialRelation
+        ): MemorialRelation
+
+        @PUT("/api/family-trees/{familyTreeId}/memorial-relations/{relationId}")
+        suspend fun updateMemorialRelation(
+            @Path("familyTreeId") familyTreeId: Long,
+            @Path("relationId") relationId: Long,
+            @Body relation: MemorialRelation
+        ): MemorialRelation
+
+        @DELETE("/api/family-trees/{familyTreeId}/memorial-relations/{relationId}")
+        suspend fun deleteMemorialRelation(
+            @Path("familyTreeId") familyTreeId: Long,
+            @Path("relationId") relationId: Long
+        )
     }
 }

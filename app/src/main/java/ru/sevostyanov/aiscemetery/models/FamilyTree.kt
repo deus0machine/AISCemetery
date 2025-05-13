@@ -1,13 +1,45 @@
 package ru.sevostyanov.aiscemetery.models
 
+import com.google.gson.annotations.SerializedName
+
 data class FamilyTree(
+    @SerializedName("id")
     val id: Long,
+    
+    @SerializedName("name")
     val name: String,
+    
+    @SerializedName("description")
+    val description: String,
+    
+    @SerializedName("ownerId")
     val ownerId: Long,
+    
+    @SerializedName("isPublic")
     val isPublic: Boolean,
-    val description: String? = null,
+    
+    @SerializedName("createdAt")
     val createdAt: String,
+    
+    @SerializedName("updatedAt")
     val updatedAt: String
+)
+
+data class MemorialRelation(
+    @SerializedName("id")
+    val id: Long,
+    
+    @SerializedName("familyTreeId")
+    val familyTreeId: Long,
+    
+    @SerializedName("sourceMemorial")
+    val sourceMemorial: Memorial,
+    
+    @SerializedName("targetMemorial")
+    val targetMemorial: Memorial,
+    
+    @SerializedName("relationType")
+    val relationType: RelationType
 )
 
 // Модель для прав доступа к древу

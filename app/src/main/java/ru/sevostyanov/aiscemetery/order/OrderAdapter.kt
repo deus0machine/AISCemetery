@@ -5,9 +5,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import retrofit2.http.GET
-import retrofit2.http.Path
-import ru.sevostyanov.aiscemetery.LoginActivity
 import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.user.Guest
 
@@ -43,13 +40,6 @@ data class Order(
     val orderCost: Long,
     val orderDate: String // Формат: "yyyy-MM-dd"
 )
-
-interface ApiService : LoginActivity.LoginService {
-    @GET("api/orders/guest/{guestId}")
-    suspend fun getOrdersByGuest(@Path("guestId") guestId: Long): List<Order>
-    @GET("/api/guest/get/{guestId}")
-    suspend fun getGuest(@Path("guestId") guestId: Long): Guest
-}
 
 
 
