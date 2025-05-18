@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -24,6 +25,7 @@ import ru.sevostyanov.aiscemetery.adapters.MemorialAdapter
 import ru.sevostyanov.aiscemetery.dialogs.MemorialFilterDialog
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.repository.MemorialRepository
+import ru.sevostyanov.aiscemetery.user.UserManager
 
 class MemorialsFragment : Fragment() {
 
@@ -47,6 +49,16 @@ class MemorialsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Проверяем авторизацию
+        val user = UserManager.getCurrentUser() ?: UserManager.loadUserFromPreferences(requireContext())
+        if (user == null) {
+            Log.d("MemorialsFragment", "User not authenticated in onViewCreated, returning to LoginActivity")
+            UserManager.clearUserData(requireContext())
+            startActivity(Intent(requireActivity(), ru.sevostyanov.aiscemetery.LoginActivity::class.java))
+            requireActivity().finish()
+            return
+        }
 
         initializeViews(view)
         setupAdapter()
@@ -119,17 +131,11 @@ class MemorialsFragment : Fragment() {
                 when (tab?.position) {
                     0 -> {
                         adapter.updateControlsVisibility(true)
-                        // Загружаем данные только если они еще не загружены
-                        if (currentMemorials.isEmpty()) {
-                            loadMemorials(showOnlyMine = true)
-                        }
+                        loadMemorials(showOnlyMine = true)
                     }
                     1 -> {
                         adapter.updateControlsVisibility(false)
-                        // Загружаем данные только если они еще не загружены
-                        if (currentMemorials.isEmpty()) {
-                            loadMemorials(showOnlyMine = false)
-                        }
+                        loadMemorials(showOnlyMine = false)
                     }
                 }
             }
@@ -186,6 +192,18 @@ class MemorialsFragment : Fragment() {
     }
 
     private fun loadMemorials(showOnlyMine: Boolean) {
+        // Проверяем авторизацию перед загрузкой
+        val user = UserManager.getCurrentUser()
+            ?: UserManager.loadUserFromPreferences(requireContext())
+        
+        if (user == null) {
+            Log.d("MemorialsFragment", "User not authenticated, returning to LoginActivity")
+            UserManager.clearUserData(requireContext())
+            startActivity(Intent(requireActivity(), ru.sevostyanov.aiscemetery.LoginActivity::class.java))
+            requireActivity().finish()
+            return
+        }
+
         lifecycleScope.launch {
             try {
                 currentMemorials = if (showOnlyMine) {
@@ -208,7 +226,7 @@ class MemorialsFragment : Fragment() {
                     showMessage(if (showOnlyMine) "У вас пока нет мемориалов" else "Нет доступных публичных мемориалов")
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("MemorialsFragment", "Error loading memorials", e)
                 val errorMessage = when {
                     e.message?.contains("HTTP 401") == true -> "Необходима авторизация"
                     e.message?.contains("HTTP 403") == true -> "Нет доступа"

@@ -1,54 +1,55 @@
 package ru.sevostyanov.aiscemetery
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.TypeAdapter
-import com.google.gson.stream.JsonReader
-import com.google.gson.stream.JsonWriter
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
-import okhttp3.RequestBody
-import okhttp3.ResponseBody
+import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Call
-import retrofit2.Converter
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.Multipart
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Part
+import retrofit2.http.Path
+import retrofit2.http.Query
 import ru.sevostyanov.aiscemetery.models.FamilyTree
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.models.MemorialRelation
-import ru.sevostyanov.aiscemetery.models.PrivacyUpdateRequest
-import ru.sevostyanov.aiscemetery.models.User
 import ru.sevostyanov.aiscemetery.order.Order
 import ru.sevostyanov.aiscemetery.order.OrderReport
 import ru.sevostyanov.aiscemetery.task.Task
-import ru.sevostyanov.aiscemetery.user.GuestItem
-import java.lang.reflect.Type
-import java.nio.charset.Charset
-import java.util.Date
-import java.util.concurrent.TimeUnit
-import okhttp3.Interceptor
-import okhttp3.Request
 import ru.sevostyanov.aiscemetery.user.Guest
+import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private const val TAG = "RetrofitClient"
-    private const val BASE_URL = "http://192.168.0.101:8080/"
-    private var token: String? = null
+    private const val BASE_URL = "http://192.168.0.102:8080/"
+    private const val TOKEN_KEY = "auth_token"
+    private const val USER_ID_KEY = "user_id"
+    private const val PREF_NAME = "app_prefs"
+
+    private var retrofit: Retrofit? = null
     private var apiService: ApiService? = null
     private var loginService: LoginService? = null
     private var applicationContext: Context? = null
+    private var sharedPreferences: SharedPreferences? = null
 
     fun initialize(context: Context) {
         if (applicationContext == null) {
             applicationContext = context.applicationContext
             setupRetrofit()
         }
+        sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     }
 
     private fun setupRetrofit() {
@@ -62,17 +63,35 @@ object RetrofitClient {
                 val original: Request = chain.request()
                 val requestBuilder: Request.Builder = original.newBuilder()
                     .header("Accept", "application/json")
+                    .header("Content-Type", "application/json")
                     .method(original.method, original.body)
 
-                token?.let {
-                    requestBuilder.header("Authorization", "Bearer $it")
-                    Log.d(TAG, "Adding token to request: Bearer $it")
-                } ?: run {
+                val token = getToken()
+                if (token != null) {
+                    requestBuilder.header("Authorization", "Bearer $token")
+                    Log.d(TAG, "Adding token to request: Bearer $token")
+                } else {
                     Log.d(TAG, "No token available for request")
                 }
 
                 val request: Request = requestBuilder.build()
-                chain.proceed(request)
+                val response = chain.proceed(request)
+
+                // Проверяем ответ на ошибки авторизации
+                if (response.code == 401 || response.code == 403) {
+                    Log.d(TAG, "Token expired or invalid, clearing token")
+                    clearToken()
+                    // Очищаем данные пользователя
+                    applicationContext?.let { context ->
+                        try {
+                            ru.sevostyanov.aiscemetery.user.UserManager.clearUserData(context)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error clearing user data", e)
+                        }
+                    }
+                }
+
+                response
             }
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -83,25 +102,28 @@ object RetrofitClient {
             .setLenient()
             .create()
 
-        val retrofit = Retrofit.Builder()
+        retrofit = Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
 
-        apiService = retrofit.create(ApiService::class.java)
-        loginService = retrofit.create(LoginService::class.java)
+        val currentRetrofit = retrofit
+        if (currentRetrofit != null) {
+            apiService = currentRetrofit.create(ApiService::class.java)
+            loginService = currentRetrofit.create(LoginService::class.java)
+        }
     }
 
     fun setToken(newToken: String) {
         Log.d(TAG, "Setting new token: $newToken")
-        token = newToken
+        saveToken(newToken)
         setupRetrofit()
     }
 
     fun clearToken() {
         Log.d(TAG, "Clearing token")
-        token = null
+        saveToken(null)
         setupRetrofit()
     }
 
@@ -117,6 +139,22 @@ object RetrofitClient {
             throw IllegalStateException("RetrofitClient not initialized")
         }
         return loginService!!
+    }
+
+    fun saveToken(token: String?) {
+        sharedPreferences?.edit()?.putString(TOKEN_KEY, token)?.apply()
+    }
+
+    fun getToken(): String? {
+        return sharedPreferences?.getString(TOKEN_KEY, null)
+    }
+
+    fun saveUserId(userId: Long) {
+        sharedPreferences?.edit()?.putLong(USER_ID_KEY, userId)?.apply()
+    }
+
+    fun getCurrentUserId(): Long {
+        return sharedPreferences?.getLong(USER_ID_KEY, -1) ?: -1
     }
 
     interface LoginService {
@@ -266,5 +304,11 @@ object RetrofitClient {
             @Path("familyTreeId") familyTreeId: Long,
             @Path("relationId") relationId: Long
         )
+
+        @GET("/api/family-trees/search")
+        suspend fun searchFamilyTrees(
+            @Query("query") query: String = "",
+            @Query("isPublic") isPublic: Boolean? = null
+        ): List<FamilyTree>
     }
 }

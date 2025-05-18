@@ -107,10 +107,17 @@ class LoginActivity : AppCompatActivity() {
                         val userProfile = response.body()
                         val token = userProfile?.token ?: ""
                         Log.d("LoginActivity", "Received token: $token")
+                        
+                        // Сохраняем ID пользователя
+                        val userId = userProfile?.id ?: -1L
+                        if (userId != -1L) {
+                            RetrofitClient.saveUserId(userId)
+                        }
+                        
                         RetrofitClient.setToken(token)
                         
                         val guest = Guest(
-                            id = userProfile?.id ?: -1L,
+                            id = userId,
                             fio = userProfile?.fio ?: "",
                             contacts = userProfile?.contacts ?: "",
                             dateOfRegistration = userProfile?.dateOfRegistration ?: "",

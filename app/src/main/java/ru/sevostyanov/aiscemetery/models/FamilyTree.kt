@@ -4,25 +4,25 @@ import com.google.gson.annotations.SerializedName
 
 data class FamilyTree(
     @SerializedName("id")
-    val id: Long,
+    val id: Long? = null,
     
     @SerializedName("name")
     val name: String,
     
     @SerializedName("description")
-    val description: String,
+    val description: String? = null,
     
-    @SerializedName("ownerId")
-    val ownerId: Long,
+    @SerializedName("owner")
+    val ownerId: Long? = null,
     
     @SerializedName("isPublic")
-    val isPublic: Boolean,
+    val isPublic: Boolean = false,
     
     @SerializedName("createdAt")
-    val createdAt: String,
+    val createdAt: String? = null,
     
     @SerializedName("updatedAt")
-    val updatedAt: String
+    val updatedAt: String? = null
 )
 
 data class MemorialRelation(
