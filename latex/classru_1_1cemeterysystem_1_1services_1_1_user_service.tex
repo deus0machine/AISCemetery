@@ -1,0 +1,91 @@
+\doxysection{ru.\+cemeterysystem.\+services.\+User\+Service Class Reference}
+\hypertarget{classru_1_1cemeterysystem_1_1services_1_1_user_service}{}\label{classru_1_1cemeterysystem_1_1services_1_1_user_service}\index{ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}}
+Inheritance diagram for ru.\+cemeterysystem.\+services.\+User\+Service\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classru_1_1cemeterysystem_1_1services_1_1_user_service}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_user_service_a2931692c32c082ac1e2a96a5370fd291}{set\+Guest\+Repository}} (\mbox{\hyperlink{interfaceru_1_1cemeterysystem_1_1repositories_1_1_user_repository}{User\+Repository}} user\+Repository)
+\item 
+Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_user_service_ab3244b660304e533b51e35adc1fe4487}{authenticate}} (String login, String password)
+\item 
+Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_user_service_adc3ae0ac107a5ac51c085d388c0c46b8}{save\+Guest\+Balance}} (\mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} user)
+\item 
+Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_user_service_af3337c1043892316ee948c404664890a}{find\+By\+Id}} (long id)
+\item 
+Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_user_service_a8c5c847fd0ceb91499bf3362cb40b0a3}{find\+By\+Login}} (String login)
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_user_service_ad8bcc2c9813c9540a286edc7cabc450e}{get\+All\+Guests}} ()
+\item 
+void \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_user_service_ae1ec8c25239f54dbf1ad6005523201bc}{delete\+Guest\+By\+Id}} (Long id)
+\item 
+void \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_user_service_afbeceeea43b86f56a76e7706fef1fb1e}{register\+Guest}} (\mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} user)
+\item 
+User\+Details \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_user_service_ae5a24285dbc1d468be633cf686e523f7}{load\+User\+By\+Username}} (String username)  throws Username\+Not\+Found\+Exception 
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_user_service_ab3244b660304e533b51e35adc1fe4487}\index{ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}!authenticate@{authenticate}}
+\index{authenticate@{authenticate}!ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}}
+\doxysubsubsection{\texorpdfstring{authenticate()}{authenticate()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_user_service_ab3244b660304e533b51e35adc1fe4487} 
+Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ ru.\+cemeterysystem.\+services.\+User\+Service.\+authenticate (\begin{DoxyParamCaption}\item[{String}]{login}{, }\item[{String}]{password}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_user_service_ae1ec8c25239f54dbf1ad6005523201bc}\index{ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}!deleteGuestById@{deleteGuestById}}
+\index{deleteGuestById@{deleteGuestById}!ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}}
+\doxysubsubsection{\texorpdfstring{deleteGuestById()}{deleteGuestById()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_user_service_ae1ec8c25239f54dbf1ad6005523201bc} 
+void ru.\+cemeterysystem.\+services.\+User\+Service.\+delete\+Guest\+By\+Id (\begin{DoxyParamCaption}\item[{Long}]{id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_user_service_af3337c1043892316ee948c404664890a}\index{ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}!findById@{findById}}
+\index{findById@{findById}!ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}}
+\doxysubsubsection{\texorpdfstring{findById()}{findById()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_user_service_af3337c1043892316ee948c404664890a} 
+Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ ru.\+cemeterysystem.\+services.\+User\+Service.\+find\+By\+Id (\begin{DoxyParamCaption}\item[{long}]{id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_user_service_a8c5c847fd0ceb91499bf3362cb40b0a3}\index{ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}!findByLogin@{findByLogin}}
+\index{findByLogin@{findByLogin}!ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}}
+\doxysubsubsection{\texorpdfstring{findByLogin()}{findByLogin()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_user_service_a8c5c847fd0ceb91499bf3362cb40b0a3} 
+Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ ru.\+cemeterysystem.\+services.\+User\+Service.\+find\+By\+Login (\begin{DoxyParamCaption}\item[{String}]{login}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_user_service_ad8bcc2c9813c9540a286edc7cabc450e}\index{ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}!getAllGuests@{getAllGuests}}
+\index{getAllGuests@{getAllGuests}!ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}}
+\doxysubsubsection{\texorpdfstring{getAllGuests()}{getAllGuests()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_user_service_ad8bcc2c9813c9540a286edc7cabc450e} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ ru.\+cemeterysystem.\+services.\+User\+Service.\+get\+All\+Guests (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_user_service_ae5a24285dbc1d468be633cf686e523f7}\index{ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}!loadUserByUsername@{loadUserByUsername}}
+\index{loadUserByUsername@{loadUserByUsername}!ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}}
+\doxysubsubsection{\texorpdfstring{loadUserByUsername()}{loadUserByUsername()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_user_service_ae5a24285dbc1d468be633cf686e523f7} 
+User\+Details ru.\+cemeterysystem.\+services.\+User\+Service.\+load\+User\+By\+Username (\begin{DoxyParamCaption}\item[{String}]{username}{}\end{DoxyParamCaption}) throws Username\+Not\+Found\+Exception}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_user_service_afbeceeea43b86f56a76e7706fef1fb1e}\index{ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}!registerGuest@{registerGuest}}
+\index{registerGuest@{registerGuest}!ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}}
+\doxysubsubsection{\texorpdfstring{registerGuest()}{registerGuest()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_user_service_afbeceeea43b86f56a76e7706fef1fb1e} 
+void ru.\+cemeterysystem.\+services.\+User\+Service.\+register\+Guest (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}}}]{user}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_user_service_adc3ae0ac107a5ac51c085d388c0c46b8}\index{ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}!saveGuestBalance@{saveGuestBalance}}
+\index{saveGuestBalance@{saveGuestBalance}!ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}}
+\doxysubsubsection{\texorpdfstring{saveGuestBalance()}{saveGuestBalance()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_user_service_adc3ae0ac107a5ac51c085d388c0c46b8} 
+Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ ru.\+cemeterysystem.\+services.\+User\+Service.\+save\+Guest\+Balance (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}}}]{user}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_user_service_a2931692c32c082ac1e2a96a5370fd291}\index{ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}!setGuestRepository@{setGuestRepository}}
+\index{setGuestRepository@{setGuestRepository}!ru.cemeterysystem.services.UserService@{ru.cemeterysystem.services.UserService}}
+\doxysubsubsection{\texorpdfstring{setGuestRepository()}{setGuestRepository()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_user_service_a2931692c32c082ac1e2a96a5370fd291} 
+void ru.\+cemeterysystem.\+services.\+User\+Service.\+set\+Guest\+Repository (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{interfaceru_1_1cemeterysystem_1_1repositories_1_1_user_repository}{User\+Repository}}}]{user\+Repository}{}\end{DoxyParamCaption})}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Cemetery\+System/src/main/java/ru/cemeterysystem/services/\mbox{\hyperlink{_user_service_8java}{User\+Service.\+java}}\end{DoxyCompactItemize}

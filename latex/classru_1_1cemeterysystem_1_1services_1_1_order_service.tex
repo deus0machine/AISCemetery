@@ -1,0 +1,77 @@
+\doxysection{ru.\+cemeterysystem.\+services.\+Order\+Service Class Reference}
+\hypertarget{classru_1_1cemeterysystem_1_1services_1_1_order_service}{}\label{classru_1_1cemeterysystem_1_1services_1_1_order_service}\index{ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_order_service_a79e003403c1953a43f911f9a700b3eb9}{set\+Service\+Repository}} (\mbox{\hyperlink{interfaceru_1_1cemeterysystem_1_1repositories_1_1_order_repository}{Order\+Repository}} order\+Repository)
+\item 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_order_service_af524673d6860afd5dc2cb9faa54df888}{add\+Order}} (\mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} order)
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_order_service_aefec660d93c227be498918b0e0ab5b54}{get\+Orders\+By\+Guest}} (Long guest\+Id)
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_order_service_a6b80d36581cf2a7a1a14e9c618f51723}{get\+Orders\+Between\+Dates}} (Date start\+Date, Date end\+Date)
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_order_service_a56ab093aa81cb9f16dd2b4b66d60ac74}{get\+Orders}} ()
+\item 
+Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_order_service_ab730f60b89ba07341a00b17c15eda84a}{find\+By\+Id}} (Long id)
+\item 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_order_report_d_t_o}{Order\+Report\+DTO}} \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_order_service_a7f8ef89457da321cd74b0c41bb87a457}{convert\+To\+Order\+Report\+DTO}} (\mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} order)
+\item 
+void \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_order_service_af426818bbf83c19c7745bfdeabded2e5}{delete\+Order}} (Long id)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_order_service_af524673d6860afd5dc2cb9faa54df888}\index{ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}!addOrder@{addOrder}}
+\index{addOrder@{addOrder}!ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}}
+\doxysubsubsection{\texorpdfstring{addOrder()}{addOrder()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_order_service_af524673d6860afd5dc2cb9faa54df888} 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} ru.\+cemeterysystem.\+services.\+Order\+Service.\+add\+Order (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}}}]{order}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_order_service_a7f8ef89457da321cd74b0c41bb87a457}\index{ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}!convertToOrderReportDTO@{convertToOrderReportDTO}}
+\index{convertToOrderReportDTO@{convertToOrderReportDTO}!ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}}
+\doxysubsubsection{\texorpdfstring{convertToOrderReportDTO()}{convertToOrderReportDTO()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_order_service_a7f8ef89457da321cd74b0c41bb87a457} 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_order_report_d_t_o}{Order\+Report\+DTO}} ru.\+cemeterysystem.\+services.\+Order\+Service.\+convert\+To\+Order\+Report\+DTO (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}}}]{order}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_order_service_af426818bbf83c19c7745bfdeabded2e5}\index{ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}!deleteOrder@{deleteOrder}}
+\index{deleteOrder@{deleteOrder}!ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}}
+\doxysubsubsection{\texorpdfstring{deleteOrder()}{deleteOrder()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_order_service_af426818bbf83c19c7745bfdeabded2e5} 
+void ru.\+cemeterysystem.\+services.\+Order\+Service.\+delete\+Order (\begin{DoxyParamCaption}\item[{Long}]{id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_order_service_ab730f60b89ba07341a00b17c15eda84a}\index{ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}!findById@{findById}}
+\index{findById@{findById}!ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}}
+\doxysubsubsection{\texorpdfstring{findById()}{findById()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_order_service_ab730f60b89ba07341a00b17c15eda84a} 
+Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ ru.\+cemeterysystem.\+services.\+Order\+Service.\+find\+By\+Id (\begin{DoxyParamCaption}\item[{Long}]{id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_order_service_a56ab093aa81cb9f16dd2b4b66d60ac74}\index{ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}!getOrders@{getOrders}}
+\index{getOrders@{getOrders}!ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}}
+\doxysubsubsection{\texorpdfstring{getOrders()}{getOrders()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_order_service_a56ab093aa81cb9f16dd2b4b66d60ac74} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ ru.\+cemeterysystem.\+services.\+Order\+Service.\+get\+Orders (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_order_service_a6b80d36581cf2a7a1a14e9c618f51723}\index{ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}!getOrdersBetweenDates@{getOrdersBetweenDates}}
+\index{getOrdersBetweenDates@{getOrdersBetweenDates}!ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}}
+\doxysubsubsection{\texorpdfstring{getOrdersBetweenDates()}{getOrdersBetweenDates()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_order_service_a6b80d36581cf2a7a1a14e9c618f51723} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ ru.\+cemeterysystem.\+services.\+Order\+Service.\+get\+Orders\+Between\+Dates (\begin{DoxyParamCaption}\item[{Date}]{start\+Date}{, }\item[{Date}]{end\+Date}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_order_service_aefec660d93c227be498918b0e0ab5b54}\index{ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}!getOrdersByGuest@{getOrdersByGuest}}
+\index{getOrdersByGuest@{getOrdersByGuest}!ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}}
+\doxysubsubsection{\texorpdfstring{getOrdersByGuest()}{getOrdersByGuest()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_order_service_aefec660d93c227be498918b0e0ab5b54} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ ru.\+cemeterysystem.\+services.\+Order\+Service.\+get\+Orders\+By\+Guest (\begin{DoxyParamCaption}\item[{Long}]{guest\+Id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_order_service_a79e003403c1953a43f911f9a700b3eb9}\index{ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}!setServiceRepository@{setServiceRepository}}
+\index{setServiceRepository@{setServiceRepository}!ru.cemeterysystem.services.OrderService@{ru.cemeterysystem.services.OrderService}}
+\doxysubsubsection{\texorpdfstring{setServiceRepository()}{setServiceRepository()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_order_service_a79e003403c1953a43f911f9a700b3eb9} 
+void ru.\+cemeterysystem.\+services.\+Order\+Service.\+set\+Service\+Repository (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{interfaceru_1_1cemeterysystem_1_1repositories_1_1_order_repository}{Order\+Repository}}}]{order\+Repository}{}\end{DoxyParamCaption})}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Cemetery\+System/src/main/java/ru/cemeterysystem/services/\mbox{\hyperlink{_order_service_8java}{Order\+Service.\+java}}\end{DoxyCompactItemize}

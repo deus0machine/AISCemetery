@@ -1,0 +1,109 @@
+\doxysection{ru.\+cemeterysystem.\+services.\+Memorial\+Service Class Reference}
+\hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service}{}\label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a4b44936600954cb4afa151c808db03ad}{get\+All\+Memorials}} ()
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_afa60b1659df12233bd34d0f019dfaf03}{get\+My\+Memorials}} (Long user\+Id)
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a1354008fe4c5ba9dddb668d6883f8c56}{get\+Public\+Memorials}} ()
+\item 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a9bf21a3a955af0b330b990505c3a15f8}{get\+Memorial\+By\+Id}} (Long id)
+\item 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a2f3e37451faea0bcde818493b87ee3ac}{create\+Memorial}} (\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} dto, Long user\+Id)
+\item 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a44be0f07555755d1ce08914a500eec63}{update\+Memorial}} (Long id, \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} dto)
+\item 
+void \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a20e7ed6460a877b9f5d03487063a74a8}{delete\+Memorial}} (Long id)
+\item 
+void \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_aab20082beb56334c1b83c18faa43d60d}{update\+Memorial\+Privacy}} (Long id, boolean is\+Public)
+\item 
+String \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a604b1b89f6c0584f97486322e0a13e3a}{upload\+Photo}} (Long id, Multipart\+File file)
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_ad75494c52618fd33cc4573737a04882e}{search\+Memorials}} (String query, String location, String start\+Date, String end\+Date, Boolean is\+Public)
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a5e5fb73324afb14dec06721e2e46d96c}{find\+By\+Fio}} (String fio)
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a188e038af20e34534f3bc91c43a954c3}{find\+By\+User\+Id}} (Long user\+Id)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a2f3e37451faea0bcde818493b87ee3ac}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!createMemorial@{createMemorial}}
+\index{createMemorial@{createMemorial}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{createMemorial()}{createMemorial()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a2f3e37451faea0bcde818493b87ee3ac} 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+create\+Memorial (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}}}]{dto}{, }\item[{Long}]{user\+Id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a20e7ed6460a877b9f5d03487063a74a8}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!deleteMemorial@{deleteMemorial}}
+\index{deleteMemorial@{deleteMemorial}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{deleteMemorial()}{deleteMemorial()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a20e7ed6460a877b9f5d03487063a74a8} 
+void ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+delete\+Memorial (\begin{DoxyParamCaption}\item[{Long}]{id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a5e5fb73324afb14dec06721e2e46d96c}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!findByFio@{findByFio}}
+\index{findByFio@{findByFio}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{findByFio()}{findByFio()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a5e5fb73324afb14dec06721e2e46d96c} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+find\+By\+Fio (\begin{DoxyParamCaption}\item[{String}]{fio}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a188e038af20e34534f3bc91c43a954c3}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!findByUserId@{findByUserId}}
+\index{findByUserId@{findByUserId}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{findByUserId()}{findByUserId()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a188e038af20e34534f3bc91c43a954c3} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+find\+By\+User\+Id (\begin{DoxyParamCaption}\item[{Long}]{user\+Id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a4b44936600954cb4afa151c808db03ad}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!getAllMemorials@{getAllMemorials}}
+\index{getAllMemorials@{getAllMemorials}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{getAllMemorials()}{getAllMemorials()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a4b44936600954cb4afa151c808db03ad} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+get\+All\+Memorials (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a9bf21a3a955af0b330b990505c3a15f8}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!getMemorialById@{getMemorialById}}
+\index{getMemorialById@{getMemorialById}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{getMemorialById()}{getMemorialById()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a9bf21a3a955af0b330b990505c3a15f8} 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+get\+Memorial\+By\+Id (\begin{DoxyParamCaption}\item[{Long}]{id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_afa60b1659df12233bd34d0f019dfaf03}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!getMyMemorials@{getMyMemorials}}
+\index{getMyMemorials@{getMyMemorials}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{getMyMemorials()}{getMyMemorials()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_afa60b1659df12233bd34d0f019dfaf03} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+get\+My\+Memorials (\begin{DoxyParamCaption}\item[{Long}]{user\+Id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a1354008fe4c5ba9dddb668d6883f8c56}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!getPublicMemorials@{getPublicMemorials}}
+\index{getPublicMemorials@{getPublicMemorials}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{getPublicMemorials()}{getPublicMemorials()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a1354008fe4c5ba9dddb668d6883f8c56} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+get\+Public\+Memorials (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_ad75494c52618fd33cc4573737a04882e}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!searchMemorials@{searchMemorials}}
+\index{searchMemorials@{searchMemorials}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{searchMemorials()}{searchMemorials()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_ad75494c52618fd33cc4573737a04882e} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+search\+Memorials (\begin{DoxyParamCaption}\item[{String}]{query}{, }\item[{String}]{location}{, }\item[{String}]{start\+Date}{, }\item[{String}]{end\+Date}{, }\item[{Boolean}]{is\+Public}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a44be0f07555755d1ce08914a500eec63}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!updateMemorial@{updateMemorial}}
+\index{updateMemorial@{updateMemorial}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{updateMemorial()}{updateMemorial()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a44be0f07555755d1ce08914a500eec63} 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+update\+Memorial (\begin{DoxyParamCaption}\item[{Long}]{id}{, }\item[{\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}}}]{dto}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_aab20082beb56334c1b83c18faa43d60d}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!updateMemorialPrivacy@{updateMemorialPrivacy}}
+\index{updateMemorialPrivacy@{updateMemorialPrivacy}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{updateMemorialPrivacy()}{updateMemorialPrivacy()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_aab20082beb56334c1b83c18faa43d60d} 
+void ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+update\+Memorial\+Privacy (\begin{DoxyParamCaption}\item[{Long}]{id}{, }\item[{boolean}]{is\+Public}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a604b1b89f6c0584f97486322e0a13e3a}\index{ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}!uploadPhoto@{uploadPhoto}}
+\index{uploadPhoto@{uploadPhoto}!ru.cemeterysystem.services.MemorialService@{ru.cemeterysystem.services.MemorialService}}
+\doxysubsubsection{\texorpdfstring{uploadPhoto()}{uploadPhoto()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1services_1_1_memorial_service_a604b1b89f6c0584f97486322e0a13e3a} 
+String ru.\+cemeterysystem.\+services.\+Memorial\+Service.\+upload\+Photo (\begin{DoxyParamCaption}\item[{Long}]{id}{, }\item[{Multipart\+File}]{file}{}\end{DoxyParamCaption})}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Cemetery\+System/src/main/java/ru/cemeterysystem/services/\mbox{\hyperlink{_memorial_service_8java}{Memorial\+Service.\+java}}\end{DoxyCompactItemize}

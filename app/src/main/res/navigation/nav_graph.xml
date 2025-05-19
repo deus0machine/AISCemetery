@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/memorialsFragment">
+
+    <fragment
+        android:id="@+id/memorialsFragment"
+        android:name="ru.sevostyanov.aiscemetery.fragments.MemorialsFragment"
+        android:label="MemorialsFragment"
+        tools:layout="@layout/fragment_memorials" />
+
+    <fragment
+        android:id="@+id/familyTreesListFragment"
+        android:name="ru.sevostyanov.aiscemetery.fragments.FamilyTreesListFragment"
+        android:label="FamilyTreesListFragment"
+        tools:layout="@layout/fragment_family_trees_list">
+        <action
+            android:id="@+id/action_familyTreesListFragment_to_createFamilyTreeFragment"
+            app:destination="@id/createFamilyTreeFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createFamilyTreeFragment"
+        android:name="ru.sevostyanov.aiscemetery.fragments.CreateFamilyTreeFragment"
+        android:label="CreateFamilyTreeFragment"
+        tools:layout="@layout/fragment_create_family_tree" />
+
+    <fragment
+        android:id="@+id/mapFragment"
+        android:name="ru.sevostyanov.aiscemetery.fragments.MapFragment"
+        android:label="MapFragment"
+        tools:layout="@layout/fragment_map" />
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="ru.sevostyanov.aiscemetery.fragments.ProfileFragment"
+        android:label="ProfileFragment"
+        tools:layout="@layout/fragment_profile" />
+
+</navigation> 
