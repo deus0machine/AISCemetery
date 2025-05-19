@@ -20,6 +20,8 @@ class ProfileFragment : Fragment() {
 
     private lateinit var logoutButton: Button
     private lateinit var supportButton: Button
+    private lateinit var topupButton: Button
+    private lateinit var historyButton: Button
     private lateinit var profileName: TextView
     private lateinit var profileContacts: TextView
     private lateinit var profileRegDate: TextView
@@ -47,6 +49,8 @@ class ProfileFragment : Fragment() {
     private fun initializeViews(view: View) {
         logoutButton = view.findViewById(R.id.btn_logout)
         supportButton = view.findViewById(R.id.btn_support)
+        topupButton = view.findViewById(R.id.btn_topup)
+        historyButton = view.findViewById(R.id.btn_history)
         
         profileName = view.findViewById(R.id.profile_name)
         profileContacts = view.findViewById(R.id.profile_contacts)
@@ -64,15 +68,21 @@ class ProfileFragment : Fragment() {
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(requireContext(), "Ошибка при выходе: ${e.message}", Toast.LENGTH_SHORT).show()
-                // Даже при ошибке пытаемся перейти на экран входа
                 startActivity(Intent(activity, LoginActivity::class.java))
                 activity?.finish()
             }
         }
 
         supportButton.setOnClickListener {
-            // TODO: Реализовать переход к поддержке
             Toast.makeText(requireContext(), "Функция в разработке", Toast.LENGTH_SHORT).show()
+        }
+
+        topupButton.setOnClickListener {
+            Toast.makeText(requireContext(), "TODO: Пополнение баланса", Toast.LENGTH_SHORT).show()
+        }
+
+        historyButton.setOnClickListener {
+            Toast.makeText(requireContext(), "TODO: История операций", Toast.LENGTH_SHORT).show()
         }
     }
 

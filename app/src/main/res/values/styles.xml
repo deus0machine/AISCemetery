@@ -19,4 +19,23 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
+
+    <style name="BottomSheetDialogTheme" parent="Theme.MaterialComponents.Light">
+        <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
+        <item name="shapeAppearanceOverlay">@style/CustomShapeAppearanceOverlay</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
+    <style name="CustomBottomSheetStyle" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="behavior_peekHeight">0dp</item>
+        <item name="behavior_hideable">true</item>
+        <item name="behavior_fitToContents">true</item>
+    </style>
+
+    <style name="CustomShapeAppearanceOverlay" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
 </resources> 

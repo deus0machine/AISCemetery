@@ -30,11 +30,6 @@
         android:hardwareAccelerated="true"
         android:largeHeap="true"
         tools:targetApi="31">
-        <activity android:name=".activities.EditMemorialActivity" />
-        <activity android:name=".RegisterActivity" />
-        <activity android:name=".user.GuestListActivity" />
-        <activity android:name=".MainActivity" />
-        <activity android:name=".order.OrdersActivity" />
         <activity android:name=".LoginActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
@@ -43,6 +38,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".RegisterActivity" />
+        <activity android:name=".activities.EditMemorialActivity" />
+        <activity android:name=".user.GuestListActivity" />
+        <activity android:name=".MainActivity" />
     </application>
 
 </manifest>

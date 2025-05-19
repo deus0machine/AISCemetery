@@ -23,11 +23,10 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 import ru.sevostyanov.aiscemetery.models.FamilyTree
+import ru.sevostyanov.aiscemetery.models.FamilyTreeAccess
+import ru.sevostyanov.aiscemetery.models.FamilyTreeUpdateDTO
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.models.MemorialRelation
-import ru.sevostyanov.aiscemetery.order.Order
-import ru.sevostyanov.aiscemetery.order.OrderReport
-import ru.sevostyanov.aiscemetery.task.Task
 import ru.sevostyanov.aiscemetery.user.Guest
 import java.util.concurrent.TimeUnit
 
@@ -192,20 +191,8 @@ object RetrofitClient {
         @POST("/api/register")
         fun registerUser(@Body registerRequest: RegisterRequest): Call<RegisterResponse>
 
-        @GET("api/orders/guest/{guestId}")
-        suspend fun getOrdersByGuest(@Path("guestId") guestId: Long): List<Order>
-
         @GET("/api/guest/get/{guestId}")
         suspend fun getGuest(@Path("guestId") guestId: Long): Guest
-
-        @GET("/api/orders/all")
-        fun getOrdersBetweenDates(
-            @Query("startDate") startDate: Long,
-            @Query("endDate") endDate: Long
-        ): Call<List<Order>>
-
-        @GET("/api/orders/orders/all")
-        fun getAllOrders(): Call<List<OrderReport>>
 
         @GET("/api/guest/all")
         fun getAllGuests(): Call<List<Guest>>
@@ -215,12 +202,6 @@ object RetrofitClient {
 
         @POST("/api/admin/request/email")
         fun sendRequest(@Body email: String): Call<Void>
-
-        @GET("/api/tasks/all")
-        suspend fun getTasks(): List<Task>
-        
-        @POST("/api/tasks/perform")
-        suspend fun performTask(@Body requestBody: Map<String, String>): Response<Unit>
 
         @GET("/api/memorials")
         suspend fun getAllMemorials(): List<Memorial>
@@ -262,53 +243,79 @@ object RetrofitClient {
             @Query("isPublic") isPublic: Boolean?
         ): List<Memorial>
 
-        @GET("/api/family-trees/my")
+        @GET("api/family-trees/my")
         suspend fun getMyFamilyTrees(): List<FamilyTree>
 
-        @GET("/api/family-trees/public")
+        @GET("api/family-trees/public")
         suspend fun getPublicFamilyTrees(): List<FamilyTree>
 
-        @GET("/api/family-trees/accessible")
+        @GET("api/family-trees/accessible")
         suspend fun getAccessibleFamilyTrees(): List<FamilyTree>
 
-        @GET("/api/family-trees/{id}")
+        @GET("api/family-trees/{id}")
         suspend fun getFamilyTreeById(@Path("id") id: Long): FamilyTree
 
-        @POST("/api/family-trees")
+        @POST("api/family-trees")
         suspend fun createFamilyTree(@Body familyTree: FamilyTree): FamilyTree
 
-        @PUT("/api/family-trees/{id}")
-        suspend fun updateFamilyTree(@Path("id") id: Long, @Body familyTree: FamilyTree): FamilyTree
+        @PUT("api/family-trees/{id}")
+        suspend fun updateFamilyTree(
+            @Path("id") id: Long,
+            @Body updateDTO: FamilyTreeUpdateDTO
+        ): FamilyTree
 
-        @DELETE("/api/family-trees/{id}")
-        suspend fun deleteFamilyTree(@Path("id") id: Long)
+        @DELETE("api/family-trees/{id}")
+        suspend fun deleteFamilyTree(@Path("id") id: Long): Response<Unit>
 
-        @GET("/api/family-trees/{familyTreeId}/memorial-relations")
-        suspend fun getMemorialRelations(@Path("familyTreeId") familyTreeId: Long): List<MemorialRelation>
+        @GET("api/family-trees/search")
+        suspend fun searchFamilyTrees(
+            @Query("query") query: String,
+            @Query("isPublic") isPublic: Boolean? = null
+        ): List<FamilyTree>
 
-        @POST("/api/family-trees/{familyTreeId}/memorial-relations")
+        @GET("api/family-trees/{treeId}/access")
+        suspend fun getFamilyTreeAccess(@Path("treeId") treeId: Long): List<FamilyTreeAccess>
+
+        @POST("api/family-trees/{treeId}/access")
+        suspend fun grantFamilyTreeAccess(
+            @Path("treeId") treeId: Long,
+            @Query("userId") userId: Long,
+            @Query("accessLevel") accessLevel: String
+        ): FamilyTreeAccess
+
+        @PUT("api/family-trees/{treeId}/access/{userId}")
+        suspend fun updateFamilyTreeAccess(
+            @Path("treeId") treeId: Long,
+            @Path("userId") userId: Long,
+            @Query("accessLevel") accessLevel: String
+        ): FamilyTreeAccess
+
+        @DELETE("api/family-trees/{treeId}/access/{userId}")
+        suspend fun revokeFamilyTreeAccess(
+            @Path("treeId") treeId: Long,
+            @Path("userId") userId: Long
+        ): Response<Unit>
+
+        @GET("api/family-trees/{treeId}/relations")
+        suspend fun getMemorialRelations(@Path("treeId") treeId: Long): List<MemorialRelation>
+
+        @POST("api/family-trees/{treeId}/relations")
         suspend fun createMemorialRelation(
-            @Path("familyTreeId") familyTreeId: Long,
+            @Path("treeId") treeId: Long,
             @Body relation: MemorialRelation
         ): MemorialRelation
 
-        @PUT("/api/family-trees/{familyTreeId}/memorial-relations/{relationId}")
+        @PUT("api/family-trees/{treeId}/relations/{relationId}")
         suspend fun updateMemorialRelation(
-            @Path("familyTreeId") familyTreeId: Long,
+            @Path("treeId") treeId: Long,
             @Path("relationId") relationId: Long,
             @Body relation: MemorialRelation
         ): MemorialRelation
 
-        @DELETE("/api/family-trees/{familyTreeId}/memorial-relations/{relationId}")
+        @DELETE("api/family-trees/{treeId}/relations/{relationId}")
         suspend fun deleteMemorialRelation(
-            @Path("familyTreeId") familyTreeId: Long,
+            @Path("treeId") treeId: Long,
             @Path("relationId") relationId: Long
-        )
-
-        @GET("/api/family-trees/search")
-        suspend fun searchFamilyTrees(
-            @Query("query") query: String = "",
-            @Query("isPublic") isPublic: Boolean? = null
-        ): List<FamilyTree>
+        ): Response<Unit>
     }
 }

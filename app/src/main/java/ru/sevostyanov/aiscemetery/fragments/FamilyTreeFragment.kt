@@ -4,135 +4,133 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import android.widget.Button
+import android.widget.ImageButton
 import android.widget.Toast
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.navigation.fragment.findNavController
-import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import ru.sevostyanov.aiscemetery.R
-import ru.sevostyanov.aiscemetery.adapters.FamilyTreeAdapter
-import ru.sevostyanov.aiscemetery.databinding.FragmentFamilyTreeBinding
-import ru.sevostyanov.aiscemetery.models.FamilyTree
-import ru.sevostyanov.aiscemetery.viewmodels.FamilyTreeViewModel
+import ru.sevostyanov.aiscemetery.viewmodels.FamilyTreeDetailViewModel
+import android.widget.EditText
+import android.widget.Switch
+import androidx.fragment.app.setFragmentResult
 
 @AndroidEntryPoint
-class FamilyTreeFragment : Fragment() {
+class FamilyTreeFragment : BottomSheetDialogFragment() {
 
-    private var _binding: FragmentFamilyTreeBinding? = null
-    private val binding get() = _binding!!
+    companion object {
+        fun newInstance(treeId: Long): FamilyTreeFragment {
+            val fragment = FamilyTreeFragment()
+            val args = Bundle()
+            args.putLong("familyTreeId", treeId)
+            fragment.arguments = args
+            return fragment
+        }
+    }
 
-    private val viewModel: FamilyTreeViewModel by viewModels()
-    private lateinit var adapter: FamilyTreeAdapter
-    private lateinit var nameTextView: TextView
-    private lateinit var descriptionTextView: TextView
-    private lateinit var ownerTextView: TextView
-    private lateinit var createdAtTextView: TextView
-    private lateinit var memorialCountTextView: TextView
-    private lateinit var addRelationFab: FloatingActionButton
-    private val args: FamilyTreeFragmentArgs by navArgs()
+    private val viewModel: FamilyTreeDetailViewModel by viewModels()
+    private val treeId: Long by lazy { arguments?.getLong("familyTreeId") ?: -1L }
+
+    private lateinit var nameEditText: EditText
+    private lateinit var descriptionEditText: EditText
+    private lateinit var isPublicSwitch: Switch
+    private lateinit var viewGenealogyButton: Button
+    private lateinit var editGenealogyButton: Button
+    private lateinit var saveButton: Button
+    private var wasSaved = false
+
+    override fun onStart() {
+        super.onStart()
+        dialog?.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentFamilyTreeBinding.inflate(inflater, container, false)
-        return binding.root
+    ): View? {
+        return inflater.inflate(R.layout.fragment_family_tree, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
         initializeViews(view)
-        setupRecyclerView()
         setupObservers()
         setupClickListeners()
-        
-        // Получаем ID дерева из аргументов
-        val familyTreeId = args.familyTreeId
-        
-        // Загрузка данных
-        viewModel.loadFamilyTree(familyTreeId)
+        viewModel.loadFamilyTree(treeId)
     }
 
     private fun initializeViews(view: View) {
-        nameTextView = view.findViewById(R.id.text_name)
-        descriptionTextView = view.findViewById(R.id.text_description)
-        ownerTextView = view.findViewById(R.id.text_owner)
-        createdAtTextView = view.findViewById(R.id.text_created_at)
-        memorialCountTextView = view.findViewById(R.id.text_memorial_count)
-        addRelationFab = view.findViewById(R.id.fab_add_relation)
-    }
-
-    private fun setupRecyclerView() {
-        adapter = FamilyTreeAdapter(
-            onItemClick = { tree ->
-                // TODO: Навигация к деталям дерева
-            },
-            onEditClick = { tree ->
-                if (tree.ownerId == viewModel.getCurrentUserId()) {
-                    // TODO: Навигация к редактированию дерева
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "У вас нет прав на редактирование этого дерева",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            },
-            onDeleteClick = { tree ->
-                if (tree.ownerId == viewModel.getCurrentUserId()) {
-                    // TODO: Показать диалог подтверждения удаления
-                    viewModel.deleteFamilyTree(tree.id!!)
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "У вас нет прав на удаление этого дерева",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        )
-
-        binding.recyclerView.apply {
-            layoutManager = LinearLayoutManager(requireContext())
-            this.adapter = this@FamilyTreeFragment.adapter
-        }
+        nameEditText = view.findViewById(R.id.text_name)
+        descriptionEditText = view.findViewById(R.id.text_description)
+        isPublicSwitch = view.findViewById(R.id.switch_is_public)
+        viewGenealogyButton = view.findViewById(R.id.button_view_genealogy)
+        editGenealogyButton = view.findViewById(R.id.button_edit_genealogy)
+        saveButton = view.findViewById(R.id.button_save)
     }
 
     private fun setupObservers() {
-        viewModel.familyTrees.observe(viewLifecycleOwner) { trees ->
-            adapter.submitList(trees)
-        }
-
-        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        viewModel.familyTree.observe(viewLifecycleOwner) { tree ->
+            tree?.let {
+                nameEditText.setText(it.name)
+                descriptionEditText.setText(it.description ?: "")
+                isPublicSwitch.isChecked = it.isPublic
+            }
+            // dismiss только если было сохранение
+            if (wasSaved && tree != null && tree.id == treeId) {
+                setFragmentResult("family_tree_updated", Bundle())
+                dismiss()
+            }
         }
 
         viewModel.error.observe(viewLifecycleOwner) { error ->
             error?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             }
+        }
+
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            saveButton.isEnabled = !isLoading
         }
     }
 
     private fun setupClickListeners() {
-        binding.fabAddTree.setOnClickListener {
-            findNavController().navigate(R.id.action_familyTreeFragment_to_createFamilyTreeFragment)
+
+        saveButton.setOnClickListener {
+            val name = nameEditText.text.toString()
+            val description = descriptionEditText.text.toString()
+            val isPublic = isPublicSwitch.isChecked
+
+            if (name.isBlank()) {
+                Toast.makeText(context, "Введите название дерева", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            wasSaved = true
+            viewModel.updateFamilyTree(
+                id = treeId,
+                name = name,
+                description = description,
+                isPublic = isPublic
+            )
         }
 
-        addRelationFab.setOnClickListener {
-            // TODO: Реализовать навигацию к экрану добавления связи
-            // Можно использовать viewModel.availableMemorials для выбора мемориала
+        viewGenealogyButton.setOnClickListener {
+            viewModel.loadGenealogyData()
+            // TODO: Реализовать просмотр генеалогии
+            Toast.makeText(context, "Просмотр генеалогии", Toast.LENGTH_SHORT).show()
         }
-    }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+        editGenealogyButton.setOnClickListener {
+            viewModel.loadGenealogyData()
+            // TODO: Реализовать редактирование генеалогии
+            Toast.makeText(context, "Редактирование генеалогии", Toast.LENGTH_SHORT).show()
+        }
     }
 } 

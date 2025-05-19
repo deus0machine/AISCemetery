@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -12,23 +13,10 @@
         android:textSize="20sp"
         android:textStyle="bold" />
     <Button
-        android:id="@+id/view_guest_button"
-        android:layout_width="wrap_content"
+        android:id="@+id/view_guests_button"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Все пользователи"
-        android:layout_gravity="center" />
-    <Button
-        android:id="@+id/view_orders_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Все заказы"
-        android:layout_gravity="center" />
-    <Button
-        android:id="@+id/generate_report_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Создать отчет"
-        android:layout_gravity="center" />
+        android:text="Просмотр гостей" />
     <Button
         android:id="@+id/send_request_button"
         android:layout_width="wrap_content"

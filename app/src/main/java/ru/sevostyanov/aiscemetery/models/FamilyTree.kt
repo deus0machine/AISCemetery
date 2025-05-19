@@ -12,24 +12,45 @@ data class FamilyTree(
     @SerializedName("description")
     val description: String? = null,
     
-    @SerializedName("owner")
-    val ownerId: Long? = null,
+    @SerializedName("user")
+    val userId: Long? = null,
     
-    @SerializedName("isPublic")
+    @SerializedName("is_public")
     val isPublic: Boolean = false,
     
-    @SerializedName("createdAt")
+    @SerializedName("created_at")
     val createdAt: String? = null,
     
-    @SerializedName("updatedAt")
-    val updatedAt: String? = null
+    @SerializedName("updated_at")
+    val updatedAt: String? = null,
+    
+    @SerializedName("memorialRelations")
+    val memorialRelations: List<MemorialRelation>? = null,
+    
+    @SerializedName("accessList")
+    val accessList: List<FamilyTreeAccess>? = null
+) {
+    fun toUpdateDTO() = FamilyTreeUpdateDTO(
+        id = id,
+        name = name,
+        description = description,
+        isPublic = isPublic
+    )
+}
+
+data class FamilyTreeUpdateDTO(
+    val id: Long? = null,
+    val name: String,
+    val description: String? = null,
+    @SerializedName("is_public")
+    val isPublic: Boolean = false
 )
 
 data class MemorialRelation(
     @SerializedName("id")
     val id: Long,
     
-    @SerializedName("familyTreeId")
+    @SerializedName("familyTree")
     val familyTreeId: Long,
     
     @SerializedName("sourceMemorial")
@@ -42,22 +63,30 @@ data class MemorialRelation(
     val relationType: RelationType
 )
 
-// Модель для прав доступа к древу
-data class TreeAccess(
-    val treeId: Long,
+data class FamilyTreeAccess(
+    @SerializedName("id")
+    val id: Long,
+    
+    @SerializedName("familyTree")
+    val familyTreeId: Long,
+    
+    @SerializedName("user")
     val userId: Long,
+    
+    @SerializedName("accessLevel")
     val accessLevel: AccessLevel,
-    val status: AccessStatus
+    
+    @SerializedName("grantedAt")
+    val grantedAt: String
 )
 
 enum class AccessLevel {
-    OWNER,      // Полный доступ
-    EDITOR,     // Может редактировать, но не может менять права доступа
-    VIEWER      // Только просмотр
+    @SerializedName("VIEWER")
+    VIEWER,
+    
+    @SerializedName("EDITOR")
+    EDITOR,
+    
+    @SerializedName("ADMIN")
+    ADMIN
 }
-
-enum class AccessStatus {
-    PENDING,    // Ожидает подтверждения
-    APPROVED,   // Подтверждено
-    REJECTED    // Отклонено
-} 
