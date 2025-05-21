@@ -122,13 +122,11 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
         }
 
         viewGenealogyButton.setOnClickListener {
-            viewModel.loadGenealogyData()
-            // TODO: Реализовать просмотр генеалогии
-            Toast.makeText(context, "Просмотр генеалогии", Toast.LENGTH_SHORT).show()
+            val fragment = GenealogyTreeFragment.newInstance(treeId)
+            fragment.show(parentFragmentManager, "genealogy_tree")
         }
 
         editGenealogyButton.setOnClickListener {
-            viewModel.loadGenealogyData()
             // TODO: Реализовать редактирование генеалогии
             Toast.makeText(context, "Редактирование генеалогии", Toast.LENGTH_SHORT).show()
         }

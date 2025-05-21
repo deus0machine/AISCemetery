@@ -8,6 +8,7 @@ import com.google.gson.GsonBuilder
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Call
 import retrofit2.Response
@@ -26,7 +27,9 @@ import ru.sevostyanov.aiscemetery.models.FamilyTree
 import ru.sevostyanov.aiscemetery.models.FamilyTreeAccess
 import ru.sevostyanov.aiscemetery.models.FamilyTreeUpdateDTO
 import ru.sevostyanov.aiscemetery.models.Memorial
+import ru.sevostyanov.aiscemetery.models.MemorialOwnershipRequest
 import ru.sevostyanov.aiscemetery.models.MemorialRelation
+import ru.sevostyanov.aiscemetery.models.Notification
 import ru.sevostyanov.aiscemetery.user.Guest
 import java.util.concurrent.TimeUnit
 
@@ -60,6 +63,10 @@ object RetrofitClient {
             .addInterceptor(loggingInterceptor)
             .addInterceptor { chain ->
                 val original: Request = chain.request()
+                
+                // Логируем запрос
+                Log.d(TAG, "Отправка запроса: ${original.url}, метод: ${original.method}")
+                
                 val requestBuilder: Request.Builder = original.newBuilder()
                     .header("Accept", "application/json")
                     .header("Content-Type", "application/json")
@@ -74,23 +81,33 @@ object RetrofitClient {
                 }
 
                 val request: Request = requestBuilder.build()
-                val response = chain.proceed(request)
-
-                // Проверяем ответ на ошибки авторизации
-                if (response.code == 401 || response.code == 403) {
-                    Log.d(TAG, "Token expired or invalid, clearing token")
-                    clearToken()
-                    // Очищаем данные пользователя
-                    applicationContext?.let { context ->
-                        try {
-                            ru.sevostyanov.aiscemetery.user.UserManager.clearUserData(context)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error clearing user data", e)
+                try {
+                    val response = chain.proceed(request)
+                    
+                    // Логируем ответ
+                    Log.d(TAG, "Ответ: ${response.code} для URL ${request.url}")
+                    
+                    // Проверяем ответ на ошибки авторизации
+                    if (response.code == 401 || response.code == 403) {
+                        Log.d(TAG, "Token expired or invalid, clearing token")
+                        clearToken()
+                        // Очищаем данные пользователя
+                        applicationContext?.let { context ->
+                            try {
+                                ru.sevostyanov.aiscemetery.user.UserManager.clearUserData(context)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error clearing user data", e)
+                            }
                         }
+                    } else if (!response.isSuccessful) {
+                        Log.e(TAG, "Ошибка запроса: ${response.code} ${response.message}")
                     }
+                    
+                    return@addInterceptor response
+                } catch (e: Exception) {
+                    Log.e(TAG, "Ошибка при отправке запроса: ${e.message}", e)
+                    throw e
                 }
-
-                response
             }
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -128,6 +145,7 @@ object RetrofitClient {
 
     fun getApiService(): ApiService {
         if (apiService == null) {
+            Log.e(TAG, "RetrofitClient not initialized")
             throw IllegalStateException("RetrofitClient not initialized")
         }
         return apiService!!
@@ -135,6 +153,7 @@ object RetrofitClient {
 
     fun getLoginService(): LoginService {
         if (loginService == null) {
+            Log.e(TAG, "RetrofitClient not initialized")
             throw IllegalStateException("RetrofitClient not initialized")
         }
         return loginService!!
@@ -170,7 +189,7 @@ object RetrofitClient {
         val contacts: String?,
         val dateOfRegistration: String?,
         val login: String?,
-        val balance: Long?,
+        val hasSubscription: Boolean?,
         val role: String?,
         val token: String?
     )
@@ -229,7 +248,7 @@ object RetrofitClient {
 
         @Multipart
         @POST("/api/memorials/{id}/photo")
-        suspend fun uploadMemorialPhoto(@Path("id") id: Long, @Part photo: MultipartBody.Part): String
+        suspend fun uploadMemorialPhoto(@Path("id") id: Long, @Part photo: MultipartBody.Part): ResponseBody
 
         @DELETE("/api/memorials/{id}/photo")
         suspend fun deleteMemorialPhoto(@Path("id") id: Long)
@@ -317,5 +336,27 @@ object RetrofitClient {
             @Path("treeId") treeId: Long,
             @Path("relationId") relationId: Long
         ): Response<Unit>
+
+        // Notifications API
+        @GET("/api/notifications/my")
+        suspend fun getMyNotifications(): List<Notification>
+
+        @GET("/api/notifications/sent")
+        suspend fun getSentNotifications(): List<Notification>
+
+        @POST("/api/notifications/memorial-ownership")
+        suspend fun createMemorialOwnershipRequest(@Body request: MemorialOwnershipRequest): Notification
+
+        @POST("/api/notifications/{id}/respond")
+        suspend fun respondToNotification(
+            @Path("id") id: Long,
+            @Body requestData: Map<String, Boolean>
+        ): Notification
+
+        @POST("/api/notifications/{id}/read")
+        suspend fun markNotificationAsRead(@Path("id") id: Long): Notification
+
+        @DELETE("/api/notifications/{id}")
+        suspend fun deleteNotification(@Path("id") id: Long): Response<Unit>
     }
 }

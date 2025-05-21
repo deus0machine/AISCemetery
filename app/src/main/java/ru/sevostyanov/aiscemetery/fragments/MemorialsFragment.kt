@@ -21,11 +21,16 @@ import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.launch
 import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.activities.EditMemorialActivity
+import ru.sevostyanov.aiscemetery.activities.ViewMemorialActivity
 import ru.sevostyanov.aiscemetery.adapters.MemorialAdapter
 import ru.sevostyanov.aiscemetery.dialogs.MemorialFilterDialog
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.repository.MemorialRepository
 import ru.sevostyanov.aiscemetery.user.UserManager
+import android.app.AlertDialog
+import retrofit2.HttpException
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 
 class MemorialsFragment : Fragment() {
 
@@ -105,7 +110,7 @@ class MemorialsFragment : Fragment() {
                 if (tabLayout.selectedTabPosition == 0) {
                     EditMemorialActivity.start(requireActivity(), memorial)
                 } else {
-                    showMemorialDetails(memorial)
+                    ViewMemorialActivity.start(requireActivity(), memorial)
                 }
             },
             onEditClick = { memorial ->
@@ -268,57 +273,81 @@ class MemorialsFragment : Fragment() {
                     showMessage("Мемориал успешно удален")
                 }
             } catch (e: Exception) {
-                showError("Ошибка при удалении: ${e.message}")
+                var errorMessage = e.message ?: ""
+                if (e is HttpException) {
+                    val errorBody = e.response()?.errorBody()?.string()
+                    if (e.code() == 409 && errorBody != null) {
+                        try {
+                            val jsonObject = Gson().fromJson(errorBody, JsonObject::class.java)
+                            if (jsonObject.has("error") && jsonObject.get("error").asString == "MEMORIAL_IN_RELATIONS") {
+                                errorMessage = jsonObject.get("message").asString
+                            }
+                        } catch (ex: Exception) {
+                            // Если не удалось распарсить JSON, используем стандартное сообщение
+                        }
+                    }
+                }
+                if (errorMessage.contains("MEMORIAL_IN_RELATIONS") || errorMessage.contains("Невозможно удалить мемориал, так как он связан в генеалогии")) {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Ошибка")
+                        .setMessage("Невозможно удалить мемориал, так как он связан в генеалогии. Сначала удалите его из связей генеалогии.")
+                        .setPositiveButton("OK", null)
+                        .show()
+                } else {
+                    showError("Ошибка при удалении: $errorMessage")
+                }
             }
         }
     }
 
     private fun updateMemorialPrivacy(memorial: Memorial) {
-        lifecycleScope.launch {
-            try {
-                memorial.id?.let { id ->
-                    val newIsPublic = !memorial.isPublic
-                    
-                    // Обновляем статус на сервере
-                    repository.updateMemorialPrivacy(id, newIsPublic)
-                    
-                    // Перезагружаем список мемориалов
-                    loadMemorials(tabLayout.selectedTabPosition == 0)
-                    
-                    showMessage(if (newIsPublic) "Мемориал теперь публичный" else "Мемориал теперь приватный")
+        val user = UserManager.getCurrentUser() ?: UserManager.loadUserFromPreferences(requireContext())
+        
+        val newIsPublic = !memorial.isPublic
+        
+        // Если пытаемся сделать мемориал публичным и нет подписки
+        if (newIsPublic && user?.hasSubscription == false) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Требуется подписка")
+                .setMessage("Купите подписку, чтобы сделать ваш мемориал публичным")
+                .setPositiveButton("Информация о подписке") { _, _ ->
+                    // Здесь можно открыть экран с информацией о подписке
+                    Toast.makeText(requireContext(), "Информация о подписке", Toast.LENGTH_SHORT).show()
                 }
-            } catch (e: Exception) {
-                showError("Ошибка при обновлении статуса: ${e.message}")
-                loadMemorials(tabLayout.selectedTabPosition == 0)
-            }
+                .setNegativeButton("Отмена", null)
+                .show()
+            return
         }
+        
+        // Если мемориал уже приватный или у пользователя есть подписка
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Изменение статуса мемориала")
+            .setMessage(if (newIsPublic) "Вы хотите сделать мемориал публичным?" else "Вы хотите сделать мемориал приватным?")
+            .setPositiveButton("Да") { _, _ ->
+                lifecycleScope.launch {
+                    try {
+                        memorial.id?.let { id ->
+                            // Обновляем статус на сервере
+                            repository.updateMemorialPrivacy(id, newIsPublic)
+                            
+                            // Перезагружаем список мемориалов
+                            loadMemorials(tabLayout.selectedTabPosition == 0)
+                            
+                            showMessage(if (newIsPublic) "Мемориал теперь публичный" else "Мемориал теперь приватный")
+                        }
+                    } catch (e: Exception) {
+                        showError("Ошибка при обновлении статуса: ${e.message}")
+                        loadMemorials(tabLayout.selectedTabPosition == 0)
+                    }
+                }
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
     }
 
     private fun getCurrentUserId(): Long? {
         val sharedPreferences = requireContext().getSharedPreferences("user_data", Context.MODE_PRIVATE)
         return sharedPreferences.getLong("user_id", -1).takeIf { it != -1L }
-    }
-
-    private fun showMemorialDetails(memorial: Memorial) {
-        val message = buildString {
-            append("${memorial.fio}\n")
-            append("Дата рождения: ${memorial.birthDate ?: "Не указана"}\n")
-            if (memorial.deathDate != null) {
-                append("Дата смерти: ${memorial.deathDate}\n")
-            }
-            if (!memorial.biography.isNullOrBlank()) {
-                append("\nБиография:\n${memorial.biography}\n")
-            }
-            memorial.mainLocation?.let { location ->
-                append("\nМестоположение: ${location.address ?: "Координаты: ${location.latitude}, ${location.longitude}"}")
-            }
-        }
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Информация о мемориале")
-            .setMessage(message)
-            .setPositiveButton("Закрыть", null)
-            .show()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

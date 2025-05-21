@@ -17,6 +17,7 @@
     <color name="primary_text">#212121</color> <!-- Темный текст для заголовков -->
     <color name="secondary_text">#757575</color> <!-- Светлый текст для данных -->
     <color name="red">#FF0000</color>
+    <color name="green">#4CAF50</color> <!-- Зеленый цвет для одобренных уведомлений -->
     
     <!-- Новые цвета для профиля -->
     <color name="background">#F5F5F5</color>

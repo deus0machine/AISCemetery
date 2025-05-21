@@ -20,13 +20,12 @@ class ProfileFragment : Fragment() {
 
     private lateinit var logoutButton: Button
     private lateinit var supportButton: Button
-    private lateinit var topupButton: Button
-    private lateinit var historyButton: Button
+    private lateinit var subscriptionInfoButton: Button
     private lateinit var profileName: TextView
     private lateinit var profileContacts: TextView
     private lateinit var profileRegDate: TextView
     private lateinit var profileRole: TextView
-    private lateinit var profileBalance: TextView
+    private lateinit var profileSubscription: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -49,14 +48,13 @@ class ProfileFragment : Fragment() {
     private fun initializeViews(view: View) {
         logoutButton = view.findViewById(R.id.btn_logout)
         supportButton = view.findViewById(R.id.btn_support)
-        topupButton = view.findViewById(R.id.btn_topup)
-        historyButton = view.findViewById(R.id.btn_history)
+        subscriptionInfoButton = view.findViewById(R.id.btn_subscription_info)
         
         profileName = view.findViewById(R.id.profile_name)
         profileContacts = view.findViewById(R.id.profile_contacts)
         profileRegDate = view.findViewById(R.id.profile_reg_date)
         profileRole = view.findViewById(R.id.profile_role)
-        profileBalance = view.findViewById(R.id.profile_balance)
+        profileSubscription = view.findViewById(R.id.profile_subscription)
     }
 
     private fun setupButtons() {
@@ -77,12 +75,8 @@ class ProfileFragment : Fragment() {
             Toast.makeText(requireContext(), "Функция в разработке", Toast.LENGTH_SHORT).show()
         }
 
-        topupButton.setOnClickListener {
-            Toast.makeText(requireContext(), "TODO: Пополнение баланса", Toast.LENGTH_SHORT).show()
-        }
-
-        historyButton.setOnClickListener {
-            Toast.makeText(requireContext(), "TODO: История операций", Toast.LENGTH_SHORT).show()
+        subscriptionInfoButton.setOnClickListener {
+            Toast.makeText(requireContext(), "Информация о подписке", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -107,7 +101,7 @@ class ProfileFragment : Fragment() {
                 profileContacts.text = user.contacts
                 profileRegDate.text = formatDate(user.dateOfRegistration)
                 profileRole.text = user.role
-                profileBalance.text = "${user.balance} рублей"
+                profileSubscription.text = if (user.hasSubscription) "Активна" else "Отсутствует"
             } else {
                 // Если пользователь не найден, очищаем данные и переходим на экран входа
                 UserManager.clearUserData(requireContext())

@@ -80,15 +80,19 @@ class FamilyTreeDetailViewModel @Inject constructor(
         }
     }
 
-    fun loadGenealogyData() {
+    fun loadGenealogyData(treeId: Long) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 _error.value = null
-                val currentTree = _familyTree.value ?: return@launch
-                val treeId = currentTree.id ?: return@launch
-                loadMemorialRelations(treeId)
-                loadAvailableMemorials()
+                // Загружаем FamilyTree
+                val tree = repository.getFamilyTreeById(treeId)
+                _familyTree.value = tree
+                // Загружаем связи
+                val relations = repository.getMemorialRelations(treeId)
+                _memorialRelations.value = relations
+                // Загружаем мемориалы пользователя (если нужно для UI)
+                _availableMemorials.value = memorialRepository.getMyMemorials()
                 _isAuthorized.value = true
             } catch (e: Exception) {
                 handleError(e)

@@ -21,6 +21,6 @@ data class GuestItem(
     @SerializedName("login")
     val login: String,
     
-    @SerializedName("balance")
-    val balance: Long
+    @SerializedName("hasSubscription")
+    val hasSubscription: Boolean = false
 ): Parcelable

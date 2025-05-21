@@ -52,7 +52,7 @@ object UserManager {
                 putString(LoginActivity.KEY_USER_CONTACTS, user.contacts)
                 putString(LoginActivity.KEY_USER_REG_DATE, user.dateOfRegistration)
                 putString(LoginActivity.KEY_USER_LOGIN, user.login)
-                putLong(LoginActivity.KEY_USER_BALANCE, user.balance)
+                putBoolean(LoginActivity.KEY_USER_HAS_SUBSCRIPTION, user.hasSubscription)
                 putString(LoginActivity.KEY_USER_ROLE, user.role)
                 putString(LoginActivity.KEY_USER_TOKEN, user.token)
                 commit() // Используем commit() вместо apply() для немедленного сохранения
@@ -81,7 +81,7 @@ object UserManager {
                 contacts = sharedPreferences.getString(LoginActivity.KEY_USER_CONTACTS, "") ?: "",
                 dateOfRegistration = sharedPreferences.getString(LoginActivity.KEY_USER_REG_DATE, "") ?: "",
                 login = sharedPreferences.getString(LoginActivity.KEY_USER_LOGIN, "") ?: "",
-                balance = sharedPreferences.getLong(LoginActivity.KEY_USER_BALANCE, 0),
+                hasSubscription = sharedPreferences.getBoolean(LoginActivity.KEY_USER_HAS_SUBSCRIPTION, false),
                 role = sharedPreferences.getString(LoginActivity.KEY_USER_ROLE, "USER") ?: "USER",
                 token = sharedPreferences.getString(LoginActivity.KEY_USER_TOKEN, "") ?: ""
             )

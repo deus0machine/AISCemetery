@@ -10,11 +10,10 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.DiffUtil
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.google.android.material.card.MaterialCardView
 import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.models.Memorial
+import ru.sevostyanov.aiscemetery.util.GlideHelper
+import com.google.android.material.card.MaterialCardView
 
 class MemorialAdapter(
     private var memorials: List<Memorial>,
@@ -122,13 +121,13 @@ class MemorialAdapter(
         // Загрузка фото
         if (!memorial.photoUrl.isNullOrBlank()) {
             println("MemorialAdapter: Загрузка изображения из URL: ${memorial.photoUrl}")
-            Glide.with(holder.itemView.context)
-                .load(memorial.photoUrl)
-                .placeholder(R.drawable.placeholder_photo)
-                .error(R.drawable.placeholder_photo)
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .centerCrop()
-                .into(holder.photoImage)
+            GlideHelper.loadImage(
+                holder.itemView.context,
+                memorial.photoUrl,
+                holder.photoImage,
+                R.drawable.placeholder_photo,
+                R.drawable.placeholder_photo
+            )
         } else {
             println("MemorialAdapter: URL изображения пустой или null, загружаем placeholder")
             holder.photoImage.setImageResource(R.drawable.placeholder_photo)

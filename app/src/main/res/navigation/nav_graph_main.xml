@@ -24,6 +24,12 @@
         tools:layout="@layout/fragment_map" />
 
     <fragment
+        android:id="@+id/notificationsFragment"
+        android:name="ru.sevostyanov.aiscemetery.fragments.NotificationsFragment"
+        android:label="NotificationsFragment"
+        tools:layout="@layout/fragment_notifications" />
+
+    <fragment
         android:id="@+id/profileFragment"
         android:name="ru.sevostyanov.aiscemetery.fragments.ProfileFragment"
         android:label="ProfileFragment"

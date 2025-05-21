@@ -18,8 +18,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
@@ -29,6 +27,8 @@ import ru.sevostyanov.aiscemetery.fragments.LocationPickerFragment
 import ru.sevostyanov.aiscemetery.models.Location
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.repository.MemorialRepository
+import ru.sevostyanov.aiscemetery.util.GlideHelper
+import ru.sevostyanov.aiscemetery.util.NetworkUtil
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,6 +50,7 @@ class EditMemorialActivity : AppCompatActivity() {
     private var mainLocation: Location? = null
     private var burialLocation: Location? = null
     private var shouldDeletePhoto: Boolean = false
+    private var hasSubscription: Boolean = false
 
     private var memorial: Memorial? = null
     private lateinit var repository: MemorialRepository
@@ -78,12 +79,13 @@ class EditMemorialActivity : AppCompatActivity() {
                 // Используем изображение напрямую
                 selectedPhotoUri = selectedUri
                 shouldDeletePhoto = false
-                Glide.with(this)
-                    .load(selectedUri)
-                    .placeholder(R.drawable.placeholder_photo)
-                    .error(R.drawable.placeholder_photo)
-                    .centerCrop()
-                    .into(photoImageView)
+                GlideHelper.loadImageFromUri(
+                    this,
+                    selectedUri,
+                    photoImageView,
+                    R.drawable.placeholder_photo,
+                    R.drawable.placeholder_photo
+                )
             } catch (e: Exception) {
                 showError("Ошибка при выборе фото: ${e.message}")
             }
@@ -95,12 +97,13 @@ class EditMemorialActivity : AppCompatActivity() {
             result.data?.data?.let { uri ->
                 selectedPhotoUri = uri
                 shouldDeletePhoto = false
-                Glide.with(this)
-                    .load(uri)
-                    .placeholder(R.drawable.placeholder_photo)
-                    .error(R.drawable.placeholder_photo)
-                    .centerCrop()
-                    .into(photoImageView)
+                GlideHelper.loadImageFromUri(
+                    this,
+                    uri,
+                    photoImageView,
+                    R.drawable.placeholder_photo,
+                    R.drawable.placeholder_photo
+                )
             }
         }
     }
@@ -111,6 +114,11 @@ class EditMemorialActivity : AppCompatActivity() {
         // Инициализация ViewBinding
         binding = ActivityEditMemorialBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Проверяем наличие подписки у пользователя
+        val user = ru.sevostyanov.aiscemetery.user.UserManager.getCurrentUser() 
+            ?: ru.sevostyanov.aiscemetery.user.UserManager.loadUserFromPreferences(this)
+        hasSubscription = user?.hasSubscription ?: false
 
         // Инициализация форматтера даты
         dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
@@ -126,6 +134,14 @@ class EditMemorialActivity : AppCompatActivity() {
         // Инициализация кнопок
         mainLocationButton = binding.mainLocationButton
         burialLocationButton = binding.burialLocationButton
+
+        // Если нет подписки, настраиваем UI соответственно
+        if (!hasSubscription) {
+            mainLocationButton.isEnabled = false
+            burialLocationButton.isEnabled = false
+            mainLocationButton.text = "Нужна подписка"
+            burialLocationButton.text = "Нужна подписка"
+        }
 
         // Инициализация других view
         editFio = binding.editFio
@@ -147,8 +163,13 @@ class EditMemorialActivity : AppCompatActivity() {
             editBiography.setText("")
             buttonBirthDate.text = "Выбрать дату рождения"
             buttonDeathDate.text = "Выбрать дату смерти"
-            mainLocationButton.text = "Выбрать основное местоположение"
-            burialLocationButton.text = "Выбрать место захоронения"
+            
+            // Настройка текста кнопок локации в зависимости от наличия подписки
+            if (hasSubscription) {
+                mainLocationButton.text = "Выбрать основное местоположение"
+                burialLocationButton.text = "Выбрать место захоронения"
+            }
+            
             photoImageView.setImageResource(R.drawable.placeholder_photo)
         }
 
@@ -180,11 +201,19 @@ class EditMemorialActivity : AppCompatActivity() {
         }
 
         mainLocationButton.setOnClickListener {
-            showLocationPicker(true)
+            if (hasSubscription) {
+                showLocationPicker(true)
+            } else {
+                showSubscriptionRequiredDialog()
+            }
         }
 
         burialLocationButton.setOnClickListener {
-            showLocationPicker(false)
+            if (hasSubscription) {
+                showLocationPicker(false)
+            } else {
+                showSubscriptionRequiredDialog()
+            }
         }
 
         // Подписываемся на результат выбора местоположения
@@ -247,20 +276,18 @@ class EditMemorialActivity : AppCompatActivity() {
             // Если устройство не поддерживает обрезку, просто используем оригинальное изображение
             selectedPhotoUri = uri
             shouldDeletePhoto = false
-            Glide.with(this)
-                .load(uri)
-                .placeholder(R.drawable.placeholder_photo)
-                .error(R.drawable.placeholder_photo)
-                .centerCrop()
-                .into(photoImageView)
+            GlideHelper.loadImageFromUri(
+                this,
+                uri,
+                photoImageView,
+                R.drawable.placeholder_photo,
+                R.drawable.placeholder_photo
+            )
         }
     }
 
     private fun isInternetAvailable(): Boolean {
-        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        return NetworkUtil.isInternetAvailable(this)
     }
 
     private fun loadImage(url: String?) {
@@ -271,20 +298,20 @@ class EditMemorialActivity : AppCompatActivity() {
 
         println("EditMemorialActivity: Loading image from URL: $url")
 
-        if (!isInternetAvailable()) {
+        if (!NetworkUtil.checkInternetAndShowMessage(this, false)) {
             showMessage("Нет подключения к интернету. Изображение не может быть загружено")
             photoImageView.setImageResource(R.drawable.placeholder_photo)
             return
         }
 
         try {
-            Glide.with(this)
-                .load(url)
-                .placeholder(R.drawable.placeholder_photo)
-                .error(R.drawable.placeholder_photo)
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .centerCrop()
-                .into(photoImageView)
+            GlideHelper.loadImage(
+                this,
+                url,
+                photoImageView,
+                R.drawable.placeholder_photo, 
+                R.drawable.placeholder_photo
+            )
         } catch (e: Exception) {
             println("EditMemorialActivity: Ошибка при загрузке изображения: ${e.message}")
             photoImageView.setImageResource(R.drawable.placeholder_photo)
@@ -411,8 +438,7 @@ class EditMemorialActivity : AppCompatActivity() {
     }
 
     private fun saveMemorial() {
-        if (!isInternetAvailable()) {
-            showMessage("Нет подключения к интернету")
+        if (!NetworkUtil.checkInternetAndShowMessage(this)) {
             return
         }
 
@@ -425,21 +451,40 @@ class EditMemorialActivity : AppCompatActivity() {
         }
 
         val currentMemorial = memorial
+        
+        // Log locations before creating memorial object
+        println("LOCATION DEBUG - Before creating memorial:")
+        println("Main Location: $mainLocation")
+        println("Burial Location: $burialLocation")
+        
+        // Если у пользователя нет подписки, не разрешаем ему устанавливать местоположение
+        val finalMainLocation = if (hasSubscription) mainLocation else null
+        val finalBurialLocation = if (hasSubscription) burialLocation else null
+        
         val newMemorial = Memorial(
             id = currentMemorial?.id,
             fio = name,
             biography = description,
             birthDate = birthDate?.let { formatDateForServer(it) },
             deathDate = deathDate?.let { formatDateForServer(it) },
-            mainLocation = mainLocation,
-            burialLocation = burialLocation,
+            mainLocation = finalMainLocation,
+            burialLocation = finalBurialLocation,
             photoUrl = currentMemorial?.photoUrl,
-            isPublic = true,
+            isPublic = currentMemorial?.isPublic ?: false, // Сохраняем текущее значение или по умолчанию false
             treeId = null,
             createdBy = null,
             createdAt = null,
             updatedAt = null
         )
+        
+        // Log the memorial object being sent
+        println("LOCATION DEBUG - Memorial being sent to server:")
+        println("Memorial: $newMemorial")
+        println("mainLocation: ${newMemorial.mainLocation}")
+        println("burialLocation: ${newMemorial.burialLocation}")
+
+        // Сохраняем ссылку на контекст активности за пределами корутины
+        val activityContext = this
 
         lifecycleScope.launch {
             try {
@@ -451,7 +496,10 @@ class EditMemorialActivity : AppCompatActivity() {
                     repository.updateMemorial(newMemorial.id!!, newMemorial)
                 }
 
-                println("Сохраненный мемориал: $savedMemorial")
+                println("LOCATION DEBUG - Saved memorial response from server:")
+                println("savedMemorial: $savedMemorial")
+                println("mainLocation: ${savedMemorial.mainLocation}")
+                println("burialLocation: ${savedMemorial.burialLocation}")
 
                 // Если нужно удалить фото
                 if (shouldDeletePhoto && newMemorial.photoUrl != null) {
@@ -471,7 +519,7 @@ class EditMemorialActivity : AppCompatActivity() {
                 // Если есть новое фото для загрузки
                 val currentPhotoUri = selectedPhotoUri
                 if (currentPhotoUri != null) {
-                    if (!isInternetAvailable()) {
+                    if (!NetworkUtil.isInternetAvailable(activityContext)) {
                         showError("Нет подключения к интернету. Фото будет загружено позже")
                         setResult(Activity.RESULT_OK)
                         finish()
@@ -488,7 +536,7 @@ class EditMemorialActivity : AppCompatActivity() {
                         }
                         try {
                             savedMemorial.id?.let { id ->
-                                val photoUrl = repository.uploadPhoto(id, currentPhotoUri, this@EditMemorialActivity)
+                                val photoUrl = repository.uploadPhoto(id, currentPhotoUri, activityContext)
                                 try {
                                     // Обновляем мемориал с новым URL фото, сохраняя все остальные поля
                                     val updatedMemorial = Memorial(
@@ -567,6 +615,18 @@ class EditMemorialActivity : AppCompatActivity() {
         fragment.arguments = bundle
         
         fragment.show(supportFragmentManager, "location_picker")
+    }
+
+    private fun showSubscriptionRequiredDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Требуется подписка")
+            .setMessage("Для использования возможности указания местоположения требуется подписка")
+            .setPositiveButton("Информация о подписке") { _, _ ->
+                // Здесь можно открыть экран с информацией о подписке
+                Toast.makeText(this, "Информация о подписке", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
     }
 
     companion object {

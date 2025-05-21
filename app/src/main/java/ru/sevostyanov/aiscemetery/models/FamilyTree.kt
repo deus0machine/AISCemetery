@@ -27,6 +27,9 @@ data class FamilyTree(
     @SerializedName("memorialRelations")
     val memorialRelations: List<MemorialRelation>? = null,
     
+    @SerializedName("memorialCount")
+    val memorialCount: Int? = null,
+    
     @SerializedName("accessList")
     val accessList: List<FamilyTreeAccess>? = null
 ) {

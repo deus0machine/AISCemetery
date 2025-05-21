@@ -18,7 +18,7 @@ class GuestAdapter(
         val contacts: TextView = view.findViewById(R.id.guest_contacts)
         val dateOfRegistration: TextView = view.findViewById(R.id.guest_date_of_registration)
         val login: TextView = view.findViewById(R.id.guest_login)
-        val balance: TextView = view.findViewById(R.id.guest_balance)
+        val subscription: TextView = view.findViewById(R.id.guest_subscription)
         val deleteButton: Button = view.findViewById(R.id.btn_delete_guest)
     }
 
@@ -33,7 +33,7 @@ class GuestAdapter(
         holder.contacts.text = guest.contacts ?: "No Contacts"
         holder.dateOfRegistration.text = "Registered: ${guest.dateOfRegistration}"
         holder.login.text = "Login: ${guest.login}"
-        holder.balance.text = "Balance: ${guest.balance} ₽"
+        holder.subscription.text = "Подписка: ${if (guest.hasSubscription) "Активна" else "Отсутствует"}"
         holder.deleteButton.setOnClickListener { onDeleteClick(guest) }
     }
 

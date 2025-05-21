@@ -46,16 +46,84 @@
             tools:text="20.03.2024" />
 
         <TextView
+            android:id="@+id/text_user_info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceCaption"
+            android:textStyle="bold"
+            android:textColor="?android:attr/textColorSecondary"
+            app:layout_constraintStart_toStartOf="@id/text_title"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_title"
+            tools:text="От: Иван Иванов" />
+
+        <TextView
+            android:id="@+id/text_memorial_info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textAppearance="?attr/textAppearanceCaption"
+            android:textColor="?android:attr/textColorSecondary"
+            app:layout_constraintStart_toStartOf="@id/text_user_info"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_user_info"
+            tools:text="Мемориал: Петров Петр Петрович" />
+
+        <TextView
             android:id="@+id/text_message"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:textAppearance="?attr/textAppearanceBody2"
             android:textColor="?android:attr/textColorSecondary"
-            app:layout_constraintStart_toStartOf="@id/text_title"
+            app:layout_constraintStart_toStartOf="@id/text_user_info"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/text_title"
+            app:layout_constraintTop_toBottomOf="@id/text_memorial_info"
             tools:text="Пользователь Иван Иванов запрашивает доступ к вашему древу" />
+
+        <TextView
+            android:id="@+id/text_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textStyle="italic"
+            android:textAppearance="?attr/textAppearanceCaption"
+            android:textColor="?android:attr/textColorTertiary"
+            app:layout_constraintStart_toStartOf="@id/text_message"
+            app:layout_constraintTop_toBottomOf="@id/text_message"
+            tools:text="Ожидает ответа" />
+
+        <LinearLayout
+            android:id="@+id/action_buttons"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_message">
+
+            <Button
+                android:id="@+id/btn_accept"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="Принять"
+                android:textSize="12sp"
+                android:visibility="gone"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                tools:visibility="visible" />
+
+            <Button
+                android:id="@+id/btn_reject"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Отклонить"
+                android:textSize="12sp"
+                android:visibility="gone"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                tools:visibility="visible" />
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

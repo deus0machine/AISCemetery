@@ -57,6 +57,14 @@ class MemorialRepository {
 
     suspend fun updateMemorialPrivacy(id: Long, isPublic: Boolean) = withContext(Dispatchers.IO) {
         try {
+            // Проверяем подписку пользователя, если пытаемся сделать мемориал публичным
+            if (isPublic) {
+                val user = RetrofitClient.getApiService().getGuest(RetrofitClient.getCurrentUserId())
+                if (user.hasSubscription != true) {
+                    throw Exception("Для публикации мемориала требуется подписка")
+                }
+            }
+            
             println("Отправляем запрос на обновление статуса: id=$id, isPublic=$isPublic")
             apiService.updateMemorialPrivacy(id, isPublic)
             println("Статус успешно обновлен")
@@ -99,17 +107,29 @@ class MemorialRepository {
                 val body = MultipartBody.Part.createFormData("photo", fileName, requestFile)
 
                 // Отправляем файл и возвращаем результат
-                val result = apiService.uploadMemorialPhoto(id, body)
-                
-                // Удаляем временный файл
-                if (tempFile.exists()) {
-                    tempFile.delete()
+                try {
+                    val response = apiService.uploadMemorialPhoto(id, body)
+                    val result = response.string()
+                    
+                    // Удаляем временный файл
+                    if (tempFile.exists()) {
+                        tempFile.delete()
+                    }
+                    
+                    result
+                } catch (e: java.net.UnknownHostException) {
+                    throw Exception("Ошибка подключения к серверу. Проверьте подключение к интернету.")
+                } catch (e: java.net.SocketTimeoutException) {
+                    throw Exception("Превышено время ожидания ответа от сервера. Попробуйте позже.")
+                } catch (e: javax.net.ssl.SSLHandshakeException) {
+                    throw Exception("Ошибка безопасного соединения с сервером.")
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    throw Exception("Ошибка при загрузке фото: ${e.message}")
                 }
-                
-                result
             } catch (e: Exception) {
                 e.printStackTrace()
-                throw Exception("Ошибка при работе с файлом: ${e.message}\nПолный стек: ${e.stackTraceToString()}")
+                throw Exception("Ошибка при работе с файлом: ${e.message}")
             } finally {
                 // Удаляем временный файл в любом случае
                 if (tempFile.exists()) {
@@ -118,7 +138,7 @@ class MemorialRepository {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            throw Exception("Ошибка при загрузке фото: ${e.message}\nПолный стек: ${e.stackTraceToString()}")
+            throw Exception("Ошибка при загрузке фото: ${e.message}")
         }
     }
 

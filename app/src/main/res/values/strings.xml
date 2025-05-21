@@ -25,11 +25,14 @@
     <string name="title_family_trees">Древо</string>
     <string name="title_map">Карта</string>
     <string name="title_notifications">Уведомления</string>
-    <string name="no_notifications">Нет новых уведомлений</string>
+    <string name="no_notifications">Нет уведомлений</string>
     <string name="title_profile">Профиль</string>
     <string name="add_family_tree">Добавить древо</string>
     <string name="edit">Редактировать</string>
     <string name="created_at">Создано: %s</string>
     <string name="memorial_count">Мемориалов: %d</string>
     <string name="tree_created_at">Создано: %s</string>
+    <string name="tab_incoming">Входящие</string>
+    <string name="tab_outgoing">Исходящие</string>
+    <string name="notification_icon">Иконка уведомления</string>
 </resources>

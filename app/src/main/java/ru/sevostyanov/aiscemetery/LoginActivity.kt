@@ -92,7 +92,7 @@ class LoginActivity : AppCompatActivity() {
         const val KEY_USER_CONTACTS = "user_contacts"
         const val KEY_USER_REG_DATE = "user_reg_date"
         const val KEY_USER_LOGIN = "user_login"
-        const val KEY_USER_BALANCE = "user_balance"
+        const val KEY_USER_HAS_SUBSCRIPTION = "user_has_subscription"
         const val KEY_USER_ROLE = "user_role"
         const val KEY_USER_TOKEN = "user_token"
     }
@@ -122,7 +122,7 @@ class LoginActivity : AppCompatActivity() {
                             contacts = userProfile?.contacts ?: "",
                             dateOfRegistration = userProfile?.dateOfRegistration ?: "",
                             login = login,
-                            balance = userProfile?.balance ?: 0,
+                            hasSubscription = userProfile?.hasSubscription ?: false,
                             role = userProfile?.role ?: "USER",
                             token = token
                         )

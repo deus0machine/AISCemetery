@@ -47,7 +47,7 @@ class FamilyTreeAdapter(
             descriptionTextView.text = tree.description ?: "Нет описания"
             ownerTextView.text = "ID владельца: ${tree.userId ?: "Неизвестно"}"
             createdAtTextView.text = itemView.context.getString(R.string.created_at, tree.createdAt)
-            memorialCountTextView.text = itemView.context.getString(R.string.memorial_count, 0) // TODO: Добавить количество мемориалов
+            memorialCountTextView.text = itemView.context.getString(R.string.memorial_count, tree.memorialCount ?: 0)
 
             itemView.setOnClickListener { onItemClick(tree) }
             editButton.setOnClickListener { onEditClick(tree) }

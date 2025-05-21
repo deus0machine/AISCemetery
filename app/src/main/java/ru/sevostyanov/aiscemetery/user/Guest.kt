@@ -16,8 +16,8 @@ data class Guest(
     val dateOfRegistration: String,
     @SerializedName("login")
     val login: String,
-    @SerializedName("balance")
-    val balance: Long,
+    @SerializedName("hasSubscription")
+    val hasSubscription: Boolean = false,
     @SerializedName("role")
     val role: String,
     @SerializedName("token")

@@ -40,10 +40,10 @@
         android:paddingBottom="4dp" />
 
     <TextView
-        android:id="@+id/guest_balance"
+        android:id="@+id/guest_subscription"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Balance"
+        android:text="Подписка"
         android:textSize="16sp"
         android:paddingBottom="8dp" />
 
