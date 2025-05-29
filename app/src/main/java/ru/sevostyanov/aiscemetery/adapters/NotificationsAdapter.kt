@@ -100,10 +100,41 @@ class NotificationsAdapter(
             
             // Устанавливаем заголовок в зависимости от типа
             val title = when (notification.type) {
-                NotificationType.MEMORIAL_OWNERSHIP -> "Запрос на совместное владение"
+                NotificationType.MEMORIAL_OWNERSHIP -> {
+                    // Для запросов на совместное владение учитываем статус
+                    when (notification.status) {
+                        NotificationStatus.ACCEPTED -> notification.title ?: "Запрос на совместное владение принят"
+                        NotificationStatus.REJECTED -> notification.title ?: "Запрос на совместное владение отклонён"
+                        else -> "Запрос на совместное владение"
+                    }
+                }
                 NotificationType.MEMORIAL_CHANGES -> "Запрос на изменение мемориала"
-                NotificationType.MEMORIAL_EDIT -> "Изменения в мемориале"
-                NotificationType.SYSTEM -> "Системное уведомление"
+                NotificationType.MEMORIAL_EDIT -> {
+                    // Для уведомлений об изменениях тоже учитываем статус
+                    when (notification.status) {
+                        NotificationStatus.ACCEPTED -> notification.title ?: "Изменения в мемориале приняты"
+                        NotificationStatus.REJECTED -> notification.title ?: "Изменения в мемориале отклонены"
+                        else -> "Изменения в мемориале"
+                    }
+                }
+                NotificationType.SYSTEM -> {
+                    // Проверяем текст заголовка для определения типа системного уведомления
+                    val titleContainsPublished = notification.title?.contains("опубликован") == true
+                    val titleContainsNotPublished = notification.title?.contains("не опубликован") == true
+                    val titleContainsRejected = notification.title?.contains("отклонен") == true
+                    
+                    if (titleContainsPublished && !titleContainsNotPublished) {
+                        // Уведомление об одобрении публикации
+                        notification.title ?: "Системное уведомление"
+                    } else if (titleContainsNotPublished || titleContainsRejected) {
+                        // Уведомление об отклонении публикации
+                        notification.title ?: "Системное уведомление"
+                    } else {
+                        // Обычное системное уведомление
+                        notification.title ?: "Системное уведомление"
+                    }
+                }
+                NotificationType.MODERATION -> "Запрос на модерацию мемориала"
                 else -> "Уведомление"
             }
             titleTextView.text = title
@@ -258,9 +289,23 @@ class NotificationsAdapter(
                 notification.title ?: "Уведомление"
             } else {
                 when (notification.type) {
-                    NotificationType.MEMORIAL_OWNERSHIP -> "Запрос на совместное владение"
+                    NotificationType.MEMORIAL_OWNERSHIP -> {
+                        // Для запросов на совместное владение учитываем статус
+                        when (notification.status) {
+                            NotificationStatus.ACCEPTED -> notification.title ?: "Запрос на совместное владение принят"
+                            NotificationStatus.REJECTED -> notification.title ?: "Запрос на совместное владение отклонён"
+                            else -> "Запрос на совместное владение"
+                        }
+                    }
                     NotificationType.MEMORIAL_CHANGES -> "Запрос на изменение мемориала"
-                    NotificationType.MEMORIAL_EDIT -> "Изменения в мемориале"
+                    NotificationType.MEMORIAL_EDIT -> {
+                        // Для уведомлений об изменениях тоже учитываем статус
+                        when (notification.status) {
+                            NotificationStatus.ACCEPTED -> notification.title ?: "Изменения в мемориале приняты"
+                            NotificationStatus.REJECTED -> notification.title ?: "Изменения в мемориале отклонены"
+                            else -> "Изменения в мемориале"
+                        }
+                    }
                     NotificationType.SYSTEM -> {
                         // Используем заголовок из уведомления, если есть, иначе - стандартный
                         notification.title ?: "Системное уведомление"

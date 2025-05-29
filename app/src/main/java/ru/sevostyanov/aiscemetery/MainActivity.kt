@@ -157,8 +157,22 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             // Проверяем, нужно ли открыть конкретную вкладку
             val tabPosition = intent.getIntExtra("tab_position", -1)
             if (tabPosition != -1) {
-                // Сохраняем позицию вкладки для использования в NotificationsFragment
-                intent.putExtra("tab_position", tabPosition)
+                // Передаем позицию вкладки через Bundle в NavController
+                val bundle = Bundle().apply {
+                    putInt("tab_position", tabPosition)
+                }
+                // Обновляем аргументы для фрагмента уведомлений
+                try {
+                    val currentDestination = navController.currentDestination
+                    if (currentDestination?.id == R.id.notificationsFragment) {
+                        // Если мы уже в фрагменте уведомлений, передаем данные напрямую
+                        val notificationsFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+                            ?.childFragmentManager?.fragments?.find { it is ru.sevostyanov.aiscemetery.fragments.NotificationsFragment }
+                        (notificationsFragment as? ru.sevostyanov.aiscemetery.fragments.NotificationsFragment)?.selectTab(tabPosition)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Не удалось переключить вкладку напрямую: ${e.message}")
+                }
             }
         }
     }

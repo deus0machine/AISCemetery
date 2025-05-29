@@ -72,6 +72,17 @@ class NotificationPageFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Обновляем уведомления при возвращении к фрагменту
+        // чтобы правильно отображался статус после подтверждения/отклонения изменений
+        if (isIncoming) {
+            viewModel.loadIncomingNotifications()
+        } else {
+            viewModel.loadSentNotifications()
+        }
+    }
+
     private fun setupRecyclerView() {
         // Добавляем обработчики принятия/отклонения только для входящих
         adapter = if (isIncoming) {
@@ -169,7 +180,7 @@ class NotificationPageFragment : Fragment() {
                     .setMessage("Вы действительно хотите подтвердить изменения в мемориале ${notification.relatedEntityName ?: ""}?")
                     .setPositiveButton("Да") { _, _ ->
                         viewModel.respondToNotification(notification.id, true)
-                        Toast.makeText(context, "Изменения подтверждены", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Изменения отправлены на модерацию", Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton("Отмена", null)
                     .show()

@@ -35,6 +35,9 @@ data class Memorial(
     @SerializedName("pendingPhotoUrl")
     val pendingPhotoUrl: String? = null,
     
+    @SerializedName("pendingFio")
+    val pendingFio: String? = null,
+    
     @SerializedName("pendingBiography")
     val pendingBiography: String? = null,
     
@@ -43,6 +46,9 @@ data class Memorial(
     
     @SerializedName("pendingDeathDate")
     val pendingDeathDate: String? = null,
+    
+    @SerializedName("pendingIsPublic")
+    val pendingIsPublic: Boolean? = null,
     
     @SerializedName("pendingMainLocation")
     val pendingMainLocation: Location? = null,
@@ -75,7 +81,10 @@ data class Memorial(
     val isEditor: Boolean = false,
     
     @SerializedName("pendingChanges")
-    val pendingChanges: Boolean = false
+    val pendingChanges: Boolean = false,
+    
+    @SerializedName("changesUnderModeration")
+    val changesUnderModeration: Boolean = false
 ) : Parcelable {
     // Вычисляемое свойство для проверки, является ли текущий пользователь редактором
     // независимо от флага is_editor, присланного с сервера
@@ -101,28 +110,40 @@ data class Memorial(
         if (publicationStatus == PublicationStatus.PENDING_MODERATION) {
             return false
         }
+        
+        // Если изменения мемориала находятся на модерации, также запрещаем редактирование
+        if (changesUnderModeration) {
+            return false
+        }
+        
         return isUserOwner || isEditor || isUserEditor
     }
     
     // Метод для получения статуса публикации в виде строки
     fun getPublicationStatusText(): String {
-        return when (publicationStatus) {
-            PublicationStatus.PUBLISHED -> "Опубликован"
-            PublicationStatus.PENDING_MODERATION -> "На модерации"
-            PublicationStatus.REJECTED -> "Отклонен"
-            PublicationStatus.DRAFT -> "Черновик"
-            null -> if (isPublic) "Опубликован" else "Черновик"
+        return when {
+            // Показываем статус "Изменения на модерации" только владельцу
+            changesUnderModeration && isUserOwner -> "Изменения на модерации"
+            publicationStatus == PublicationStatus.PUBLISHED -> "Опубликован"
+            publicationStatus == PublicationStatus.PENDING_MODERATION -> "На модерации"
+            publicationStatus == PublicationStatus.REJECTED -> "Отклонен"
+            publicationStatus == PublicationStatus.DRAFT -> "Черновик"
+            isPublic -> "Опубликован"
+            else -> "Черновик"
         }
     }
     
     // Метод для получения цвета статуса публикации
     fun getPublicationStatusColor(): Int {
-        return when (publicationStatus) {
-            PublicationStatus.PUBLISHED -> android.R.color.holo_green_dark
-            PublicationStatus.PENDING_MODERATION -> android.R.color.holo_orange_dark
-            PublicationStatus.REJECTED -> android.R.color.holo_red_dark
-            PublicationStatus.DRAFT -> android.R.color.darker_gray
-            null -> if (isPublic) android.R.color.holo_green_dark else android.R.color.darker_gray
+        return when {
+            // Цвет для изменений на модерации показываем только владельцу
+            changesUnderModeration && isUserOwner -> android.R.color.holo_orange_dark
+            publicationStatus == PublicationStatus.PUBLISHED -> android.R.color.holo_green_dark
+            publicationStatus == PublicationStatus.PENDING_MODERATION -> android.R.color.holo_orange_dark
+            publicationStatus == PublicationStatus.REJECTED -> android.R.color.holo_red_dark
+            publicationStatus == PublicationStatus.DRAFT -> android.R.color.darker_gray
+            isPublic -> android.R.color.holo_green_dark
+            else -> android.R.color.darker_gray
         }
     }
 }

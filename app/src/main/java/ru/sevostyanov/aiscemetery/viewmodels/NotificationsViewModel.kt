@@ -180,7 +180,10 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
                 Log.d(TAG, "Отвечаем на уведомление id=$notificationId, accept=$accept")
                 _isLoading.value = true
                 val requestData = mapOf("accept" to accept)
-                val updated = apiService.respondToNotification(notificationId, requestData)
+                val response = apiService.respondToNotification(notificationId, requestData)
+                
+                // Извлекаем данные из обёртки ResponseWrapper
+                val updated = response.data
                 Log.d(TAG, "Успешно обновлен статус уведомления с ID: ${updated.id}")
                 
                 // Если принято уведомление о совместном владении, добавляем редактора

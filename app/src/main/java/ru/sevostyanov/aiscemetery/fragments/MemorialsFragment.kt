@@ -321,7 +321,7 @@ class MemorialsFragment : Fragment() {
             memorial.publicationStatus == PublicationStatus.REJECTED) {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Невозможно изменить статус")
-                .setMessage("Статус публикации мемориала управляется через систему модерации. Используйте кнопку 'Отправить на модерацию' для публикации.")
+                .setMessage("Статус публикации мемориала управляется через систему модерации. Используйте кнопку 'Отправить на публикацию' для публикации.")
                 .setPositiveButton("ОК") { _, _ ->
                     // Открываем экран мемориала, где можно отправить на модерацию
                     ViewMemorialActivity.start(requireActivity(), memorial)
@@ -350,8 +350,8 @@ class MemorialsFragment : Fragment() {
         // Если меморил непубличный, показываем диалог о необходимости модерации
         if (newIsPublic) {
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Отправка на модерацию")
-                .setMessage("Чтобы опубликовать мемориал, его необходимо отправить на модерацию. Перейти к экрану мемориала для отправки на модерацию?")
+                .setTitle("Отправка на публикацию")
+                .setMessage("Чтобы опубликовать мемориал, его необходимо отправить на публикацию. Перейти к экрану мемориала для отправки на публикацию?")
                 .setPositiveButton("Да") { _, _ ->
                     ViewMemorialActivity.start(requireActivity(), memorial)
                 }

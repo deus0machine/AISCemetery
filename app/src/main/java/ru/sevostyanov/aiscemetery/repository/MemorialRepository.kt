@@ -274,6 +274,16 @@ class MemorialRepository {
         }
     }
     
+    // Отправить изменения опубликованного мемориала на модерацию
+    suspend fun sendChangesForModeration(id: Long): Memorial = withContext(Dispatchers.IO) {
+        try {
+            apiService.sendChangesForModeration(id)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Не удалось отправить изменения на модерацию: ${e.message}")
+        }
+    }
+    
     // Одобрить публикацию мемориала (для администраторов)
     suspend fun approveMemorial(id: Long): Memorial = withContext(Dispatchers.IO) {
         try {
@@ -291,6 +301,26 @@ class MemorialRepository {
         } catch (e: Exception) {
             e.printStackTrace()
             throw Exception("Не удалось отклонить публикацию мемориала: ${e.message}")
+        }
+    }
+
+    // Одобрить изменения опубликованного мемориала (для администраторов)
+    suspend fun approveChangesByAdmin(id: Long): Memorial = withContext(Dispatchers.IO) {
+        try {
+            apiService.approveChangesByAdmin(id)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Не удалось одобрить изменения мемориала: ${e.message}")
+        }
+    }
+    
+    // Отклонить изменения опубликованного мемориала с указанием причины (для администраторов)
+    suspend fun rejectChangesByAdmin(id: Long, reason: String): Memorial = withContext(Dispatchers.IO) {
+        try {
+            apiService.rejectChangesByAdmin(id, reason)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Не удалось отклонить изменения мемориала: ${e.message}")
         }
     }
 

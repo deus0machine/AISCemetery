@@ -111,7 +111,22 @@ enum class NotificationType {
     MEMORIAL_EDIT,
     
     @SerializedName("MODERATION")
-    MODERATION
+    MODERATION,
+    
+    @SerializedName("CHANGES_REJECTED")
+    CHANGES_REJECTED,
+    
+    @SerializedName("MEMORIAL_MODERATION")
+    MEMORIAL_MODERATION,
+    
+    @SerializedName("CHANGES_MODERATION")
+    CHANGES_MODERATION,
+    
+    @SerializedName("MEMORIAL_APPROVED")
+    MEMORIAL_APPROVED,
+    
+    @SerializedName("MEMORIAL_REJECTED")
+    MEMORIAL_REJECTED
 }
 
 enum class NotificationStatus {

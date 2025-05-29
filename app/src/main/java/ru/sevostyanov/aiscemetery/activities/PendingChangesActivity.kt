@@ -35,6 +35,7 @@ class PendingChangesActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_MEMORIAL_ID = "memorial_id"
+        private const val TAG = "PendingChangesActivity"
         
         fun start(context: Context) {
             val intent = Intent(context, PendingChangesActivity::class.java)
@@ -248,12 +249,58 @@ class PendingChangesActivity : AppCompatActivity() {
                 // Получаем обновленный мемориал
                 val updatedMemorial = repository.approveChanges(memorialId, approve)
                 
+                // НОВОЕ: Также обновляем статус соответствующего уведомления через API
+                try {
+                    val apiService = ru.sevostyanov.aiscemetery.RetrofitClient.getApiService()
+                    
+                    // Находим уведомление с типом MEMORIAL_EDIT и relatedEntityId = memorialId, статус PENDING
+                    val incomingNotifications = withContext(Dispatchers.IO) {
+                        apiService.getMyNotifications()
+                    }
+                    
+                    val notificationToUpdate = incomingNotifications.find { notification ->
+                        notification.type == ru.sevostyanov.aiscemetery.models.NotificationType.MEMORIAL_EDIT &&
+                        notification.relatedEntityId == memorialId &&
+                        notification.status == ru.sevostyanov.aiscemetery.models.NotificationStatus.PENDING
+                    }
+                    
+                    if (notificationToUpdate != null) {
+                        Log.d(TAG, "Найдено соответствующее уведомление ID=${notificationToUpdate.id} для обновления")
+                        val requestData = mapOf("accept" to approve)
+                        val response = withContext(Dispatchers.IO) {
+                            apiService.respondToNotification(notificationToUpdate.id, requestData)
+                        }
+                        // Извлекаем данные из обёртки ResponseWrapper
+                        val updatedNotification = response.data
+                        Log.d(TAG, "Статус уведомления обновлен: ${updatedNotification.status}")
+                    } else {
+                        Log.w(TAG, "Не найдено уведомление для обновления статуса")
+                    }
+                } catch (e: Exception) {
+                    Log.e("PendingChangesActivity", "Ошибка при обновлении статуса уведомления: ${e.message}", e)
+                    // Не прерываем выполнение, так как основная операция уже выполнена
+                }
+                
                 runOnUiThread {
                     binding.progressBar.visibility = View.GONE
-                    showMessage(if (approve) "Изменения приняты" else "Изменения отклонены")
+                    showMessage(if (approve) "Изменения отправлены на модерацию" else "Изменения отклонены")
                     
                     // Перезагружаем список
                     loadPendingMemorials()
+                    
+                    // Обновляем уведомления в глобальной ViewModel, чтобы статус отразился в NotificationsFragment
+                    try {
+                        val notificationsViewModel = androidx.lifecycle.ViewModelProvider(
+                            this@PendingChangesActivity as androidx.lifecycle.ViewModelStoreOwner
+                        ).get(ru.sevostyanov.aiscemetery.viewmodels.NotificationsViewModel::class.java)
+                        
+                        // Перезагружаем входящие уведомления для обновления статуса
+                        notificationsViewModel.loadIncomingNotifications()
+                        
+                        Log.d("PendingChangesActivity", "Обновили список уведомлений после ${if (approve) "принятия" else "отклонения"} изменений")
+                    } catch (e: Exception) {
+                        Log.w("PendingChangesActivity", "Не удалось обновить уведомления: ${e.message}")
+                    }
                     
                     // Если это подтверждение изменений, открываем обновленный мемориал
                     if (approve) {

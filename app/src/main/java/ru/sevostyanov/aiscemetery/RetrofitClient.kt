@@ -191,15 +191,22 @@ object RetrofitClient {
         val message: String
     )
 
+    // Wrapper для ответов API, которые возвращают данные в обёртке
+    data class ResponseWrapper<T>(
+        val status: String,
+        val data: T,
+        val message: String? = null
+    )
+
     interface ApiService {
         @POST("/api/register")
         fun registerUser(@Body registerRequest: RegisterRequest): Call<RegisterResponse>
 
         @GET("/api/guest/get/{guestId}")
-        suspend fun getGuest(@Path("guestId") guestId: Long): Guest
+        suspend fun getGuest(@Path("guestId") guestId: Long): ru.sevostyanov.aiscemetery.user.Guest
 
         @GET("/api/guest/all")
-        fun getAllGuests(): Call<List<Guest>>
+        fun getAllGuests(): Call<List<ru.sevostyanov.aiscemetery.user.Guest>>
 
         @DELETE("/api/guest/{id}")
         fun deleteGuest(@Path("id") id: Long): Call<Void>
@@ -232,7 +239,7 @@ object RetrofitClient {
         suspend fun updateMemorialPrivacy(@Path("id") id: Long, @Body isPublic: Boolean)
 
         @GET("/api/memorials/{id}/editors")
-        suspend fun getMemorialEditors(@Path("id") id: Long): List<Guest>
+        suspend fun getMemorialEditors(@Path("id") id: Long): List<ru.sevostyanov.aiscemetery.user.Guest>
 
         @POST("/api/memorials/{id}/editors")
         suspend fun manageEditor(@Path("id") id: Long, @Body request: EditorRequest): Memorial
@@ -351,7 +358,7 @@ object RetrofitClient {
         suspend fun respondToNotification(
             @Path("id") id: Long,
             @Body requestData: Map<String, Boolean>
-        ): Notification
+        ): ResponseWrapper<Notification>
 
         @POST("/api/notifications/{id}/read")
         suspend fun markNotificationAsRead(@Path("id") id: Long): Notification
@@ -363,10 +370,19 @@ object RetrofitClient {
         @POST("/api/memorials/{id}/send-for-moderation")
         suspend fun sendMemorialForModeration(@Path("id") id: Long): Memorial
         
+        @POST("/api/memorials/{id}/send-changes-for-moderation")
+        suspend fun sendChangesForModeration(@Path("id") id: Long): Memorial
+        
         @POST("/api/memorials/{id}/approve")
         suspend fun approveMemorial(@Path("id") id: Long): Memorial
         
         @POST("/api/memorials/{id}/reject")
         suspend fun rejectMemorial(@Path("id") id: Long, @Body reason: String): Memorial
+        
+        @POST("/api/memorials/{id}/admin/approve-changes")
+        suspend fun approveChangesByAdmin(@Path("id") id: Long): Memorial
+        
+        @POST("/api/memorials/{id}/admin/reject-changes")
+        suspend fun rejectChangesByAdmin(@Path("id") id: Long, @Body reason: String): Memorial
     }
 }

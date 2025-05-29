@@ -89,17 +89,21 @@ class MemorialAdapter(
         
         // Проверяем, находится ли мемориал на модерации, чтобы отключить редактирование
         val isUnderModeration = memorial.publicationStatus == PublicationStatus.PENDING_MODERATION
+        val changesUnderModeration = memorial.changesUnderModeration
         
         // Настраиваем кнопку редактирования
         holder.editButton.visibility = controlsVisibility
-        if (isUnderModeration) {
-            // Для мемориалов на модерации делаем кнопку редактирования неактивной и серой
+        if (isUnderModeration || changesUnderModeration) {
+            // Для мемориалов на модерации или с изменениями на модерации делаем кнопку редактирования неактивной и серой
             holder.editButton.isEnabled = false
             holder.editButton.alpha = 0.5f
+            val message = if (isUnderModeration) {
+                "Мемориал на модерации и недоступен для редактирования"
+            } else {
+                "Изменения мемориала находятся на модерации и недоступны для редактирования"
+            }
             holder.editButton.setOnClickListener {
-                Toast.makeText(holder.itemView.context, 
-                    "Мемориал на модерации и недоступен для редактирования", 
-                    Toast.LENGTH_SHORT).show()
+                Toast.makeText(holder.itemView.context, message, Toast.LENGTH_SHORT).show()
             }
         } else {
             // Обычная настройка для редактируемых мемориалов
@@ -132,15 +136,29 @@ class MemorialAdapter(
         holder.publicIndicator.visibility = View.VISIBLE
         
         // Определение текста и цвета на основе статуса публикации
-        when (memorial.publicationStatus) {
-            PublicationStatus.PUBLISHED -> {
+        when {
+            // Показываем статус "Изменения на модерации" только владельцу
+            memorial.changesUnderModeration && memorial.isUserOwner -> {
+                holder.publicIndicator.text = "🔄 Изменения на модерации"
+                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.holo_orange_dark))
+                holder.cardView.apply {
+                    strokeColor = ContextCompat.getColor(context, android.R.color.holo_orange_dark)
+                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                    // Добавляем затемнение для мемориалов с изменениями на модерации
+                    setCardBackgroundColor(ContextCompat.getColor(context, R.color.moderation_background))
+                }
+            }
+            memorial.publicationStatus == PublicationStatus.PUBLISHED -> {
                 holder.publicIndicator.text = "🌐 Опубликован"
+                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
                 holder.cardView.apply {
                     strokeColor = ContextCompat.getColor(context, android.R.color.holo_green_dark)
                     strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                    // Сбрасываем фон к обычному
+                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
                 }
             }
-            PublicationStatus.PENDING_MODERATION -> {
+            memorial.publicationStatus == PublicationStatus.PENDING_MODERATION -> {
                 holder.publicIndicator.text = "⏳ На модерации (редактирование недоступно)"
                 holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.holo_orange_dark))
                 holder.cardView.apply {
@@ -150,33 +168,44 @@ class MemorialAdapter(
                     setCardBackgroundColor(ContextCompat.getColor(context, R.color.moderation_background))
                 }
             }
-            PublicationStatus.REJECTED -> {
+            memorial.publicationStatus == PublicationStatus.REJECTED -> {
                 holder.publicIndicator.text = "❌ Отклонен"
+                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
                 holder.cardView.apply {
                     strokeColor = ContextCompat.getColor(context, android.R.color.holo_red_dark)
                     strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                    // Сбрасываем фон к обычному
+                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
                 }
             }
-            PublicationStatus.DRAFT -> {
+            memorial.publicationStatus == PublicationStatus.DRAFT -> {
                 holder.publicIndicator.text = "📝 Черновик"
+                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
                 holder.cardView.apply {
                     strokeColor = ContextCompat.getColor(context, android.R.color.darker_gray)
                     strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                    // Сбрасываем фон к обычному
+                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
                 }
             }
-            null -> {
+            memorial.publicationStatus == null -> {
                 // Используем legacy поведение для обратной совместимости
                 if (memorial.isPublic) {
                     holder.publicIndicator.text = "🌐 Публичный"
+                    holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
                     holder.cardView.apply {
                         strokeColor = ContextCompat.getColor(context, android.R.color.holo_blue_light)
                         strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                        // Сбрасываем фон к обычному
+                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
                     }
                 } else {
                     holder.publicIndicator.visibility = View.GONE
                     holder.cardView.apply {
                         strokeColor = ContextCompat.getColor(context, android.R.color.transparent)
                         strokeWidth = 0
+                        // Сбрасываем фон к обычному
+                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
                     }
                 }
             }
@@ -193,16 +222,26 @@ class MemorialAdapter(
             // Если текущий пользователь - редактор
             holder.editorIndicator.visibility = View.VISIBLE
             holder.editorIndicator.text = "👥 Совместный (редактор)"
-            // Устанавливаем желтый цвет для выделения
+            // Устанавливаем желтый цвет для выделения только если мемориал НЕ на модерации
             holder.editorIndicator.setTextColor(ContextCompat.getColor(context, R.color.gold))
+            
+            // Выделяем карточку желтым цветом только если нет приоритетного статуса публикации
+            if (memorial.publicationStatus == null || memorial.publicationStatus == PublicationStatus.DRAFT) {
             holder.cardView.strokeColor = ContextCompat.getColor(context, R.color.gold)
             holder.cardView.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+            }
         } else if (showControls && !memorial.editors.isNullOrEmpty()) {
             // Если пользователь - владелец (showControls = true означает, что это личный мемориал пользователя)
             // и мемориал имеет редакторов
             holder.editorIndicator.visibility = View.VISIBLE
             holder.editorIndicator.text = "👥 Совместный (владелец)"
             holder.editorIndicator.setTextColor(ContextCompat.getColor(context, R.color.teal_700))
+            
+            // Выделяем карточку teal цветом только если нет приоритетного статуса публикации
+            if (memorial.publicationStatus == null || memorial.publicationStatus == PublicationStatus.DRAFT) {
+                holder.cardView.strokeColor = ContextCompat.getColor(context, R.color.teal_700)
+                holder.cardView.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+            }
         } else {
             holder.editorIndicator.visibility = View.GONE
         }

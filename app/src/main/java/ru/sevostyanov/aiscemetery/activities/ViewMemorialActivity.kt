@@ -136,6 +136,20 @@ class ViewMemorialActivity : AppCompatActivity() {
         setupPendingChangesButton()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Если мемориал уже был загружен (т.е. memorial != null),
+        // и активность не находится в процессе загрузки данных (isLoadingMemorial == false),
+        // перезагружаем его данные, чтобы отразить возможные изменения статуса модерации,
+        // например, если администратор одобрил или отклонил публикацию, пока экран был неактивен.
+        memorial?.id?.let { currentMemorialId ->
+            if (!isLoadingMemorial) {
+                Log.d(TAG, "onResume: Обнаружен активный мемориал ID=$currentMemorialId. Перезагрузка данных...")
+                loadMemorialById(currentMemorialId)
+            }
+        } ?: Log.d(TAG, "onResume: Мемориал еще не загружен, перезагрузка не требуется.")
+    }
+
     private fun loadMemorialData(memorial: Memorial) {
         Log.d(TAG, "loadMemorialData: начало загрузки данных мемориала ID=${memorial.id}, isEditor=${memorial.isEditor}, isUserEditor=${memorial.isUserEditor}")
         Log.d(TAG, "loadMemorialData: публикационный статус=${memorial.publicationStatus}, canEdit=${memorial.canEdit()}")
@@ -279,7 +293,8 @@ class ViewMemorialActivity : AppCompatActivity() {
             ownershipRequestButton.visibility = if (!memorial.isUserOwner && !memorial.canEdit()) View.VISIBLE else View.GONE
             
             // Проверяем есть ли у мемориала ожидающие изменения и является ли текущий пользователь владельцем
-            if (memorial.pendingChanges && memorial.isUserOwner) {
+            // НЕ показываем кнопку если изменения находятся на модерации у админа
+            if (memorial.pendingChanges && memorial.isUserOwner && !memorial.changesUnderModeration) {
                 pendingChangesButton.visibility = View.VISIBLE
             } else {
                 pendingChangesButton.visibility = View.GONE
@@ -488,7 +503,7 @@ class ViewMemorialActivity : AppCompatActivity() {
                         Log.e(TAG, "Ошибка отправки запроса: ${e.message}", e)
                         Toast.makeText(
                             this@ViewMemorialActivity,
-                            "Ошибка отправки запроса: ${e.message}",
+                            "Ошибка при отправке запроса: ${e.message}",
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -604,12 +619,17 @@ class ViewMemorialActivity : AppCompatActivity() {
             editButton.visibility = View.GONE
         }
         
+        // Скрываем кнопку редактирования, если изменения на модерации
+        if (memorial.changesUnderModeration) {
+            editButton.visibility = View.GONE
+        }
+        
         when (memorial.publicationStatus) {
             PublicationStatus.DRAFT -> {
                 // Черновик - показываем кнопку отправки на модерацию только владельцу
                 if (isOwner) {
                     moderationCardView.visibility = View.VISIBLE
-                    moderationMessageTextView.text = "Мемориал сохранен как черновик. Отправьте его на модерацию для публикации."
+                    moderationMessageTextView.text = "Мемориал сохранен как черновик. Отправьте его на публикацию для размещения на сайте."
                     sendForModerationButton.visibility = View.VISIBLE
                     adminModerationButtonsLayout.visibility = View.GONE
                     
@@ -631,7 +651,7 @@ class ViewMemorialActivity : AppCompatActivity() {
                     setupAdminModerationButtons()
                 } else {
                     // Для владельца или других пользователей просто показываем информацию
-                    moderationMessageTextView.text = "Мемориал на модерации. Ожидайте решения администратора."
+                    moderationMessageTextView.text = "Мемориал ожидает публикации. Ожидайте решения администратора."
                     sendForModerationButton.visibility = View.GONE
                     adminModerationButtonsLayout.visibility = View.GONE
                 }
@@ -643,7 +663,7 @@ class ViewMemorialActivity : AppCompatActivity() {
                     moderationCardView.visibility = View.VISIBLE
                     moderationMessageTextView.text = "Публикация мемориала была отклонена. Проверьте уведомления для получения информации о причинах."
                     sendForModerationButton.visibility = View.VISIBLE
-                    sendForModerationButton.text = "Отправить на повторную модерацию"
+                    sendForModerationButton.text = "Отправить на повторную публикацию"
                     adminModerationButtonsLayout.visibility = View.GONE
                     
                     // Настраиваем обработчик для отправки на модерацию
@@ -652,15 +672,23 @@ class ViewMemorialActivity : AppCompatActivity() {
             }
             
             PublicationStatus.PUBLISHED -> {
-                // Для опубликованного мемориала не показываем карточку модерации
+                // Для опубликованного мемориала проверяем, есть ли изменения на модерации
+                if (memorial.changesUnderModeration && isOwner) {
+                    moderationCardView.visibility = View.VISIBLE
+                    moderationMessageTextView.text = "Ваши изменения мемориала находятся на модерации. Дождитесь решения администратора."
+                    sendForModerationButton.visibility = View.GONE
+                    adminModerationButtonsLayout.visibility = View.GONE
+                } else {
+                    // Для обычного опубликованного мемориала не показываем карточку модерации
                 moderationCardView.visibility = View.GONE
+                }
             }
             
             null -> {
                 // Для совместимости со старой версией API
                 if (isOwner && !memorial.isPublic) {
                     moderationCardView.visibility = View.VISIBLE
-                    moderationMessageTextView.text = "Мемориал не опубликован. Отправьте его на модерацию для публикации."
+                    moderationMessageTextView.text = "Мемориал не опубликован. Отправьте его на публикацию для размещения на сайте."
                     sendForModerationButton.visibility = View.VISIBLE
                     adminModerationButtonsLayout.visibility = View.GONE
                     
@@ -676,12 +704,12 @@ class ViewMemorialActivity : AppCompatActivity() {
         sendForModerationButton.setOnClickListener {
             // Показываем диалог подтверждения с расширенным предупреждением
             AlertDialog.Builder(this)
-                .setTitle("Отправка на модерацию")
-                .setMessage("Отправить мемориал на модерацию?\n\n" +
-                        "Важно! После отправки на модерацию:\n" +
+                .setTitle("Отправка на публикацию")
+                .setMessage("Отправить мемориал на публикацию?\n\n" +
+                        "Важно! После отправки на публикацию:\n" +
                         "• Мемориал станет недоступен для редактирования\n" +
                         "• Изменения будут возможны только после решения администратора\n" +
-                        "• Вы получите уведомление о результате модерации")
+                        "• Вы получите уведомление о результате проверки")
                 .setPositiveButton("Отправить") { _, _ ->
                     sendMemorialForModeration()
                 }
@@ -731,7 +759,7 @@ class ViewMemorialActivity : AppCompatActivity() {
     private fun sendMemorialForModeration() {
         memorial?.id?.let { memorialId ->
             val progressDialog = android.app.ProgressDialog(this).apply {
-                setMessage("Отправка на модерацию...")
+                setMessage("Отправка на публикацию...")
                 setCancelable(false)
                 show()
             }
@@ -757,7 +785,7 @@ class ViewMemorialActivity : AppCompatActivity() {
                     Log.d(TAG, "Мемориал успешно отправлен на модерацию, получен ответ от сервера")
                     Toast.makeText(
                         this@ViewMemorialActivity,
-                        "Мемориал отправлен на модерацию",
+                        "Мемориал отправлен на публикацию",
                         Toast.LENGTH_SHORT
                     ).show()
                     
@@ -772,7 +800,7 @@ class ViewMemorialActivity : AppCompatActivity() {
                     Log.e(TAG, "Ошибка при отправке мемориала на модерацию: ${e.message}", e)
                     Toast.makeText(
                         this@ViewMemorialActivity,
-                        "Ошибка при отправке на модерацию: ${e.message}",
+                        "Ошибка при отправке на публикацию: ${e.message}",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -872,7 +900,8 @@ class ViewMemorialActivity : AppCompatActivity() {
             val intent = Intent(this, MainActivity::class.java).apply {
                 putExtra("navigate_to", "notifications")
                 putExtra("tab_position", 1) // Переходим на вкладку "Исходящие"
-                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                // Убираем FLAG_ACTIVITY_CLEAR_TOP для правильной навигации
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
             startActivity(intent)
             finish()

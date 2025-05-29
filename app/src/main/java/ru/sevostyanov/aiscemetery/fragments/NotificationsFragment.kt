@@ -139,4 +139,11 @@ class NotificationsFragment : Fragment() {
         viewModel.loadIncomingNotifications()
         viewModel.loadSentNotifications()
     }
+
+    // Публичный метод для переключения на нужную вкладку из других активити/фрагментов
+    fun selectTab(position: Int) {
+        if (position in 0..1 && ::viewPager.isInitialized) {
+            viewPager.currentItem = position
+        }
+    }
 } 
