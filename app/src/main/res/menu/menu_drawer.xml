@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_notifications"
+        android:icon="@drawable/ic_notifications"
+        android:title="Уведомления" />
+
+    <item
+        android:id="@+id/nav_pending_changes"
+        android:icon="@drawable/ic_pending"
+        android:title="Ожидающие изменения" />
+
+    <item
+        android:id="@+id/nav_account"
+        android:icon="@drawable/ic_account"
+        android:title="Аккаунт" />
+</menu> 

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import okhttp3.Interceptor
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -23,6 +24,8 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
+import ru.sevostyanov.aiscemetery.models.ApproveChangesRequest
+import ru.sevostyanov.aiscemetery.models.EditorRequest
 import ru.sevostyanov.aiscemetery.models.FamilyTree
 import ru.sevostyanov.aiscemetery.models.FamilyTreeAccess
 import ru.sevostyanov.aiscemetery.models.FamilyTreeUpdateDTO
@@ -35,7 +38,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private const val TAG = "RetrofitClient"
-    private const val BASE_URL = "http://192.168.0.102:8080/"
+    private const val BASE_URL = "http://192.168.0.101:8080/"
     private const val TOKEN_KEY = "auth_token"
     private const val USER_ID_KEY = "user_id"
     private const val PREF_NAME = "app_prefs"
@@ -61,54 +64,7 @@ object RetrofitClient {
 
         val client = OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
-            .addInterceptor { chain ->
-                val original: Request = chain.request()
-                
-                // Логируем запрос
-                Log.d(TAG, "Отправка запроса: ${original.url}, метод: ${original.method}")
-                
-                val requestBuilder: Request.Builder = original.newBuilder()
-                    .header("Accept", "application/json")
-                    .header("Content-Type", "application/json")
-                    .method(original.method, original.body)
-
-                val token = getToken()
-                if (token != null) {
-                    requestBuilder.header("Authorization", "Bearer $token")
-                    Log.d(TAG, "Adding token to request: Bearer $token")
-                } else {
-                    Log.d(TAG, "No token available for request")
-                }
-
-                val request: Request = requestBuilder.build()
-                try {
-                    val response = chain.proceed(request)
-                    
-                    // Логируем ответ
-                    Log.d(TAG, "Ответ: ${response.code} для URL ${request.url}")
-                    
-                    // Проверяем ответ на ошибки авторизации
-                    if (response.code == 401 || response.code == 403) {
-                        Log.d(TAG, "Token expired or invalid, clearing token")
-                        clearToken()
-                        // Очищаем данные пользователя
-                        applicationContext?.let { context ->
-                            try {
-                                ru.sevostyanov.aiscemetery.user.UserManager.clearUserData(context)
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error clearing user data", e)
-                            }
-                        }
-                    } else if (!response.isSuccessful) {
-                        Log.e(TAG, "Ошибка запроса: ${response.code} ${response.message}")
-                    }
-                    
-                    return@addInterceptor response
-                } catch (e: Exception) {
-                    Log.e(TAG, "Ошибка при отправке запроса: ${e.message}", e)
-                    throw e
-                }
-            }
+            .addInterceptor(createAuthInterceptor())
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -128,6 +84,35 @@ object RetrofitClient {
         if (currentRetrofit != null) {
             apiService = currentRetrofit.create(ApiService::class.java)
             loginService = currentRetrofit.create(LoginService::class.java)
+        }
+    }
+
+    private fun createAuthInterceptor(): Interceptor {
+        return Interceptor { chain ->
+            // Получаем токен
+            val token = getToken()
+            val originalRequest = chain.request()
+            
+            // Проверяем, нужен ли токен для этого запроса
+            // Для запросов аутентификации и регистрации токен не нужен
+            val path = originalRequest.url.encodedPath
+            if (path.contains("/auth/login") || path.contains("/auth/register")) {
+                Log.d(TAG, "Запрос не требует токена: $path")
+                return@Interceptor chain.proceed(originalRequest)
+            }
+            
+            // Добавляем заголовок с токеном
+            val requestWithToken = if (!token.isNullOrEmpty()) {
+                Log.d(TAG, "Добавляем токен к запросу: $path, первые 20 символов: ${token.substring(0, Math.min(20, token.length))}...")
+                originalRequest.newBuilder()
+                    .header("Authorization", "Bearer $token")
+                    .build()
+            } else {
+                Log.w(TAG, "Токен пустой или отсутствует для запроса: $path")
+                originalRequest
+            }
+            
+            chain.proceed(requestWithToken)
         }
     }
 
@@ -246,6 +231,21 @@ object RetrofitClient {
         @PUT("/api/memorials/{id}/privacy")
         suspend fun updateMemorialPrivacy(@Path("id") id: Long, @Body isPublic: Boolean)
 
+        @GET("/api/memorials/{id}/editors")
+        suspend fun getMemorialEditors(@Path("id") id: Long): List<Guest>
+
+        @POST("/api/memorials/{id}/editors")
+        suspend fun manageEditor(@Path("id") id: Long, @Body request: EditorRequest): Memorial
+
+        @POST("/api/memorials/{id}/approve-changes")
+        suspend fun approveChanges(@Path("id") id: Long, @Body request: ApproveChangesRequest): Memorial
+
+        @GET("/api/memorials/edited")
+        suspend fun getEditedMemorials(): List<Memorial>
+
+        @GET("/api/memorials/{id}/pending-changes")
+        suspend fun getMemorialPendingChanges(@Path("id") id: Long): Memorial
+
         @Multipart
         @POST("/api/memorials/{id}/photo")
         suspend fun uploadMemorialPhoto(@Path("id") id: Long, @Part photo: MultipartBody.Part): ResponseBody
@@ -338,7 +338,7 @@ object RetrofitClient {
         ): Response<Unit>
 
         // Notifications API
-        @GET("/api/notifications/my")
+        @GET("/api/notifications")
         suspend fun getMyNotifications(): List<Notification>
 
         @GET("/api/notifications/sent")
@@ -358,5 +358,15 @@ object RetrofitClient {
 
         @DELETE("/api/notifications/{id}")
         suspend fun deleteNotification(@Path("id") id: Long): Response<Unit>
+        
+        // Методы для модерации мемориалов
+        @POST("/api/memorials/{id}/send-for-moderation")
+        suspend fun sendMemorialForModeration(@Path("id") id: Long): Memorial
+        
+        @POST("/api/memorials/{id}/approve")
+        suspend fun approveMemorial(@Path("id") id: Long): Memorial
+        
+        @POST("/api/memorials/{id}/reject")
+        suspend fun rejectMemorial(@Path("id") id: Long, @Body reason: String): Memorial
     }
 }

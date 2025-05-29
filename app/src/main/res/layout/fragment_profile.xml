@@ -101,12 +101,13 @@
                     android:textSize="16sp"/>
 
                 <TextView
-                    android:id="@+id/profile_subscription"
+                    android:id="@+id/subscription"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/text_primary"
                     android:textSize="18sp"
                     android:layout_marginBottom="16dp"/>
+
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -133,7 +134,7 @@
                     android:layout_marginBottom="24dp"/>
 
                 <Button
-                    android:id="@+id/btn_subscription_info"
+                    android:id="@+id/btn_topup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Информация о подписке"

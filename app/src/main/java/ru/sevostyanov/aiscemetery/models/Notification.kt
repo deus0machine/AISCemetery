@@ -3,32 +3,39 @@ package ru.sevostyanov.aiscemetery.models
 import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
+import ru.sevostyanov.aiscemetery.user.GuestItem
 
 @Parcelize
 data class Notification(
     @SerializedName("id")
     val id: Long,
     
-    @SerializedName("userId")
-    val userId: Long,
-    
     @SerializedName("senderId")
-    val senderId: Long? = null,
+    val senderId: Long,
+    
+    @SerializedName("receiverId")
+    val receiverId: Long,
     
     @SerializedName("senderName")
     val senderName: String? = null,
     
+    @SerializedName("receiverName")
+    val receiverName: String? = null,
+    
     @SerializedName("type")
     val type: NotificationType,
     
-    @SerializedName("status")
-    val status: NotificationStatus = NotificationStatus.PENDING,
-    
     @SerializedName("title")
-    val title: String,
+    val title: String? = null,
     
     @SerializedName("message")
     val message: String,
+    
+    @SerializedName("status")
+    val status: NotificationStatus,
+    
+    @SerializedName("read")
+    val isRead: Boolean,
     
     @SerializedName("relatedEntityId")
     val relatedEntityId: Long? = null,
@@ -36,45 +43,89 @@ data class Notification(
     @SerializedName("relatedEntityName")
     val relatedEntityName: String? = null,
     
-    @SerializedName("isRead")
-    val isRead: Boolean = false,
-    
     @SerializedName("createdAt")
-    val createdAt: String
+    val createdAt: String,
+    
+    @SerializedName("moderation")
+    val moderation: ModerationInfo? = null,
+    
+    @SerializedName("urgent")
+    val urgent: Boolean = false
+) : Parcelable {
+    // Проверяет, является ли уведомление связанным с модерацией мемориала
+    fun isRelatedToModeration(): Boolean {
+        // Защита от null в типе уведомления
+        if (type == null) return false
+        
+        // Прямой тип MODERATION
+        if (type == NotificationType.MODERATION) return true
+        
+        // Системные уведомления с заголовком/сообщением о модерации
+        if (type == NotificationType.SYSTEM) {
+            val titleLower = title?.lowercase() ?: ""
+            val messageLower = message.lowercase()
+            
+            return titleLower.contains("опубликован") || 
+                   titleLower.contains("не опубликован") ||
+                   titleLower.contains("отклонен") ||
+                   messageLower.contains("публикац") ||
+                   messageLower.contains("модерац")
+        }
+        
+        return false
+    }
+    
+    // Определяет, был ли мемориал одобрен (для уведомлений о модерации)
+    fun isMemorialApproved(): Boolean {
+        // Защита от null
+        if (type == null || !isRelatedToModeration()) return false
+        
+        val titleLower = title?.lowercase() ?: ""
+        return titleLower.contains("опубликован") && !titleLower.contains("не опубликован")
+    }
+}
+
+@Parcelize
+data class ModerationInfo(
+    @SerializedName("moderationStatus")
+    val moderationStatus: String? = null,
+    
+    @SerializedName("moderationMessage")
+    val moderationMessage: String? = null,
+    
+    @SerializedName("moderatedAt")
+    val moderatedAt: String? = null
 ) : Parcelable
 
 enum class NotificationType {
-    @SerializedName("INFO")
-    INFO,                     // Информационное уведомление
-    
     @SerializedName("MEMORIAL_OWNERSHIP")
-    MEMORIAL_OWNERSHIP,       // Запрос на совместное владение мемориалом
+    MEMORIAL_OWNERSHIP,
     
-    @SerializedName("TREE_ACCESS_REQUEST")
-    TREE_ACCESS_REQUEST,      // Запрос на доступ к древу
-    
-    @SerializedName("MEMORIAL_COMMENT")
-    MEMORIAL_COMMENT,         // Новый комментарий
-    
-    @SerializedName("ANNIVERSARY")
-    ANNIVERSARY,              // Годовщина
+    @SerializedName("MEMORIAL_CHANGES")
+    MEMORIAL_CHANGES,
     
     @SerializedName("SYSTEM")
-    SYSTEM                    // Системное уведомление
+    SYSTEM,
+    
+    @SerializedName("MEMORIAL_EDIT")
+    MEMORIAL_EDIT,
+    
+    @SerializedName("MODERATION")
+    MODERATION
 }
 
 enum class NotificationStatus {
     @SerializedName("PENDING")
-    PENDING,    // Ожидает ответа
+    PENDING,
     
     @SerializedName("ACCEPTED")
-    ACCEPTED,   // Принято
+    ACCEPTED,
     
     @SerializedName("REJECTED")
-    REJECTED,   // Отклонено
+    REJECTED,
     
-    @SerializedName("INFO")
-    INFO        // Информационное (не требует ответа)
+    @SerializedName("PROCESSED")
+    PROCESSED
 }
 
 data class Favorite(

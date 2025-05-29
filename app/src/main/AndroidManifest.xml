@@ -41,6 +41,7 @@
         <activity android:name=".RegisterActivity" />
         <activity android:name=".activities.EditMemorialActivity" />
         <activity android:name=".activities.ViewMemorialActivity" />
+        <activity android:name=".activities.PendingChangesActivity" />
         <activity android:name=".user.GuestListActivity" />
         <activity android:name=".MainActivity" />
     </application>

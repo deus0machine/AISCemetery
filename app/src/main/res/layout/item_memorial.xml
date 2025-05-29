@@ -25,6 +25,18 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"/>
 
+        <ImageView
+            android:id="@+id/photo_awaiting_approval"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_popup_sync"
+            android:tint="@color/colorAccent"
+            android:background="@drawable/circle_background"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="@id/image_photo"
+            app:layout_constraintEnd_toEndOf="@id/image_photo"
+            android:contentDescription="Фото ожидает подтверждения"/>
+
         <TextView
             android:id="@+id/text_name"
             android:layout_width="0dp"
@@ -138,6 +150,34 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/text_burial_location"
             android:text="🌐 Публичный"
+            tools:visibility="visible"/>
+            
+        <TextView
+            android:id="@+id/text_editor_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="13sp"
+            android:textColor="@color/gold"
+            android:drawablePadding="4dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_public_indicator"
+            tools:text="👥 Совместный (редактор)"
+            tools:visibility="visible"/>
+            
+        <TextView
+            android:id="@+id/text_pending_changes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="13sp"
+            android:textColor="@color/red"
+            android:drawablePadding="4dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_editor_indicator"
+            tools:text="⚠️ Ожидает подтверждения изменений"
             tools:visibility="visible"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

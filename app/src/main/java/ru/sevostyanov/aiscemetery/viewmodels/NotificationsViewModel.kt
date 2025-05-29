@@ -11,6 +11,7 @@ import ru.sevostyanov.aiscemetery.RetrofitClient
 import ru.sevostyanov.aiscemetery.models.MemorialOwnershipRequest
 import ru.sevostyanov.aiscemetery.models.Notification
 import ru.sevostyanov.aiscemetery.models.NotificationStatus
+import ru.sevostyanov.aiscemetery.models.NotificationType
 import javax.inject.Inject
 
 @HiltViewModel
@@ -39,10 +40,42 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
                 _isLoading.value = true
                 val notifications = apiService.getMyNotifications()
                 Log.d(TAG, "Получены входящие уведомления: ${notifications.size}")
+                
+                // Добавляем расширенное логирование для отладки
+                if (notifications.isNotEmpty()) {
+                    notifications.forEachIndexed { index, notification ->
+                        Log.d(TAG, "Входящее уведомление #$index: " +
+                                "ID=${notification.id}, " + 
+                                "Тип=${notification.type}, " +
+                                "Статус=${notification.status}, " +
+                                "Заголовок=${notification.title}, " +
+                                "Сообщение=${notification.message.take(50)}...")
+                    }
+                } else {
+                    Log.d(TAG, "Входящие уведомления: список пуст")
+                }
+                
                 _incomingNotifications.value = notifications
             } catch (e: Exception) {
                 Log.e(TAG, "Ошибка при загрузке входящих уведомлений: ${e.message}", e)
-                _error.value = e.message
+                // Проверяем, является ли ошибка HttpException
+                if (e is retrofit2.HttpException) {
+                    try {
+                        // Пытаемся получить тело ответа сервера для более детальной информации
+                        val errorBody = e.response()?.errorBody()?.string()
+                        Log.e(TAG, "HTTP код ошибки: ${e.code()}, тело ответа: $errorBody")
+                        _error.value = "Ошибка сервера: ${e.code()}" + 
+                                if (errorBody != null) ", $errorBody" else ""
+                    } catch (ex: Exception) {
+                        Log.e(TAG, "Не удалось прочитать тело ошибки: ${ex.message}")
+                        _error.value = "Ошибка сервера: ${e.code()}"
+                    }
+                } else {
+                    _error.value = "Ошибка загрузки уведомлений: ${e.message}"
+                }
+                
+                // В случае ошибки загружаем пустой список, чтобы UI не ломался
+                _incomingNotifications.value = emptyList()
             } finally {
                 _isLoading.value = false
             }
@@ -57,10 +90,48 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
                 _isLoading.value = true
                 val notifications = apiService.getSentNotifications()
                 Log.d(TAG, "Получены исходящие уведомления: ${notifications.size}")
-                _sentNotifications.value = notifications
+                
+                // Добавляем расширенное логирование для отладки
+                if (notifications.isNotEmpty()) {
+                    notifications.forEachIndexed { index, notification ->
+                        Log.d(TAG, "Исходящее уведомление #$index: " +
+                                "ID=${notification.id}, " + 
+                                "Тип=${notification.type}, " +
+                                "Статус=${notification.status}, " +
+                                "Заголовок=${notification.title}, " +
+                                "Сообщение=${notification.message.take(50)}...")
+                    }
+                } else {
+                    Log.d(TAG, "Исходящие уведомления: список пуст")
+                }
+                
+                // Дополнительная фильтрация на клиенте на случай, если серверная фильтрация не сработала
+                val filteredNotifications = notifications.filter { notification ->
+                    // Исключаем уведомления, где отправитель и получатель совпадают
+                    notification.senderId != notification.receiverId
+                }
+                
+                _sentNotifications.value = filteredNotifications
             } catch (e: Exception) {
                 Log.e(TAG, "Ошибка при загрузке исходящих уведомлений: ${e.message}", e)
-                _error.value = e.message
+                // Проверяем, является ли ошибка HttpException
+                if (e is retrofit2.HttpException) {
+                    try {
+                        // Пытаемся получить тело ответа сервера для более детальной информации
+                        val errorBody = e.response()?.errorBody()?.string()
+                        Log.e(TAG, "HTTP код ошибки: ${e.code()}, тело ответа: $errorBody")
+                        _error.value = "Ошибка сервера: ${e.code()}" + 
+                                if (errorBody != null) ", $errorBody" else ""
+                    } catch (ex: Exception) {
+                        Log.e(TAG, "Не удалось прочитать тело ошибки: ${ex.message}")
+                        _error.value = "Ошибка сервера: ${e.code()}"
+                    }
+                } else {
+                    _error.value = "Ошибка загрузки уведомлений: ${e.message}"
+                }
+                
+                // В случае ошибки загружаем пустой список, чтобы UI не ломался
+                _sentNotifications.value = emptyList()
             } finally {
                 _isLoading.value = false
             }
@@ -111,6 +182,17 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
                 val requestData = mapOf("accept" to accept)
                 val updated = apiService.respondToNotification(notificationId, requestData)
                 Log.d(TAG, "Успешно обновлен статус уведомления с ID: ${updated.id}")
+                
+                // Если принято уведомление о совместном владении, добавляем редактора
+                if (accept && updated.type == NotificationType.MEMORIAL_OWNERSHIP && updated.relatedEntityId != null) {
+                    try {
+                        Log.d(TAG, "Добавляем редактора для мемориала ${updated.relatedEntityId}")
+                        // Здесь в реальном приложении должен быть вызов API для добавления редактора
+                        // Это автоматически обрабатывается на сервере при ответе на уведомление
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Ошибка при добавлении редактора: ${e.message}", e)
+                    }
+                }
                 
                 // Обновляем список входящих
                 val currentIncomingList = _incomingNotifications.value?.toMutableList() ?: mutableListOf()

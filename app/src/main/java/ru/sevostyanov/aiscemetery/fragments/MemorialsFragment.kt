@@ -31,6 +31,7 @@ import android.app.AlertDialog
 import retrofit2.HttpException
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import ru.sevostyanov.aiscemetery.models.PublicationStatus
 
 class MemorialsFragment : Fragment() {
 
@@ -107,14 +108,12 @@ class MemorialsFragment : Fragment() {
         adapter = MemorialAdapter(
             memorials = emptyList(),
             onItemClick = { memorial ->
-                if (tabLayout.selectedTabPosition == 0) {
-                    EditMemorialActivity.start(requireActivity(), memorial)
-                } else {
-                    ViewMemorialActivity.start(requireActivity(), memorial)
-                }
+                // Всегда открываем для просмотра при клике по мемориалу
+                Log.d("MemorialsFragment", "Открываем мемориал для просмотра: ID=${memorial.id}, isEditor=${memorial.isEditor}")
+                ViewMemorialActivity.start(requireActivity(), memorial)
             },
             onEditClick = { memorial ->
-                EditMemorialActivity.start(requireActivity(), memorial)
+                onEditClick(memorial)
             },
             onDeleteClick = { memorial ->
                 showDeleteConfirmationDialog(memorial)
@@ -122,7 +121,7 @@ class MemorialsFragment : Fragment() {
             onPrivacyClick = { memorial ->
                 updateMemorialPrivacy(memorial)
             },
-            showControls = true
+            showControls = tabLayout.selectedTabPosition == 0 // Показываем контролы только для вкладки "Мои"
         )
         recyclerView.adapter = adapter
     }
@@ -218,6 +217,15 @@ class MemorialsFragment : Fragment() {
                 } else {
                     val publicMemorials = repository.getPublicMemorials()
                     println("Публичные мемориалы: ${publicMemorials.map { "${it.id}: isPublic=${it.isPublic}" }}")
+                    
+                    // Добавляем подробное логирование для каждого публичного мемориала
+                    Log.d("MemorialsFragment", "Загружено ${publicMemorials.size} публичных мемориалов")
+                    publicMemorials.forEachIndexed { index, memorial ->
+                        Log.d("MemorialsFragment", "Публичный мемориал #$index: ID=${memorial.id}, " +
+                                "Название=${memorial.fio}, isEditor=${memorial.isEditor}, " +
+                                "createdBy=${memorial.createdBy?.id}")
+                    }
+                    
                     publicMemorials
                 }
                 
@@ -231,13 +239,8 @@ class MemorialsFragment : Fragment() {
                     showMessage(if (showOnlyMine) "У вас пока нет мемориалов" else "Нет доступных публичных мемориалов")
                 }
             } catch (e: Exception) {
-                Log.e("MemorialsFragment", "Error loading memorials", e)
-                val errorMessage = when {
-                    e.message?.contains("HTTP 401") == true -> "Необходима авторизация"
-                    e.message?.contains("HTTP 403") == true -> "Нет доступа"
-                    else -> "Ошибка при загрузке мемориалов: ${e.message}"
-                }
-                showError(errorMessage)
+                e.printStackTrace()
+                showMessage("Ошибка загрузки мемориалов: ${e.message}")
             }
         }
     }
@@ -303,6 +306,31 @@ class MemorialsFragment : Fragment() {
     private fun updateMemorialPrivacy(memorial: Memorial) {
         val user = UserManager.getCurrentUser() ?: UserManager.loadUserFromPreferences(requireContext())
         
+        // Если мемориал в процессе модерации, запрещаем изменение статуса
+        if (memorial.publicationStatus == PublicationStatus.PENDING_MODERATION) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Невозможно изменить статус")
+                .setMessage("Мемориал находится на модерации. Дождитесь решения администратора.")
+                .setPositiveButton("ОК", null)
+                .show()
+            return
+        }
+        
+        // Для опубликованных или отклоненных мемориалов также запрещаем прямое изменение
+        if (memorial.publicationStatus == PublicationStatus.PUBLISHED || 
+            memorial.publicationStatus == PublicationStatus.REJECTED) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Невозможно изменить статус")
+                .setMessage("Статус публикации мемориала управляется через систему модерации. Используйте кнопку 'Отправить на модерацию' для публикации.")
+                .setPositiveButton("ОК") { _, _ ->
+                    // Открываем экран мемориала, где можно отправить на модерацию
+                    ViewMemorialActivity.start(requireActivity(), memorial)
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+            return
+        }
+        
         val newIsPublic = !memorial.isPublic
         
         // Если пытаемся сделать мемориал публичным и нет подписки
@@ -319,21 +347,34 @@ class MemorialsFragment : Fragment() {
             return
         }
         
-        // Если мемориал уже приватный или у пользователя есть подписка
+        // Если меморил непубличный, показываем диалог о необходимости модерации
+        if (newIsPublic) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Отправка на модерацию")
+                .setMessage("Чтобы опубликовать мемориал, его необходимо отправить на модерацию. Перейти к экрану мемориала для отправки на модерацию?")
+                .setPositiveButton("Да") { _, _ ->
+                    ViewMemorialActivity.start(requireActivity(), memorial)
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+            return
+        }
+        
+        // Если делаем мемориал приватным (это можно делать напрямую)
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Изменение статуса мемориала")
-            .setMessage(if (newIsPublic) "Вы хотите сделать мемориал публичным?" else "Вы хотите сделать мемориал приватным?")
+            .setTitle("Сделать мемориал приватным")
+            .setMessage("Вы действительно хотите сделать мемориал приватным?")
             .setPositiveButton("Да") { _, _ ->
                 lifecycleScope.launch {
                     try {
                         memorial.id?.let { id ->
                             // Обновляем статус на сервере
-                            repository.updateMemorialPrivacy(id, newIsPublic)
+                            repository.updateMemorialPrivacy(id, false)
                             
                             // Перезагружаем список мемориалов
                             loadMemorials(tabLayout.selectedTabPosition == 0)
                             
-                            showMessage(if (newIsPublic) "Мемориал теперь публичный" else "Мемориал теперь приватный")
+                            showMessage("Мемориал теперь приватный")
                         }
                     } catch (e: Exception) {
                         showError("Ошибка при обновлении статуса: ${e.message}")
@@ -372,5 +413,37 @@ class MemorialsFragment : Fragment() {
 
     private fun showMessage(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun onEditClick(memorial: Memorial) {
+        println("onEditClick: нажатие на кнопку редактирования для мемориала ${memorial.id}")
+        
+        // Проверяем, находится ли мемориал на модерации
+        if (memorial.publicationStatus == PublicationStatus.PENDING_MODERATION) {
+            // Показываем сообщение о невозможности редактирования и логируем
+            Log.e("MemorialsFragment", "Попытка редактировать мемориал на модерации! id=${memorial.id}, статус=${memorial.publicationStatus}")
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Редактирование недоступно")
+                .setMessage("Этот мемориал находится на модерации и не может быть отредактирован до принятия решения администратором.")
+                .setPositiveButton("Понятно", null)
+                .show()
+            return
+        }
+        
+        // Дополнительно проверяем, может ли мемориал быть отредактирован
+        if (!memorial.canEdit()) {
+            Log.e("MemorialsFragment", "Мемориал не может быть отредактирован! id=${memorial.id}, canEdit=false")
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Редактирование недоступно")
+                .setMessage("У вас нет прав на редактирование этого мемориала.")
+                .setPositiveButton("Понятно", null)
+                .show()
+            return
+        }
+        
+        // Открываем активность редактирования
+        val intent = Intent(activity, EditMemorialActivity::class.java)
+        intent.putExtra(EditMemorialActivity.EXTRA_MEMORIAL, memorial)
+        startActivity(intent)
     }
 } 

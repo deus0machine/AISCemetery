@@ -20,12 +20,12 @@ class ProfileFragment : Fragment() {
 
     private lateinit var logoutButton: Button
     private lateinit var supportButton: Button
-    private lateinit var subscriptionInfoButton: Button
+    private lateinit var topupButton: Button
     private lateinit var profileName: TextView
     private lateinit var profileContacts: TextView
     private lateinit var profileRegDate: TextView
     private lateinit var profileRole: TextView
-    private lateinit var profileSubscription: TextView
+    private lateinit var profileSubs: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -48,13 +48,13 @@ class ProfileFragment : Fragment() {
     private fun initializeViews(view: View) {
         logoutButton = view.findViewById(R.id.btn_logout)
         supportButton = view.findViewById(R.id.btn_support)
-        subscriptionInfoButton = view.findViewById(R.id.btn_subscription_info)
+        topupButton = view.findViewById(R.id.btn_topup)
         
         profileName = view.findViewById(R.id.profile_name)
         profileContacts = view.findViewById(R.id.profile_contacts)
         profileRegDate = view.findViewById(R.id.profile_reg_date)
         profileRole = view.findViewById(R.id.profile_role)
-        profileSubscription = view.findViewById(R.id.profile_subscription)
+        profileSubs = view.findViewById(R.id.subscription)
     }
 
     private fun setupButtons() {
@@ -75,9 +75,10 @@ class ProfileFragment : Fragment() {
             Toast.makeText(requireContext(), "Функция в разработке", Toast.LENGTH_SHORT).show()
         }
 
-        subscriptionInfoButton.setOnClickListener {
-            Toast.makeText(requireContext(), "Информация о подписке", Toast.LENGTH_SHORT).show()
+        topupButton.setOnClickListener {
+            Toast.makeText(requireContext(), "TODO: Информация о подписке", Toast.LENGTH_SHORT).show()
         }
+
     }
 
     private fun formatDate(dateStr: String): String {
@@ -100,8 +101,12 @@ class ProfileFragment : Fragment() {
                 profileName.text = user.fio
                 profileContacts.text = user.contacts
                 profileRegDate.text = formatDate(user.dateOfRegistration)
-                profileRole.text = user.role
-                profileSubscription.text = if (user.hasSubscription) "Активна" else "Отсутствует"
+                profileRole.text = when (user.role) {
+                    "ADMIN" -> "Администратор"
+                    "USER" -> "Пользователь"
+                    else -> user.role // на случай, если появятся другие роли
+                }
+                profileSubs.text = if (user.hasSubscription) "Есть подписка" else "Нет подписки"
             } else {
                 // Если пользователь не найден, очищаем данные и переходим на экран входа
                 UserManager.clearUserData(requireContext())

@@ -8,6 +8,7 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Button
@@ -26,6 +27,7 @@ import ru.sevostyanov.aiscemetery.databinding.ActivityEditMemorialBinding
 import ru.sevostyanov.aiscemetery.fragments.LocationPickerFragment
 import ru.sevostyanov.aiscemetery.models.Location
 import ru.sevostyanov.aiscemetery.models.Memorial
+import ru.sevostyanov.aiscemetery.models.PublicationStatus
 import ru.sevostyanov.aiscemetery.repository.MemorialRepository
 import ru.sevostyanov.aiscemetery.util.GlideHelper
 import ru.sevostyanov.aiscemetery.util.NetworkUtil
@@ -156,6 +158,24 @@ class EditMemorialActivity : AppCompatActivity() {
         if (memorial != null) {
             this.memorial = memorial
             memorialId = memorial.id ?: -1L
+            
+            // Проверяем, находится ли мемориал на модерации
+            if (memorial.publicationStatus == PublicationStatus.PENDING_MODERATION) {
+                // Показываем диалог и логгируем
+                Log.e("EditMemorialActivity", "Попытка открыть на редактирование мемориал на модерации! id=${memorial.id}, статус=${memorial.publicationStatus}")
+                MaterialAlertDialogBuilder(this)
+                    .setTitle("Мемориал на модерации")
+                    .setMessage("Этот мемориал находится на модерации и не может быть отредактирован до принятия решения администратором.")
+                    .setPositiveButton("ОК") { _, _ ->
+                        // Закрываем активность редактирования и возвращаемся к просмотру
+                        ViewMemorialActivity.start(this, memorial)
+                        finish()
+                    }
+                    .setCancelable(false)
+                    .show()
+                return
+            }
+            
             loadMemorial(memorialId)
         } else {
             // Если это новый мемориал, сбрасываем все поля
@@ -200,8 +220,13 @@ class EditMemorialActivity : AppCompatActivity() {
             saveMemorial()
         }
 
+        // Проверка прав доступа к редактированию местоположения
+        // Разрешаем редакторам мемориала редактировать местоположение даже без подписки
+        val isEditor = memorial?.isEditor == true || memorial?.isUserEditor == true
+        val canEditLocation = hasSubscription || isEditor
+
         mainLocationButton.setOnClickListener {
-            if (hasSubscription) {
+            if (canEditLocation) {
                 showLocationPicker(true)
             } else {
                 showSubscriptionRequiredDialog()
@@ -209,10 +234,29 @@ class EditMemorialActivity : AppCompatActivity() {
         }
 
         burialLocationButton.setOnClickListener {
-            if (hasSubscription) {
+            if (canEditLocation) {
                 showLocationPicker(false)
             } else {
                 showSubscriptionRequiredDialog()
+            }
+        }
+
+        // Обновляем текст кнопок в зависимости от прав доступа
+        if (!hasSubscription && !isEditor) {
+            mainLocationButton.isEnabled = false
+            burialLocationButton.isEnabled = false
+            mainLocationButton.text = "Нужна подписка"
+            burialLocationButton.text = "Нужна подписка"
+        } else {
+            mainLocationButton.isEnabled = true
+            burialLocationButton.isEnabled = true
+            
+            // Обновляем текст только если он не был установлен ранее
+            if (mainLocationButton.text == "Нужна подписка") {
+                mainLocationButton.text = "Выбрать основное местоположение"
+            }
+            if (burialLocationButton.text == "Нужна подписка") {
+                burialLocationButton.text = "Выбрать место захоронения"
             }
         }
 
@@ -452,14 +496,31 @@ class EditMemorialActivity : AppCompatActivity() {
 
         val currentMemorial = memorial
         
+        // Дополнительная проверка перед сохранением - убедимся, что мемориал не на модерации
+        if (currentMemorial?.publicationStatus == PublicationStatus.PENDING_MODERATION) {
+            Log.e("EditMemorialActivity", "Попытка сохранить мемориал, находящийся на модерации! id=${currentMemorial.id}")
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Невозможно сохранить")
+                .setMessage("Этот мемориал находится на модерации и не может быть отредактирован до принятия решения администратором.")
+                .setPositiveButton("ОК", null)
+                .show()
+            return
+        }
+        
         // Log locations before creating memorial object
         println("LOCATION DEBUG - Before creating memorial:")
         println("Main Location: $mainLocation")
         println("Burial Location: $burialLocation")
         
-        // Если у пользователя нет подписки, не разрешаем ему устанавливать местоположение
-        val finalMainLocation = if (hasSubscription) mainLocation else null
-        val finalBurialLocation = if (hasSubscription) burialLocation else null
+        // Определяем статус пользователя как редактора
+        // Используем isEditor из текущего мемориала или проверяем isUserEditor
+        val isEditor = currentMemorial?.isEditor == true || currentMemorial?.isUserEditor == true
+        
+        // Если у пользователя нет подписки и он не редактор, не разрешаем ему устанавливать местоположение
+        // Иначе разрешаем редактировать местоположение всем редакторам и пользователям с подпиской
+        val hasLocationEditAccess = hasSubscription || isEditor
+        val finalMainLocation = if (hasLocationEditAccess) mainLocation else currentMemorial?.mainLocation
+        val finalBurialLocation = if (hasLocationEditAccess) burialLocation else currentMemorial?.burialLocation
         
         val newMemorial = Memorial(
             id = currentMemorial?.id,
@@ -474,7 +535,11 @@ class EditMemorialActivity : AppCompatActivity() {
             treeId = null,
             createdBy = null,
             createdAt = null,
-            updatedAt = null
+            updatedAt = null,
+            editors = currentMemorial?.editors,
+            isEditor = isEditor,
+            // Если пользователь редактор и это существующий мемориал, устанавливаем флаг pendingChanges
+            pendingChanges = isEditor && currentMemorial?.id != null
         )
         
         // Log the memorial object being sent
@@ -482,10 +547,36 @@ class EditMemorialActivity : AppCompatActivity() {
         println("Memorial: $newMemorial")
         println("mainLocation: ${newMemorial.mainLocation}")
         println("burialLocation: ${newMemorial.burialLocation}")
+        println("isEditor: ${newMemorial.isEditor}")
+        println("pendingChanges: ${newMemorial.pendingChanges}")
+        println("isUserOwner: ${currentMemorial?.isUserOwner}")
+        println("isUserEditor: ${currentMemorial?.isUserEditor}")
 
         // Сохраняем ссылку на контекст активности за пределами корутины
         val activityContext = this
 
+        // Проверяем, является ли пользователь редактором
+        Log.d("EditMemorialActivity", "Проверка прав доступа: isEditor=$isEditor, isUserEditor=${currentMemorial?.isUserEditor}, isUserOwner=${currentMemorial?.isUserOwner}")
+        
+        // Показываем диалог подтверждения для редакторов в обоих случаях - и для публичных, и для личных мемориалов
+        if (isEditor && currentMemorial?.isUserOwner != true && currentMemorial?.id != null) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Запрос на изменение")
+                .setMessage("Поскольку вы являетесь редактором этого мемориала, ваши изменения должны быть одобрены владельцем. После сохранения владельцу будет отправлен запрос на подтверждение изменений.")
+                .setPositiveButton("Отправить на рассмотрение") { _, _ ->
+                    // Продолжаем сохранение с флагом pendingChanges
+                    performSave(newMemorial, activityContext)
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+        } else {
+            // Обычное сохранение для владельца
+            performSave(newMemorial, activityContext)
+        }
+    }
+    
+    // Выносим логику сохранения в отдельный метод
+    private fun performSave(newMemorial: Memorial, activityContext: Context) {
         lifecycleScope.launch {
             try {
                 var savedMemorial = if (newMemorial.id == null) {
@@ -500,6 +591,7 @@ class EditMemorialActivity : AppCompatActivity() {
                 println("savedMemorial: $savedMemorial")
                 println("mainLocation: ${savedMemorial.mainLocation}")
                 println("burialLocation: ${savedMemorial.burialLocation}")
+                println("pendingChanges: ${savedMemorial.pendingChanges}")
 
                 // Если нужно удалить фото
                 if (shouldDeletePhoto && newMemorial.photoUrl != null) {
@@ -552,7 +644,10 @@ class EditMemorialActivity : AppCompatActivity() {
                                         treeId = savedMemorial.treeId,
                                         createdBy = null,
                                         createdAt = null,
-                                        updatedAt = null
+                                        updatedAt = null,
+                                        editors = savedMemorial.editors,
+                                        isEditor = savedMemorial.isEditor,
+                                        pendingChanges = savedMemorial.pendingChanges
                                     )
                                     savedMemorial = repository.updateMemorial(id, updatedMemorial)
                                     println("Мемориал обновлен с новым фото: $savedMemorial")
@@ -576,6 +671,16 @@ class EditMemorialActivity : AppCompatActivity() {
                     } catch (e: Exception) {
                         showError("Ошибка при загрузке фото: ${e.message}")
                         return@launch
+                    }
+                }
+
+                // Показываем сообщение в зависимости от статуса (редактор или владелец)
+                runOnUiThread {
+                    // Если пользователь редактор (но не владелец) и это существующий мемориал
+                    if (newMemorial.isEditor && savedMemorial.isUserOwner != true && newMemorial.id != null) {
+                        showMessage("Ваши изменения отправлены на рассмотрение владельцу мемориала")
+                    } else {
+                        showMessage("Мемориал успешно сохранен")
                     }
                 }
 

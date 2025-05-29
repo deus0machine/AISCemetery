@@ -18,9 +18,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavDestination
 import com.google.android.material.badge.BadgeDrawable
 import ru.sevostyanov.aiscemetery.viewmodels.NotificationsViewModel
+import android.view.MenuItem
+import androidx.core.view.GravityCompat
+import com.google.android.material.navigation.NavigationView
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
     private var isInitialized = false
     private lateinit var navController: NavController
     private lateinit var bottomNavigationView: BottomNavigationView
@@ -78,6 +81,10 @@ class MainActivity : AppCompatActivity() {
             // Настраиваем нижнюю навигацию
             bottomNavigationView = findViewById(R.id.bottom_navigation)
             bottomNavigationView.setupWithNavController(navController)
+            
+            // Настраиваем боковое меню
+            val navigationView = findViewById<NavigationView>(R.id.nav_view)
+            navigationView.setNavigationItemSelectedListener(this)
             
             // Инициализируем бейдж для уведомлений
             setupNotificationBadge()
@@ -169,6 +176,63 @@ class MainActivity : AppCompatActivity() {
             // Обновляем уведомления при возвращении к активности
             loadNotifications()
         }
+    }
+    
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        val drawerLayout = findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawer_layout)
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START)
+        } else {
+            super.onBackPressed()
+        }
+    }
+    
+    // Метод для открытия бокового меню
+    fun openDrawer() {
+        val drawerLayout = findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawer_layout)
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START)
+        } else {
+            drawerLayout.openDrawer(GravityCompat.START)
+        }
+    }
+    
+    // Переопределяем метод для добавления кнопки меню в ActionBar
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+    
+    // Обработка нажатий на элементы ActionBar меню
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_menu -> {
+                openDrawer()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.nav_notifications -> {
+                navController.navigate(R.id.notificationsFragment)
+            }
+            R.id.nav_pending_changes -> {
+                // Открываем активность ожидающих изменений
+                ru.sevostyanov.aiscemetery.activities.PendingChangesActivity.start(this)
+            }
+            R.id.nav_account -> {
+                navController.navigate(R.id.profileFragment)
+            }
+        }
+        
+        // Закрываем боковое меню после выбора пункта
+        val drawerLayout = findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawer_layout)
+        drawerLayout.closeDrawer(GravityCompat.START)
+        return true
     }
 }
 
