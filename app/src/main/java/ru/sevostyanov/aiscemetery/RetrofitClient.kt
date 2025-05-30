@@ -366,6 +366,10 @@ object RetrofitClient {
         @DELETE("/api/notifications/{id}")
         suspend fun deleteNotification(@Path("id") id: Long): Response<Unit>
         
+        // Метод для отправки технических уведомлений администраторам
+        @POST("/api/notifications/technical-support")
+        suspend fun createTechnicalSupport(@Body requestData: Map<String, String>): ResponseWrapper<Notification>
+        
         // Методы для модерации мемориалов
         @POST("/api/memorials/{id}/send-for-moderation")
         suspend fun sendMemorialForModeration(@Path("id") id: Long): Memorial

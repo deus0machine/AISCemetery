@@ -7,12 +7,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import ru.sevostyanov.aiscemetery.LoginActivity
 import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.user.UserManager
+import ru.sevostyanov.aiscemetery.viewmodels.NotificationsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -26,6 +30,8 @@ class ProfileFragment : Fragment() {
     private lateinit var profileRegDate: TextView
     private lateinit var profileRole: TextView
     private lateinit var profileSubs: TextView
+    
+    private val notificationsViewModel: NotificationsViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -72,13 +78,47 @@ class ProfileFragment : Fragment() {
         }
 
         supportButton.setOnClickListener {
-            Toast.makeText(requireContext(), "Функция в разработке", Toast.LENGTH_SHORT).show()
+            showSupportDialog()
         }
 
         topupButton.setOnClickListener {
             Toast.makeText(requireContext(), "TODO: Информация о подписке", Toast.LENGTH_SHORT).show()
         }
-
+    }
+    
+    private fun showSupportDialog() {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_support, null)
+        val messageEditText = dialogView.findViewById<EditText>(R.id.edit_message)
+        
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Поддержка")
+            .setMessage("Опишите вашу проблему или вопрос. Сообщение будет отправлено администраторам.")
+            .setView(dialogView)
+            .setPositiveButton("Отправить") { _, _ ->
+                val message = messageEditText.text.toString().trim()
+                if (message.isNotEmpty()) {
+                    sendSupportMessage(message)
+                } else {
+                    Toast.makeText(requireContext(), "Введите сообщение", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+    
+    private fun sendSupportMessage(message: String) {
+        notificationsViewModel.createTechnicalSupport(message) {
+            activity?.runOnUiThread {
+                Toast.makeText(requireContext(), "Сообщение отправлено администраторам", Toast.LENGTH_LONG).show()
+            }
+        }
+        
+        // Наблюдаем за ошибками
+        notificationsViewModel.error.observe(viewLifecycleOwner) { error ->
+            if (!error.isNullOrEmpty()) {
+                Toast.makeText(requireContext(), "Ошибка: $error", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun formatDate(dateStr: String): String {

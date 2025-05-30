@@ -9,6 +9,8 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.textfield.TextInputEditText
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -41,10 +43,10 @@ class LoginActivity : AppCompatActivity() {
             setContentView(R.layout.activity_login)
             isInitialized = true
 
-            val loginButton = findViewById<Button>(R.id.login_button)
+            val loginButton = findViewById<MaterialButton>(R.id.login_button)
             val registerLink = findViewById<TextView>(R.id.register_link)
-            val loginField = findViewById<EditText>(R.id.login_email)
-            val passwordField = findViewById<EditText>(R.id.login_password)
+            val loginField = findViewById<TextInputEditText>(R.id.login_email)
+            val passwordField = findViewById<TextInputEditText>(R.id.login_password)
 
             // Авторизация
             loginButton.setOnClickListener {
@@ -54,6 +56,9 @@ class LoginActivity : AppCompatActivity() {
                 if (login.isEmpty() || password.isEmpty()) {
                     Toast.makeText(this, "Введите логин и пароль", Toast.LENGTH_SHORT).show()
                 } else {
+                    // Показываем состояние загрузки
+                    loginButton.text = "Вход..."
+                    loginButton.isEnabled = false
                     authenticateUser(login, password)
                 }
             }
@@ -103,6 +108,11 @@ class LoginActivity : AppCompatActivity() {
 
             call.enqueue(object : Callback<RetrofitClient.LoginResponse> {
                 override fun onResponse(call: Call<RetrofitClient.LoginResponse>, response: Response<RetrofitClient.LoginResponse>) {
+                    // Восстанавливаем кнопку
+                    val loginButton = findViewById<MaterialButton>(R.id.login_button)
+                    loginButton.text = "Войти"
+                    loginButton.isEnabled = true
+                    
                     if (response.isSuccessful && response.body()?.status == "SUCCESS") {
                         val userProfile = response.body()
                         val token = userProfile?.token ?: ""
@@ -138,6 +148,11 @@ class LoginActivity : AppCompatActivity() {
                 }
 
                 override fun onFailure(call: Call<RetrofitClient.LoginResponse>, t: Throwable) {
+                    // Восстанавливаем кнопку
+                    val loginButton = findViewById<MaterialButton>(R.id.login_button)
+                    loginButton.text = "Войти"
+                    loginButton.isEnabled = true
+                    
                     Log.e("LoginActivity", "Network error", t)
                     Toast.makeText(this@LoginActivity, "Ошибка сети: ${t.message}", Toast.LENGTH_SHORT).show()
                 }

@@ -303,4 +303,26 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
             }
         }
     }
+    
+    // Создать техническое уведомление для администраторов
+    fun createTechnicalSupport(message: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Отправляем техническое уведомление администраторам")
+                _isLoading.value = true
+                
+                val requestData = mapOf("message" to message)
+                val response = apiService.createTechnicalSupport(requestData)
+                
+                Log.d(TAG, "Успешно отправлено техническое уведомление")
+                onSuccess()
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при отправке технического уведомления: ${e.message}", e)
+                _error.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
 } 

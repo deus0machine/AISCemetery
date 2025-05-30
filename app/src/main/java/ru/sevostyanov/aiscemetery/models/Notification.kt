@@ -107,6 +107,9 @@ enum class NotificationType {
     @SerializedName("SYSTEM")
     SYSTEM,
     
+    @SerializedName("INFO")
+    INFO,
+    
     @SerializedName("MEMORIAL_EDIT")
     MEMORIAL_EDIT,
     
@@ -126,7 +129,22 @@ enum class NotificationType {
     MEMORIAL_APPROVED,
     
     @SerializedName("MEMORIAL_REJECTED")
-    MEMORIAL_REJECTED
+    MEMORIAL_REJECTED,
+    
+    @SerializedName("TECHNICAL")
+    TECHNICAL,
+    
+    @SerializedName("ADMIN_INFO")
+    ADMIN_INFO,
+    
+    @SerializedName("MASS_ANNOUNCEMENT")
+    MASS_ANNOUNCEMENT,
+    
+    @SerializedName("ADMIN_SYSTEM")
+    ADMIN_SYSTEM,
+    
+    @SerializedName("ADMIN_WARNING")
+    ADMIN_WARNING
 }
 
 enum class NotificationStatus {
