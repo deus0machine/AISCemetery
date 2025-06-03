@@ -8,6 +8,7 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputEditText
@@ -17,6 +18,7 @@ import ru.sevostyanov.aiscemetery.viewmodels.FamilyTreeDetailViewModel
 import android.widget.EditText
 import android.widget.Switch
 import androidx.fragment.app.setFragmentResult
+import android.util.Log
 
 @AndroidEntryPoint
 class FamilyTreeFragment : BottomSheetDialogFragment() {
@@ -122,8 +124,67 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
         }
 
         viewGenealogyButton.setOnClickListener {
-            val fragment = GenealogyTreeFragment.newInstance(treeId)
-            fragment.show(parentFragmentManager, "genealogy_tree")
+            Log.d("FamilyTreeFragment", "Кнопка просмотра генеалогии нажата, treeId: $treeId")
+            
+            // Закрываем текущий диалог
+            dismiss()
+            
+            try {
+                // Простой способ - попробуем найти NavController через активность
+                val activity = requireActivity()
+                Log.d("FamilyTreeFragment", "Activity получена: ${activity.javaClass.simpleName}")
+                
+                val navHostFragment = activity.supportFragmentManager
+                    .findFragmentById(R.id.nav_host_fragment)
+                
+                Log.d("FamilyTreeFragment", "NavHostFragment: ${navHostFragment?.javaClass?.simpleName}")
+                
+                if (navHostFragment != null) {
+                    val navController = navHostFragment.findNavController()
+                    Log.d("FamilyTreeFragment", "NavController получен: $navController")
+                    
+                    // Проверяем текущий destination
+                    val currentDestination = navController.currentDestination
+                    Log.d("FamilyTreeFragment", "Текущий destination: ${currentDestination?.label}")
+                    
+                    val bundle = Bundle().apply {
+                        putLong("treeId", treeId)
+                    }
+                    Log.d("FamilyTreeFragment", "Bundle создан с treeId: $treeId")
+                    
+                    // Пытаемся навигировать
+                    navController.navigate(R.id.action_familyTreesListFragment_to_genealogyTreeFragment, bundle)
+                    Log.d("FamilyTreeFragment", "Навигация выполнена успешно")
+                } else {
+                    Log.e("FamilyTreeFragment", "NavHostFragment не найден!")
+                    Toast.makeText(context, "NavHostFragment не найден", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("FamilyTreeFragment", "Ошибка навигации через action: ${e.message}")
+                
+                // Пробуем альтернативный способ - навигация напрямую к destination
+                try {
+                    val activity = requireActivity()
+                    val navHostFragment = activity.supportFragmentManager
+                        .findFragmentById(R.id.nav_host_fragment)
+                    
+                    if (navHostFragment != null) {
+                        val navController = navHostFragment.findNavController()
+                        val bundle = Bundle().apply {
+                            putLong("treeId", treeId)
+                        }
+                        
+                        // Навигация напрямую к destination
+                        navController.navigate(R.id.genealogyTreeFragment, bundle)
+                        Log.d("FamilyTreeFragment", "Прямая навигация выполнена успешно")
+                    } else {
+                        Toast.makeText(context, "NavHostFragment не найден", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e2: Exception) {
+                    Log.e("FamilyTreeFragment", "Ошибка прямой навигации: ${e2.message}", e2)
+                    Toast.makeText(context, "Ошибка навигации: ${e2.message}", Toast.LENGTH_LONG).show()
+                }
+            }
         }
 
         editGenealogyButton.setOnClickListener {

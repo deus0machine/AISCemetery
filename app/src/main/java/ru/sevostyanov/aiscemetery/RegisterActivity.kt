@@ -45,10 +45,10 @@ class RegisterActivity : AppCompatActivity() {
         passwordField = findViewById(R.id.password_input)
         fioField = findViewById(R.id.fio_input)
         contactsField = findViewById(R.id.contacts_input)
-        
+
         // Изначально кнопка регистрации отключена
         registerButton.isEnabled = false
-        
+
         backToAuthorize.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()

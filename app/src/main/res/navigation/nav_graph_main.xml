@@ -15,7 +15,29 @@
         android:id="@+id/familyTreesListFragment"
         android:name="ru.sevostyanov.aiscemetery.fragments.FamilyTreesListFragment"
         android:label="FamilyTreesListFragment"
-        tools:layout="@layout/fragment_family_trees_list" />
+        tools:layout="@layout/fragment_family_trees_list">
+        <action
+            android:id="@+id/action_familyTreesListFragment_to_createFamilyTreeFragment"
+            app:destination="@id/createFamilyTreeFragment" />
+        <action
+            android:id="@+id/action_familyTreesListFragment_to_genealogyTreeFragment"
+            app:destination="@id/genealogyTreeFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createFamilyTreeFragment"
+        android:name="ru.sevostyanov.aiscemetery.fragments.CreateFamilyTreeFragment"
+        android:label="CreateFamilyTreeFragment"
+        tools:layout="@layout/fragment_create_family_tree" />
+
+    <fragment
+        android:id="@+id/genealogyTreeFragment"
+        android:name="ru.sevostyanov.aiscemetery.fragments.GenealogyTreeFragment"
+        android:label="Генеалогическое дерево">
+        <argument
+            android:name="treeId"
+            app:argType="long" />
+    </fragment>
 
     <fragment
         android:id="@+id/mapFragment"

@@ -171,20 +171,20 @@ class NotificationsAdapter(
                         notification.relatedEntityName == "Техническая поддержка") {
                         notification.title ?: "Ответ технической поддержки"
                     } else {
-                        // Проверяем текст заголовка для определения типа системного уведомления
-                        val titleContainsPublished = notification.title?.contains("опубликован") == true
-                        val titleContainsNotPublished = notification.title?.contains("не опубликован") == true
-                        val titleContainsRejected = notification.title?.contains("отклонен") == true
-                        
-                        if (titleContainsPublished && !titleContainsNotPublished) {
-                            // Уведомление об одобрении публикации
-                            notification.title ?: "Системное уведомление"
-                        } else if (titleContainsNotPublished || titleContainsRejected) {
-                            // Уведомление об отклонении публикации
-                            notification.title ?: "Системное уведомление"
-                        } else {
-                            // Обычное системное уведомление
-                            notification.title ?: "Системное уведомление"
+                    // Проверяем текст заголовка для определения типа системного уведомления
+                    val titleContainsPublished = notification.title?.contains("опубликован") == true
+                    val titleContainsNotPublished = notification.title?.contains("не опубликован") == true
+                    val titleContainsRejected = notification.title?.contains("отклонен") == true
+                    
+                    if (titleContainsPublished && !titleContainsNotPublished) {
+                        // Уведомление об одобрении публикации
+                        notification.title ?: "Системное уведомление"
+                    } else if (titleContainsNotPublished || titleContainsRejected) {
+                        // Уведомление об отклонении публикации
+                        notification.title ?: "Системное уведомление"
+                    } else {
+                        // Обычное системное уведомление
+                        notification.title ?: "Системное уведомление"
                         }
                     }
                 }
@@ -240,20 +240,20 @@ class NotificationsAdapter(
                         // Ответ технической поддержки
                         Pair(android.R.drawable.ic_dialog_email, R.color.green)
                     } else {
-                        // Проверяем текст заголовка для определения типа системного уведомления
-                        val titleContainsPublished = notification.title?.contains("опубликован") == true
-                        val titleContainsNotPublished = notification.title?.contains("не опубликован") == true
-                        val titleContainsRejected = notification.title?.contains("отклонен") == true
-                        
-                        if (titleContainsPublished && !titleContainsNotPublished) {
-                            // Уведомление об одобрении публикации
-                            Pair(android.R.drawable.ic_menu_upload, R.color.green)
-                        } else if (titleContainsNotPublished || titleContainsRejected) {
-                            // Уведомление об отклонении публикации
-                            Pair(android.R.drawable.ic_menu_close_clear_cancel, R.color.red)
-                        } else {
-                            // Обычное системное уведомление
-                            Pair(android.R.drawable.ic_dialog_info, R.color.teal_700)
+                    // Проверяем текст заголовка для определения типа системного уведомления
+                    val titleContainsPublished = notification.title?.contains("опубликован") == true
+                    val titleContainsNotPublished = notification.title?.contains("не опубликован") == true
+                    val titleContainsRejected = notification.title?.contains("отклонен") == true
+                    
+                    if (titleContainsPublished && !titleContainsNotPublished) {
+                        // Уведомление об одобрении публикации
+                        Pair(android.R.drawable.ic_menu_upload, R.color.green)
+                    } else if (titleContainsNotPublished || titleContainsRejected) {
+                        // Уведомление об отклонении публикации
+                        Pair(android.R.drawable.ic_menu_close_clear_cancel, R.color.red)
+                    } else {
+                        // Обычное системное уведомление
+                        Pair(android.R.drawable.ic_dialog_info, R.color.teal_700)
                         }
                     }
                 }
@@ -405,25 +405,25 @@ class NotificationsAdapter(
             
             // Настраиваем заголовок в зависимости от типа
             val title = when (notification.type) {
-                NotificationType.MEMORIAL_OWNERSHIP -> {
-                    // Для запросов на совместное владение учитываем статус
-                    when (notification.status) {
-                        NotificationStatus.ACCEPTED -> notification.title ?: "Запрос на совместное владение принят"
-                        NotificationStatus.REJECTED -> notification.title ?: "Запрос на совместное владение отклонён"
-                        else -> "Запрос на совместное владение"
+                    NotificationType.MEMORIAL_OWNERSHIP -> {
+                        // Для запросов на совместное владение учитываем статус
+                        when (notification.status) {
+                            NotificationStatus.ACCEPTED -> notification.title ?: "Запрос на совместное владение принят"
+                            NotificationStatus.REJECTED -> notification.title ?: "Запрос на совместное владение отклонён"
+                            else -> "Запрос на совместное владение"
+                        }
                     }
-                }
-                NotificationType.MEMORIAL_CHANGES -> "Запрос на изменение мемориала"
-                NotificationType.MEMORIAL_EDIT -> {
-                    // Для уведомлений об изменениях тоже учитываем статус
-                    when (notification.status) {
-                        NotificationStatus.ACCEPTED -> notification.title ?: "Изменения в мемориале приняты"
-                        NotificationStatus.REJECTED -> notification.title ?: "Изменения в мемориале отклонены"
-                        else -> "Изменения в мемориале"
+                    NotificationType.MEMORIAL_CHANGES -> "Запрос на изменение мемориала"
+                    NotificationType.MEMORIAL_EDIT -> {
+                        // Для уведомлений об изменениях тоже учитываем статус
+                        when (notification.status) {
+                            NotificationStatus.ACCEPTED -> notification.title ?: "Изменения в мемориале приняты"
+                            NotificationStatus.REJECTED -> notification.title ?: "Изменения в мемориале отклонены"
+                            else -> "Изменения в мемориале"
+                        }
                     }
-                }
                 NotificationType.INFO -> notification.title ?: "Информация"
-                NotificationType.SYSTEM -> {
+                    NotificationType.SYSTEM -> {
                     // Проверяем, является ли это ответом на техническое обращение
                     if (notification.title?.contains("Ответ на техническое обращение") == true ||
                         notification.relatedEntityName == "Техническая поддержка") {
@@ -442,11 +442,11 @@ class NotificationsAdapter(
                             notification.title ?: "Системное уведомление"
                         } else {
                             // Обычное системное уведомление
-                            notification.title ?: "Системное уведомление"
+                        notification.title ?: "Системное уведомление"
                         }
                     }
-                }
-                NotificationType.MODERATION -> "Запрос на модерацию мемориала"
+                    }
+                    NotificationType.MODERATION -> "Запрос на модерацию мемориала"
                 NotificationType.TECHNICAL -> {
                     // Для технических уведомлений разные заголовки в зависимости от направления
                     if (isIncoming) {
