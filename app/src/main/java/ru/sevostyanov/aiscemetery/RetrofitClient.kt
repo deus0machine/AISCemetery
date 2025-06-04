@@ -344,6 +344,22 @@ object RetrofitClient {
             @Path("relationId") relationId: Long
         ): Response<Unit>
 
+        // Методы для работы с мемориалами в дереве
+        @GET("api/family-trees/{treeId}/memorials")
+        suspend fun getFamilyTreeMemorials(@Path("treeId") treeId: Long): List<Memorial>
+
+        @POST("api/family-trees/{treeId}/memorials/{memorialId}")
+        suspend fun addMemorialToTree(
+            @Path("treeId") treeId: Long,
+            @Path("memorialId") memorialId: Long
+        ): Response<Unit>
+
+        @DELETE("api/family-trees/{treeId}/memorials/{memorialId}")
+        suspend fun removeMemorialFromTree(
+            @Path("treeId") treeId: Long,
+            @Path("memorialId") memorialId: Long
+        ): Response<Unit>
+
         // Notifications API
         @GET("/api/notifications")
         suspend fun getMyNotifications(): List<Notification>

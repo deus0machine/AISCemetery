@@ -1,6 +1,12 @@
 package ru.sevostyanov.aiscemetery.models
 
 import com.google.gson.annotations.SerializedName
+import com.google.gson.annotations.JsonAdapter
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.JsonParseException
+import java.lang.reflect.Type
 
 data class FamilyTree(
     @SerializedName("id")
@@ -57,9 +63,11 @@ data class MemorialRelation(
     val familyTreeId: Long,
     
     @SerializedName("sourceMemorial")
+    @JsonAdapter(MemorialInRelationDeserializer::class)
     val sourceMemorial: Memorial,
     
     @SerializedName("targetMemorial")
+    @JsonAdapter(MemorialInRelationDeserializer::class)
     val targetMemorial: Memorial,
     
     @SerializedName("relationType")
@@ -92,4 +100,30 @@ enum class AccessLevel {
     
     @SerializedName("ADMIN")
     ADMIN
+}
+
+// Custom deserializer для Memorial в связях
+class MemorialInRelationDeserializer : JsonDeserializer<Memorial?> {
+    override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext?): Memorial? {
+        return when {
+            json == null || json.isJsonNull -> null
+            json.isJsonPrimitive && json.asJsonPrimitive.isNumber -> {
+                // Если это число (ID), создаем заглушку Memorial с только ID
+                Memorial(
+                    id = json.asLong,
+                    fio = "Загрузка...", // Заглушка для имени
+                    birthDate = null,
+                    deathDate = null,
+                    biography = null,
+                    mainLocation = null,
+                    burialLocation = null
+                )
+            }
+            json.isJsonObject -> {
+                // Если это полный объект, используем стандартную десериализацию
+                context?.deserialize(json, Memorial::class.java)
+            }
+            else -> null
+        }
+    }
 }

@@ -9,6 +9,7 @@ import dagger.hilt.components.SingletonComponent
 import ru.sevostyanov.aiscemetery.RetrofitClient
 import ru.sevostyanov.aiscemetery.RetrofitClient.ApiService
 import ru.sevostyanov.aiscemetery.RetrofitClient.LoginService
+import ru.sevostyanov.aiscemetery.repository.MemorialRepository
 import javax.inject.Singleton
 
 @Module
@@ -33,5 +34,11 @@ object AppModule {
     fun provideLoginService(context: Context): LoginService {
         RetrofitClient.initialize(context)
         return RetrofitClient.getLoginService()
+    }
+
+    @Provides
+    @Singleton
+    fun provideMemorialRepository(): MemorialRepository {
+        return MemorialRepository()
     }
 } 

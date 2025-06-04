@@ -506,8 +506,59 @@ class EditMemorialActivity : AppCompatActivity() {
         val name = editFio.text.toString().trim()
         val description = editBiography.text.toString().trim()
 
+        // Валидация полей согласно серверным ограничениям
         if (name.isEmpty()) {
             showMessage("Пожалуйста, укажите ФИО")
+            editFio.requestFocus()
+            return
+        }
+        
+        if (name.length < 2) {
+            showMessage("ФИО должно содержать не менее 2 символов")
+            editFio.requestFocus()
+            return
+        }
+        
+        if (name.length > 255) {
+            showMessage("ФИО не должно превышать 255 символов")
+            editFio.requestFocus()
+            return
+        }
+        
+        // Проверка даты рождения - обязательное поле согласно серверной модели
+        if (birthDate == null) {
+            showMessage("Пожалуйста, укажите дату рождения")
+            buttonBirthDate.requestFocus()
+            return
+        }
+        
+        // Проверка логической корректности дат
+        val currentTimeMillis = System.currentTimeMillis()
+        if (birthDate!! > currentTimeMillis) {
+            showMessage("Дата рождения не может быть в будущем")
+            buttonBirthDate.requestFocus()
+            return
+        }
+        
+        // Если указана дата смерти, проверяем что она не раньше даты рождения
+        deathDate?.let { death ->
+            if (death < birthDate!!) {
+                showMessage("Дата смерти не может быть раньше даты рождения")
+                buttonDeathDate.requestFocus()
+                return
+            }
+            
+            if (death > currentTimeMillis) {
+                showMessage("Дата смерти не может быть в будущем")
+                buttonDeathDate.requestFocus()
+                return
+            }
+        }
+        
+        // Проверка биографии на разумную длину
+        if (description.length > 5000) {
+            showMessage("Биография не должна превышать 5000 символов")
+            editBiography.requestFocus()
             return
         }
 

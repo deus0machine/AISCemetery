@@ -20,6 +20,8 @@ import androidx.navigation.fragment.findNavController
 import dagger.hilt.android.AndroidEntryPoint
 import ru.sevostyanov.aiscemetery.ui.genealogy.GenealogyTreeScreen
 import ru.sevostyanov.aiscemetery.viewmodels.FamilyTreeDetailViewModel
+import ru.sevostyanov.aiscemetery.models.RelationType
+import ru.sevostyanov.aiscemetery.models.Memorial
 
 @AndroidEntryPoint
 class GenealogyTreeFragment : Fragment() {
@@ -46,7 +48,21 @@ class GenealogyTreeFragment : Fragment() {
         val isLoading by viewModel.isLoading.observeAsState(false)
         val error by viewModel.error.observeAsState()
         
-                val memorials = relations.flatMap { listOf(it.sourceMemorial, it.targetMemorial) }.distinctBy { it.id }
+                val memorials = run {
+            val memorialSet = mutableSetOf<Memorial>()
+            relations.forEach { relation ->
+                if (relation.relationType == RelationType.PLACEHOLDER) {
+                    // Для PLACEHOLDER связей добавляем только источник (он же и цель)
+                    // чтобы избежать дублирования одного и того же мемориала
+                    memorialSet.add(relation.sourceMemorial)
+                } else {
+                    // Для обычных связей добавляем оба мемориала
+                    memorialSet.add(relation.sourceMemorial)
+                    memorialSet.add(relation.targetMemorial)
+                }
+            }
+            memorialSet.toList()
+        }
 
         Column(modifier = Modifier.fillMaxSize()) {
             // Верхняя панель с кнопкой назад

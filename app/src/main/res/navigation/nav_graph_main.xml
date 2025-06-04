@@ -22,6 +22,9 @@
         <action
             android:id="@+id/action_familyTreesListFragment_to_genealogyTreeFragment"
             app:destination="@id/genealogyTreeFragment" />
+        <action
+            android:id="@+id/action_familyTreesListFragment_to_editGenealogyTreeFragment"
+            app:destination="@id/editGenealogyTreeFragment" />
     </fragment>
 
     <fragment
@@ -33,10 +36,25 @@
     <fragment
         android:id="@+id/genealogyTreeFragment"
         android:name="ru.sevostyanov.aiscemetery.fragments.GenealogyTreeFragment"
-        android:label="Генеалогическое дерево">
+        android:label="GenealogyTreeFragment">
         <argument
             android:name="treeId"
-            app:argType="long" />
+            app:argType="long"
+            android:defaultValue="0L" />
+        <action
+            android:id="@+id/action_genealogyTreeFragment_to_editGenealogyTreeFragment"
+            app:destination="@id/editGenealogyTreeFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/editGenealogyTreeFragment"
+        android:name="ru.sevostyanov.aiscemetery.fragments.EditGenealogyTreeFragment"
+        android:label="EditGenealogyTreeFragment"
+        tools:layout="@layout/fragment_edit_genealogy_tree">
+        <argument
+            android:name="treeId"
+            app:argType="long"
+            android:defaultValue="0L" />
     </fragment>
 
     <fragment

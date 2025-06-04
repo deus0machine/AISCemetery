@@ -223,7 +223,7 @@ class MemorialsFragment : Fragment() {
                     publicMemorials.forEachIndexed { index, memorial ->
                         Log.d("MemorialsFragment", "Публичный мемориал #$index: ID=${memorial.id}, " +
                                 "Название=${memorial.fio}, isEditor=${memorial.isEditor}, " +
-                                "createdBy=${memorial.createdBy?.id}")
+                                "createdBy=${memorial.createdBy}")
                     }
                     
                     publicMemorials

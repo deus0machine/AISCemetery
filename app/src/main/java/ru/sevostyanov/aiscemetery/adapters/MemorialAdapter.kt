@@ -135,57 +135,72 @@ class MemorialAdapter(
         // Настройка индикатора публичности/статуса и стиля карточки
         holder.publicIndicator.visibility = View.VISIBLE
         
-        // Определение текста и цвета на основе статуса публикации
+        // Отображение индикатора ожидающих изменений или модерации
         when {
-            // Показываем статус "Изменения на модерации" только владельцу
-            memorial.changesUnderModeration && memorial.isUserOwner -> {
-                holder.publicIndicator.text = "🔄 Изменения на модерации"
-                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.holo_orange_dark))
+            memorial.publicationStatus == PublicationStatus.PENDING_MODERATION -> {
+                holder.pendingChangesIndicator.visibility = View.VISIBLE
+                holder.pendingChangesIndicator.text = "⚠️ На модерации (редактирование недоступно)"
                 holder.cardView.apply {
                     strokeColor = ContextCompat.getColor(context, android.R.color.holo_orange_dark)
                     strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                    // Добавляем затемнение для мемориалов с изменениями на модерации
                     setCardBackgroundColor(ContextCompat.getColor(context, R.color.moderation_background))
                 }
+                holder.publicIndicator.text = "📝 Черновик"
+                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
             }
+            memorial.changesUnderModeration && memorial.isUserOwner -> {
+                holder.pendingChangesIndicator.visibility = View.VISIBLE
+                holder.pendingChangesIndicator.text = "🔄 Изменения на модерации"
+                holder.cardView.apply {
+                    strokeColor = ContextCompat.getColor(context, android.R.color.holo_orange_dark)
+                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                    setCardBackgroundColor(ContextCompat.getColor(context, R.color.moderation_background))
+                }
+                holder.publicIndicator.text = "🌐 Опубликован"
+                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
+            }
+            memorial.pendingChanges -> {
+                holder.pendingChangesIndicator.visibility = View.VISIBLE
+                holder.pendingChangesIndicator.text = "⚠️ Ожидает подтверждения изменений"
+            }
+            else -> {
+                holder.pendingChangesIndicator.visibility = View.GONE
+            }
+        }
+        
+        // Определение текста и цвета публичного индикатора на основе статуса публикации
+        when {
             memorial.publicationStatus == PublicationStatus.PUBLISHED -> {
                 holder.publicIndicator.text = "🌐 Опубликован"
                 holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
-                holder.cardView.apply {
-                    strokeColor = ContextCompat.getColor(context, android.R.color.holo_green_dark)
-                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                    // Сбрасываем фон к обычному
-                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
-                }
-            }
-            memorial.publicationStatus == PublicationStatus.PENDING_MODERATION -> {
-                holder.publicIndicator.text = "⏳ На модерации (редактирование недоступно)"
-                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.holo_orange_dark))
-                holder.cardView.apply {
-                    strokeColor = ContextCompat.getColor(context, android.R.color.holo_orange_dark)
-                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                    // Добавляем затемнение для мемориалов на модерации
-                    setCardBackgroundColor(ContextCompat.getColor(context, R.color.moderation_background))
+                if (holder.pendingChangesIndicator.visibility == View.GONE) {
+                    holder.cardView.apply {
+                        strokeColor = ContextCompat.getColor(context, android.R.color.holo_green_dark)
+                        strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+                    }
                 }
             }
             memorial.publicationStatus == PublicationStatus.REJECTED -> {
                 holder.publicIndicator.text = "❌ Отклонен"
                 holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
-                holder.cardView.apply {
-                    strokeColor = ContextCompat.getColor(context, android.R.color.holo_red_dark)
-                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                    // Сбрасываем фон к обычному
-                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+                if (holder.pendingChangesIndicator.visibility == View.GONE) {
+                    holder.cardView.apply {
+                        strokeColor = ContextCompat.getColor(context, android.R.color.holo_red_dark)
+                        strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+                    }
                 }
             }
             memorial.publicationStatus == PublicationStatus.DRAFT -> {
                 holder.publicIndicator.text = "📝 Черновик"
                 holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
-                holder.cardView.apply {
-                    strokeColor = ContextCompat.getColor(context, android.R.color.darker_gray)
-                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                    // Сбрасываем фон к обычному
-                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+                if (holder.pendingChangesIndicator.visibility == View.GONE) {
+                    holder.cardView.apply {
+                        strokeColor = ContextCompat.getColor(context, android.R.color.darker_gray)
+                        strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+                    }
                 }
             }
             memorial.publicationStatus == null -> {
@@ -193,23 +208,28 @@ class MemorialAdapter(
                 if (memorial.isPublic) {
                     holder.publicIndicator.text = "🌐 Публичный"
                     holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
-                    holder.cardView.apply {
-                        strokeColor = ContextCompat.getColor(context, android.R.color.holo_blue_light)
-                        strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                        // Сбрасываем фон к обычному
-                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+                    if (holder.pendingChangesIndicator.visibility == View.GONE) {
+                        holder.cardView.apply {
+                            strokeColor = ContextCompat.getColor(context, android.R.color.holo_blue_light)
+                            strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                            setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+                        }
                     }
                 } else {
                     holder.publicIndicator.visibility = View.GONE
-                    holder.cardView.apply {
-                        strokeColor = ContextCompat.getColor(context, android.R.color.transparent)
-                        strokeWidth = 0
-                        // Сбрасываем фон к обычному
-                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+                    if (holder.pendingChangesIndicator.visibility == View.GONE) {
+                        holder.cardView.apply {
+                            strokeColor = ContextCompat.getColor(context, android.R.color.transparent)
+                            strokeWidth = 0
+                            setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+                        }
                     }
                 }
             }
         }
+        
+        // Принудительно пересчитываем layout после изменения видимости
+        holder.itemView.requestLayout()
 
         // Отображение индикатора принадлежности к древу
         holder.treeIndicator.visibility = if (memorial.treeId != null) View.VISIBLE else View.GONE
@@ -244,12 +264,6 @@ class MemorialAdapter(
             }
         } else {
             holder.editorIndicator.visibility = View.GONE
-        }
-        
-        // Отображение индикатора ожидающих изменений
-        holder.pendingChangesIndicator.visibility = if (memorial.pendingChanges) View.VISIBLE else View.GONE
-        if (memorial.pendingChanges) {
-            holder.pendingChangesIndicator.text = "⚠️ Ожидает подтверждения изменений"
         }
 
         // Выбор URL для загрузки фото

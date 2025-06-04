@@ -51,14 +51,36 @@ class CreateFamilyTreeFragment : Fragment() {
 
     private fun setupListeners() {
         createButton.setOnClickListener {
-            val name = nameEditText.text.toString()
-            val description = descriptionEditText.text.toString()
+            val name = nameEditText.text.toString().trim()
+            val description = descriptionEditText.text.toString().trim()
             val isPublic = isPublicSwitch.isChecked
 
             if (name.isBlank()) {
                 nameEditText.error = "Введите название дерева"
+                nameEditText.requestFocus()
                 return@setOnClickListener
             }
+            
+            if (name.length < 2) {
+                nameEditText.error = "Название должно содержать не менее 2 символов"
+                nameEditText.requestFocus()
+                return@setOnClickListener
+            }
+            
+            if (name.length > 100) {
+                nameEditText.error = "Название не должно превышать 100 символов"
+                nameEditText.requestFocus()
+                return@setOnClickListener
+            }
+            
+            if (description.length > 1000) {
+                descriptionEditText.error = "Описание не должно превышать 1000 символов"
+                descriptionEditText.requestFocus()
+                return@setOnClickListener
+            }
+            
+            nameEditText.error = null
+            descriptionEditText.error = null
 
             viewModel.createFamilyTree(name, description, isPublic)
         }

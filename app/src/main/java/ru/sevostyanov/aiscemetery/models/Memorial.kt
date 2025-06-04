@@ -2,14 +2,39 @@ package ru.sevostyanov.aiscemetery.models
 
 import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
+import com.google.gson.annotations.JsonAdapter
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.JsonParseException
 import kotlinx.parcelize.Parcelize
 import ru.sevostyanov.aiscemetery.user.GuestItem
 import ru.sevostyanov.aiscemetery.user.UserManager
+import java.lang.reflect.Type
+
+// Custom deserializer для поля createdBy
+class CreatedByDeserializer : JsonDeserializer<Long?> {
+    override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext?): Long? {
+        return when {
+            json == null || json.isJsonNull -> null
+            json.isJsonPrimitive && json.asJsonPrimitive.isNumber -> json.asLong
+            json.isJsonObject -> {
+                // Если это объект User, извлекаем ID
+                val userObject = json.asJsonObject
+                userObject.get("id")?.takeIf { !it.isJsonNull }?.asLong
+            }
+            else -> null
+        }
+    }
+}
 
 @Parcelize
 data class Memorial(
     @SerializedName("id")
     val id: Long? = null,
+    
+    @SerializedName("user")
+    val user: Long? = null,
     
     @SerializedName("fio")
     val fio: String,
@@ -66,7 +91,8 @@ data class Memorial(
     val treeId: Long? = null,
     
     @SerializedName("createdBy")
-    val createdBy: GuestItem? = null,
+    @JsonAdapter(CreatedByDeserializer::class)
+    val createdBy: Long? = null,
     
     @SerializedName("createdAt")
     val createdAt: String? = null,
@@ -101,7 +127,7 @@ data class Memorial(
     val isUserOwner: Boolean
         get() {
             val currentUser = UserManager.getCurrentUser()
-            return currentUser?.id == createdBy?.id
+            return currentUser?.id == createdBy
         }
         
     // Метод для проверки, имеет ли пользователь права на редактирование

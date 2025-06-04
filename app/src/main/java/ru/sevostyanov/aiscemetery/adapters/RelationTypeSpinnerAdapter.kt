@@ -37,6 +37,7 @@ class RelationTypeSpinnerAdapter(
             RelationType.GRANDCHILD -> "Внук/внучка"
             RelationType.UNCLE_AUNT -> "Дядя/тетя"
             RelationType.NEPHEW_NIECE -> "Племянник/племянница"
+            RelationType.PLACEHOLDER -> "Нет связи (временно)"
             null -> ""
         }
 

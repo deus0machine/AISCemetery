@@ -188,8 +188,43 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
         }
 
         editGenealogyButton.setOnClickListener {
-            // TODO: Реализовать редактирование генеалогии
-            Toast.makeText(context, "Редактирование генеалогии", Toast.LENGTH_SHORT).show()
+            Log.d("FamilyTreeFragment", "Кнопка редактирования генеалогии нажата, treeId: $treeId")
+            
+            // Закрываем текущий диалог
+            dismiss()
+            
+            try {
+                // Используем NavController для навигации
+                val activity = requireActivity()
+                val navHostFragment = activity.supportFragmentManager
+                    .findFragmentById(R.id.nav_host_fragment)
+                
+                if (navHostFragment != null) {
+                    val navController = navHostFragment.findNavController()
+                    
+                    val bundle = Bundle().apply {
+                        putLong("treeId", treeId)
+                    }
+                    
+                    // Используем действие из familyTreesListFragment или прямую навигацию
+                    try {
+                        navController.navigate(R.id.action_familyTreesListFragment_to_editGenealogyTreeFragment, bundle)
+                        Log.d("FamilyTreeFragment", "Навигация через action выполнена успешно")
+                    } catch (e: Exception) {
+                        // Fallback - прямая навигация к destination
+                        navController.navigate(R.id.editGenealogyTreeFragment, bundle)
+                        Log.d("FamilyTreeFragment", "Прямая навигация выполнена успешно")
+                    }
+                    
+                } else {
+                    Log.e("FamilyTreeFragment", "NavHostFragment не найден!")
+                    Toast.makeText(context, "Ошибка навигации", Toast.LENGTH_SHORT).show()
+                }
+                
+            } catch (e: Exception) {
+                Log.e("FamilyTreeFragment", "Ошибка при переходе к редактированию: ${e.message}", e)
+                Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 } 

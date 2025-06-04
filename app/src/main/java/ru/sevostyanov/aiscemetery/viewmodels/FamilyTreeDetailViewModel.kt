@@ -144,7 +144,7 @@ class FamilyTreeDetailViewModel @Inject constructor(
                     familyTreeId = treeId,
                     sourceMemorial = memorial,
                     targetMemorial = memorial,
-                    relationType = RelationType.PARENT
+                    relationType = RelationType.PLACEHOLDER
                 )
                 repository.createMemorialRelation(treeId, relation)
                 loadMemorialRelations(treeId)

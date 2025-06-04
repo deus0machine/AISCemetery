@@ -351,6 +351,10 @@ private fun calculateNodePositions(
                 spousesMap[sourceId] = targetId
                 spousesMap[targetId] = sourceId
             }
+            RelationType.PLACEHOLDER -> {
+                // Игнорируем PLACEHOLDER связи при построении семейного дерева
+                // Но мемориалы из этих связей уже включены в список memorials
+            }
             else -> {}
         }
     }
@@ -716,6 +720,10 @@ private fun calculateTreeConnections(
                 }
                 
                 childrenByParents.getOrPut(parentKey) { mutableListOf() }.add(childId)
+            }
+            RelationType.PLACEHOLDER -> {
+                // Игнорируем PLACEHOLDER связи при построении семейного дерева
+                // Но мемориалы из этих связей уже включены в список memorials
             }
             else -> {}
         }

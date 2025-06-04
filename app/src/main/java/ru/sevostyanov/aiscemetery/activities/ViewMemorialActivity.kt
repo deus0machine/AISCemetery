@@ -115,7 +115,7 @@ class ViewMemorialActivity : AppCompatActivity() {
         
         Log.d(TAG, "onCreate: получен мемориал из Intent? ${memorial != null}")
         if (memorial != null) {
-            Log.d(TAG, "onCreate: ID=${memorial?.id}, название=${memorial?.fio}, isEditor=${memorial?.isEditor}, createdBy=${memorial?.createdBy?.id}")
+            Log.d(TAG, "onCreate: ID=${memorial?.id}, название=${memorial?.fio}, isEditor=${memorial?.isEditor}, createdBy=${memorial?.createdBy}")
             loadMemorialData(memorial!!)
         } else {
             // Если мемориал не передан напрямую, пробуем загрузить по ID
@@ -359,7 +359,7 @@ class ViewMemorialActivity : AppCompatActivity() {
         val user = UserManager.getCurrentUser()
         Log.d(TAG, "loadMemorialData: детали доступа: " +
                 "userId=${user?.id}, " +
-                "creatorId=${memorial.createdBy?.id}, " +
+                "creatorId=${memorial.createdBy}, " +
                 "isEditor=${memorial.isEditor}, " +
                 "isUserEditor=${memorial.isUserEditor}, " +
                 "isUserOwner=${memorial.isUserOwner}, " + 
@@ -368,7 +368,7 @@ class ViewMemorialActivity : AppCompatActivity() {
                 "editors=${memorial.editors}")
         
         // Устанавливаем информацию о создателе
-        createdByTextView.text = "Владелец: " + memorial.createdBy?.fio ?: "Неизвестно"
+        createdByTextView.text = "Владелец ID: " + (memorial.createdBy?.toString() ?: "Неизвестно")
         
         // Сохраняем мемориал для использования в других методах
         this.memorial = memorial
@@ -418,7 +418,7 @@ class ViewMemorialActivity : AppCompatActivity() {
         
         // Настраиваем диалог
         dialog.findViewById<TextView>(R.id.recipientTextView)?.text = 
-            memorial?.createdBy?.fio ?: "Владелец мемориала"
+            "Владелец мемориала"
         
         // Обработчики кнопок
         dialog.findViewById<Button>(R.id.cancelButton)?.setOnClickListener {
@@ -450,7 +450,7 @@ class ViewMemorialActivity : AppCompatActivity() {
         
         // Настраиваем диалог
         dialog.findViewById<TextView>(R.id.recipientTextView)?.text = 
-            memorial?.createdBy?.fio ?: "Владелец мемориала"
+            "Владелец мемориала"
         
         // Обработчики кнопок
         dialog.findViewById<Button>(R.id.cancelButton)?.setOnClickListener {
@@ -467,7 +467,7 @@ class ViewMemorialActivity : AppCompatActivity() {
             }
             
             // Получаем ID получателя и мемориала
-            val receiverId = memorial?.createdBy?.id
+            val receiverId = memorial?.createdBy
             val memorialId = memorial?.id
             
             Log.d(TAG, "Подготовка запроса: receiverId=$receiverId, memorialId=$memorialId")
@@ -538,7 +538,7 @@ class ViewMemorialActivity : AppCompatActivity() {
                 
                 Log.d(TAG, "loadMemorialById: загружен мемориал с сервера: ID=${loadedMemorial.id}, " +
                         "ФИО=${loadedMemorial.fio}, isEditor=${loadedMemorial.isEditor}, " +
-                        "createdBy=${loadedMemorial.createdBy?.id}, " +
+                        "createdBy=${loadedMemorial.createdBy}, " +
                         "биография=${loadedMemorial.biography?.take(50)}, " +
                         "pendingChanges=${loadedMemorial.pendingChanges}")
                 
