@@ -2,31 +2,8 @@ package ru.sevostyanov.aiscemetery.models
 
 import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
-import com.google.gson.annotations.JsonAdapter
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
-import com.google.gson.JsonElement
-import com.google.gson.JsonParseException
 import kotlinx.parcelize.Parcelize
-import ru.sevostyanov.aiscemetery.user.GuestItem
 import ru.sevostyanov.aiscemetery.user.UserManager
-import java.lang.reflect.Type
-
-// Custom deserializer для поля createdBy
-class CreatedByDeserializer : JsonDeserializer<Long?> {
-    override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext?): Long? {
-        return when {
-            json == null || json.isJsonNull -> null
-            json.isJsonPrimitive && json.asJsonPrimitive.isNumber -> json.asLong
-            json.isJsonObject -> {
-                // Если это объект User, извлекаем ID
-                val userObject = json.asJsonObject
-                userObject.get("id")?.takeIf { !it.isJsonNull }?.asLong
-            }
-            else -> null
-        }
-    }
-}
 
 @Parcelize
 data class Memorial(
@@ -38,6 +15,15 @@ data class Memorial(
     
     @SerializedName("fio")
     val fio: String,
+    
+    @SerializedName("firstName")
+    val firstName: String? = null,
+    
+    @SerializedName("lastName")
+    val lastName: String? = null,
+    
+    @SerializedName("middleName")
+    val middleName: String? = null,
     
     @SerializedName("birthDate")
     val birthDate: String?,
@@ -62,6 +48,15 @@ data class Memorial(
     
     @SerializedName("pendingFio")
     val pendingFio: String? = null,
+    
+    @SerializedName("pendingFirstName")
+    val pendingFirstName: String? = null,
+    
+    @SerializedName("pendingLastName")
+    val pendingLastName: String? = null,
+    
+    @SerializedName("pendingMiddleName")
+    val pendingMiddleName: String? = null,
     
     @SerializedName("pendingBiography")
     val pendingBiography: String? = null,
@@ -91,8 +86,7 @@ data class Memorial(
     val treeId: Long? = null,
     
     @SerializedName("createdBy")
-    @JsonAdapter(CreatedByDeserializer::class)
-    val createdBy: Long? = null,
+    val createdBy: User? = null,
     
     @SerializedName("createdAt")
     val createdAt: String? = null,
@@ -127,7 +121,7 @@ data class Memorial(
     val isUserOwner: Boolean
         get() {
             val currentUser = UserManager.getCurrentUser()
-            return currentUser?.id == createdBy
+            return currentUser?.id == createdBy?.id
         }
         
     // Метод для проверки, имеет ли пользователь права на редактирование
@@ -170,6 +164,98 @@ data class Memorial(
             publicationStatus == PublicationStatus.DRAFT -> android.R.color.darker_gray
             isPublic -> android.R.color.holo_green_dark
             else -> android.R.color.darker_gray
+        }
+    }
+    
+    // ========== Методы для работы с разделенным ФИО ==========
+    
+    /**
+     * Получает полное ФИО, приоритезируя отдельные поля над объединенным
+     */
+    fun getFullName(): String {
+        return if (!firstName.isNullOrBlank() && !lastName.isNullOrBlank()) {
+            buildString {
+                append(lastName)
+                append(" ")
+                append(firstName)
+                if (!middleName.isNullOrBlank()) {
+                    append(" ")
+                    append(middleName)
+                }
+            }
+        } else {
+            fio
+        }
+    }
+    
+    /**
+     * Получает краткое ФИО (Фамилия И.О.)
+     */
+    fun getShortName(): String {
+        return if (!firstName.isNullOrBlank() && !lastName.isNullOrBlank()) {
+            buildString {
+                append(lastName)
+                append(" ")
+                append(firstName.first().uppercase())
+                append(".")
+                if (!middleName.isNullOrBlank()) {
+                    append(middleName.first().uppercase())
+                    append(".")
+                }
+            }
+        } else {
+            // Пытаемся сократить объединенное ФИО
+            val parts = fio.split(" ", limit = 3)
+            when (parts.size) {
+                1 -> parts[0] // Только одно слово
+                2 -> "${parts[0]} ${parts[1].firstOrNull()?.uppercase() ?: ""}."
+                else -> "${parts[0]} ${parts[1].firstOrNull()?.uppercase() ?: ""}.${parts[2].firstOrNull()?.uppercase() ?: ""}."
+            }
+        }
+    }
+    
+    /**
+     * Проверяет, заполнены ли отдельные поля ФИО
+     */
+    fun hasSeparateNameFields(): Boolean {
+        return !firstName.isNullOrBlank() && !lastName.isNullOrBlank()
+    }
+    
+    companion object {
+        /**
+         * Утилитный метод для разбора ФИО на составляющие
+         * Возвращает тройку: (firstName, lastName, middleName)
+         */
+        fun parseFio(fio: String): Triple<String?, String?, String?> {
+            val parts = fio.trim().split("\\s+".toRegex())
+            return when (parts.size) {
+                1 -> Triple(parts[0], null, null) // Только имя
+                2 -> Triple(parts[1], parts[0], null) // Фамилия Имя
+                3 -> Triple(parts[1], parts[0], parts[2]) // Фамилия Имя Отчество
+                else -> {
+                    // Более трех частей - берем первые три
+                    Triple(parts[1], parts[0], parts[2])
+                }
+            }
+        }
+        
+        /**
+         * Утилитный метод для сборки ФИО из отдельных частей
+         */
+        fun buildFio(firstName: String?, lastName: String?, middleName: String?): String {
+            return buildString {
+                if (!lastName.isNullOrBlank()) {
+                    append(lastName)
+                }
+                if (!firstName.isNullOrBlank()) {
+                    if (isNotEmpty()) append(" ")
+                    append(firstName)
+                }
+                if (!middleName.isNullOrBlank()) {
+                    if (isNotEmpty()) append(" ")
+                    append(middleName)
+                }
+            }
         }
     }
 }

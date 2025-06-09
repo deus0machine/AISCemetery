@@ -33,6 +33,7 @@ import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.models.MemorialOwnershipRequest
 import ru.sevostyanov.aiscemetery.models.MemorialRelation
 import ru.sevostyanov.aiscemetery.models.Notification
+import ru.sevostyanov.aiscemetery.models.PagedResponse
 import ru.sevostyanov.aiscemetery.user.Guest
 import java.util.concurrent.TimeUnit
 
@@ -217,11 +218,29 @@ object RetrofitClient {
         @GET("/api/memorials")
         suspend fun getAllMemorials(): List<Memorial>
 
+        @GET("/api/memorials")
+        suspend fun getAllMemorials(
+            @Query("page") page: Int,
+            @Query("size") size: Int
+        ): PagedResponse<Memorial>
+
         @GET("/api/memorials/my")
         suspend fun getMyMemorials(): List<Memorial>
 
+        @GET("/api/memorials/my")
+        suspend fun getMyMemorials(
+            @Query("page") page: Int,
+            @Query("size") size: Int
+        ): PagedResponse<Memorial>
+
         @GET("/api/memorials/public")
-        suspend fun getPublicMemorials(): List<Memorial>
+        suspend fun getPublicMemorials(): PagedResponse<Memorial>
+
+        @GET("/api/memorials/public")
+        suspend fun getPublicMemorials(
+            @Query("page") page: Int,
+            @Query("size") size: Int
+        ): PagedResponse<Memorial>
 
         @GET("/api/memorials/{id}")
         suspend fun getMemorialById(@Path("id") id: Long): Memorial
@@ -268,6 +287,17 @@ object RetrofitClient {
             @Query("endDate") endDate: String?,
             @Query("isPublic") isPublic: Boolean?
         ): List<Memorial>
+
+        @GET("/api/memorials/search")
+        suspend fun searchMemorials(
+            @Query("query") query: String,
+            @Query("location") location: String?,
+            @Query("startDate") startDate: String?,
+            @Query("endDate") endDate: String?,
+            @Query("isPublic") isPublic: Boolean?,
+            @Query("page") page: Int,
+            @Query("size") size: Int
+        ): PagedResponse<Memorial>
 
         @GET("api/family-trees/my")
         suspend fun getMyFamilyTrees(): List<FamilyTree>
@@ -404,5 +434,9 @@ object RetrofitClient {
         
         @POST("/api/memorials/{id}/admin/reject-changes")
         suspend fun rejectChangesByAdmin(@Path("id") id: Long, @Body reason: String): Memorial
+        
+        // Метод для отправки жалобы на мемориал
+        @POST("/api/memorials/{id}/report")
+        suspend fun reportMemorial(@Path("id") id: Long, @Body request: ru.sevostyanov.aiscemetery.models.MemorialReportRequest): ru.sevostyanov.aiscemetery.models.MemorialReportResponse
     }
 }

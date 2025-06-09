@@ -269,6 +269,29 @@
                         android:textAllCaps="false"
                         style="@style/Widget.MaterialComponents.Button" />
 
+                    <!-- Сообщение о необходимости подписки -->
+                    <TextView
+                        android:id="@+id/subscriptionMessageTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Для публикации мемориала необходима подписка. Без подписки ваш мемориал останется приватным и будет доступен только вам."
+                        android:textSize="14sp"
+                        android:textColor="#F57C00"
+                        android:background="@drawable/rounded_background"
+                        android:padding="12dp"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/subscriptionInfoButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Информация о подписке"
+                        android:textAllCaps="false"
+                        android:visibility="gone"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
                     <!-- Кнопки для администраторов -->
                     <LinearLayout
                         android:id="@+id/adminModerationButtonsLayout"

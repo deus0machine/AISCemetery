@@ -25,13 +25,15 @@ import ru.sevostyanov.aiscemetery.activities.ViewMemorialActivity
 import ru.sevostyanov.aiscemetery.adapters.MemorialAdapter
 import ru.sevostyanov.aiscemetery.dialogs.MemorialFilterDialog
 import ru.sevostyanov.aiscemetery.models.Memorial
+import ru.sevostyanov.aiscemetery.models.PagedResponse
+import ru.sevostyanov.aiscemetery.models.PublicationStatus
 import ru.sevostyanov.aiscemetery.repository.MemorialRepository
 import ru.sevostyanov.aiscemetery.user.UserManager
 import android.app.AlertDialog
 import retrofit2.HttpException
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import ru.sevostyanov.aiscemetery.models.PublicationStatus
+import android.widget.TextView
 
 class MemorialsFragment : Fragment() {
 
@@ -40,10 +42,25 @@ class MemorialsFragment : Fragment() {
     private lateinit var tabLayout: TabLayout
     private lateinit var addMemorialButton: FloatingActionButton
     private lateinit var filterButton: Button
+    private lateinit var searchModeIndicator: TextView
+    private lateinit var emptyMemorialsText: TextView
     private lateinit var adapter: MemorialAdapter
     private val repository = MemorialRepository()
     private var currentMemorials = listOf<Memorial>()
     private var isFirstLoad = true
+    
+    // Переменные для пагинации
+    private var currentPage = 0
+    private val pageSize = 10
+    private var isLoading = false
+    private var hasMoreData = true
+    private var allMemorials = mutableListOf<Memorial>()
+    
+    // Переменные для поиска
+    private var currentSearchQuery: String? = null
+    private var currentFilterOptions: MemorialFilterDialog.FilterOptions? = null
+    private var searchJob: kotlinx.coroutines.Job? = null
+    private var isSearchMode = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -81,9 +98,12 @@ class MemorialsFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Перезагружаем список только если были изменения
+        // Перезагружаем только первую страницу если были изменения
         if (!isFirstLoad) {
-            loadMemorials(tabLayout.selectedTabPosition == 0)
+            currentPage = 0
+            hasMoreData = true
+            allMemorials.clear()
+            loadMemorialsPage(tabLayout.selectedTabPosition == 0, isFirstPage = true)
         }
     }
 
@@ -100,6 +120,8 @@ class MemorialsFragment : Fragment() {
         tabLayout = view.findViewById(R.id.tab_layout)
         addMemorialButton = view.findViewById(R.id.fab_add_memorial)
         filterButton = view.findViewById(R.id.btn_filter)
+        searchModeIndicator = view.findViewById(R.id.search_mode_indicator)
+        emptyMemorialsText = view.findViewById(R.id.empty_memorials_text)
 
         recyclerView.layoutManager = LinearLayoutManager(context)
     }
@@ -118,10 +140,10 @@ class MemorialsFragment : Fragment() {
             onDeleteClick = { memorial ->
                 showDeleteConfirmationDialog(memorial)
             },
-            onPrivacyClick = { memorial ->
-                updateMemorialPrivacy(memorial)
-            },
-            showControls = tabLayout.selectedTabPosition == 0 // Показываем контролы только для вкладки "Мои"
+            showControls = true, // По умолчанию показываем контролы (первая вкладка "Мои")
+            onLoadMoreClick = {
+                loadMoreMemorials()
+            }
         )
         recyclerView.adapter = adapter
     }
@@ -130,34 +152,62 @@ class MemorialsFragment : Fragment() {
         tabLayout.addTab(tabLayout.newTab().setText("Мои"))
         tabLayout.addTab(tabLayout.newTab().setText("Публичные"))
         
+        // Устанавливаем первую вкладку как выбранную по умолчанию
+        tabLayout.selectTab(tabLayout.getTabAt(0))
+        
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
+                Log.d("MemorialsFragment", "=== СМЕНА ВКЛАДКИ ===")
+                Log.d("MemorialsFragment", "Выбрана вкладка: position=${tab?.position}, text=${tab?.text}")
+                
                 when (tab?.position) {
                     0 -> {
+                        Log.d("MemorialsFragment", "Переключаемся на 'Мои' мемориалы")
                         adapter.updateControlsVisibility(true)
                         loadMemorials(showOnlyMine = true)
                     }
                     1 -> {
+                        Log.d("MemorialsFragment", "Переключаемся на 'Публичные' мемориалы")
                         adapter.updateControlsVisibility(false)
                         loadMemorials(showOnlyMine = false)
                     }
                 }
+                Log.d("MemorialsFragment", "=== КОНЕЦ СМЕНЫ ВКЛАДКИ ===")
             }
-            override fun onTabUnselected(tab: TabLayout.Tab?) {}
-            override fun onTabReselected(tab: TabLayout.Tab?) {}
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+                Log.d("MemorialsFragment", "Отменена вкладка: position=${tab?.position}, text=${tab?.text}")
+            }
+            override fun onTabReselected(tab: TabLayout.Tab?) {
+                Log.d("MemorialsFragment", "Повторно выбрана вкладка: position=${tab?.position}, text=${tab?.text}")
+            }
         })
     }
 
     private fun setupSearchView() {
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                query?.let { searchMemorials(it) }
+                query?.let { 
+                    performSearch(it.trim())
+                }
+                searchView.clearFocus()
                 return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                if (newText.isNullOrBlank()) {
-                    loadMemorials(tabLayout.selectedTabPosition == 0)
+                // Отменяем предыдущий поиск
+                searchJob?.cancel()
+                
+                val query = newText?.trim()
+                
+                if (query.isNullOrBlank()) {
+                    // Если поисковая строка пустая, возвращаемся к обычному режиму
+                    exitSearchMode()
+                } else {
+                    // Запускаем поиск с задержкой 500ms
+                    searchJob = lifecycleScope.launch {
+                        kotlinx.coroutines.delay(500)
+                        performSearch(query)
+                    }
                 }
                 return true
             }
@@ -177,25 +227,39 @@ class MemorialsFragment : Fragment() {
     private fun showFilterDialog() {
         val dialog = MemorialFilterDialog.newInstance()
         dialog.setOnFilterAppliedListener { filterOptions ->
-            lifecycleScope.launch {
-                try {
-                    val memorials = repository.searchMemorials(
-                        query = "",
-                        location = filterOptions.location,
-                        startDate = filterOptions.startDate,
-                        endDate = filterOptions.endDate,
-                        isPublic = filterOptions.isPublic
-                    )
-                    adapter.updateData(memorials)
-                } catch (e: Exception) {
-                    showError("Ошибка при применении фильтров: ${e.message}")
-                }
+            Log.d("MemorialsFragment", "Применены фильтры: $filterOptions")
+            
+            currentFilterOptions = filterOptions
+            
+            // Если есть активный поиск, перезапускаем поиск с новыми фильтрами
+            if (isSearchMode && currentSearchQuery != null) {
+                performSearch(currentSearchQuery!!)
+            } else if (filterOptions.hasActiveFilters()) {
+                // Если фильтры активны, но поиска нет, запускаем поиск с пустым запросом
+                performSearch("")
+            } else {
+                // Если фильтры сброшены и поиска нет, возвращаемся к обычному режиму
+                exitSearchMode()
             }
+            
+            // Обновляем индикатор в любом случае
+            updateSearchModeIndicator()
         }
         dialog.show(parentFragmentManager, "filter_dialog")
     }
+    
+    // Расширение для проверки активных фильтров
+    private fun MemorialFilterDialog.FilterOptions.hasActiveFilters(): Boolean {
+        return !location.isNullOrBlank() || 
+               !startDate.isNullOrBlank() || 
+               !endDate.isNullOrBlank() || 
+               isPublic != null
+    }
 
     private fun loadMemorials(showOnlyMine: Boolean) {
+        Log.d("MemorialsFragment", "=== НАЧАЛО loadMemorials ===")
+        Log.d("MemorialsFragment", "showOnlyMine: $showOnlyMine")
+        
         // Проверяем авторизацию перед загрузкой
         val user = UserManager.getCurrentUser()
             ?: UserManager.loadUserFromPreferences(requireContext())
@@ -208,50 +272,238 @@ class MemorialsFragment : Fragment() {
             return
         }
 
+        Log.d("MemorialsFragment", "Пользователь авторизован: ${user.login}")
+        
+        // Сбрасываем пагинацию при смене вкладки
+        Log.d("MemorialsFragment", "Сбрасываем пагинацию - currentPage: $currentPage -> 0, allMemorials.size: ${allMemorials.size} -> 0")
+        currentPage = 0
+        hasMoreData = true
+        allMemorials.clear()
+        
+        loadMemorialsPage(showOnlyMine, isFirstPage = true)
+        Log.d("MemorialsFragment", "=== КОНЕЦ loadMemorials ===")
+    }
+    
+    private fun loadMemorialsPage(showOnlyMine: Boolean, isFirstPage: Boolean = false) {
+        if (isLoading) return
+        
+        isLoading = true
+        
+        Log.d("MemorialsFragment", "=== НАЧАЛО ЗАГРУЗКИ СТРАНИЦЫ ===")
+        Log.d("MemorialsFragment", "showOnlyMine: $showOnlyMine, isFirstPage: $isFirstPage, currentPage: $currentPage, pageSize: $pageSize")
+        
+        if (!isFirstPage) {
+            adapter.updateLoadMoreState(hasMoreData, isLoading = true)
+        }
+
         lifecycleScope.launch {
             try {
-                currentMemorials = if (showOnlyMine) {
-                    val myMemorials = repository.getMyMemorials()
-                    println("Мои мемориалы: ${myMemorials.map { "${it.id}: isPublic=${it.isPublic}" }}")
-                    myMemorials
+                Log.d("MemorialsFragment", "Вызываем API...")
+                val pagedResponse = if (showOnlyMine) {
+                    Log.d("MemorialsFragment", "Загружаем МОИ мемориалы - страница $currentPage, размер $pageSize")
+                    repository.getMyMemorials(currentPage, pageSize)
                 } else {
-                    val publicMemorials = repository.getPublicMemorials()
-                    println("Публичные мемориалы: ${publicMemorials.map { "${it.id}: isPublic=${it.isPublic}" }}")
-                    
-                    // Добавляем подробное логирование для каждого публичного мемориала
-                    Log.d("MemorialsFragment", "Загружено ${publicMemorials.size} публичных мемориалов")
-                    publicMemorials.forEachIndexed { index, memorial ->
-                        Log.d("MemorialsFragment", "Публичный мемориал #$index: ID=${memorial.id}, " +
-                                "Название=${memorial.fio}, isEditor=${memorial.isEditor}, " +
-                                "createdBy=${memorial.createdBy}")
+                    Log.d("MemorialsFragment", "Загружаем ПУБЛИЧНЫЕ мемориалы - страница $currentPage, размер $pageSize")
+                    repository.getPublicMemorials(currentPage, pageSize)
+                }
+                
+                Log.d("MemorialsFragment", "Получен ответ от API:")
+                Log.d("MemorialsFragment", "- content.size: ${pagedResponse.content.size}")
+                Log.d("MemorialsFragment", "- page: ${pagedResponse.page}")
+                Log.d("MemorialsFragment", "- totalElements: ${pagedResponse.totalElements}")
+                Log.d("MemorialsFragment", "- totalPages: ${pagedResponse.totalPages}")
+                Log.d("MemorialsFragment", "- hasNext: ${pagedResponse.hasNext}")
+                
+                val newMemorials = pagedResponse.content
+                
+                Log.d("MemorialsFragment", "Обработка полученных данных:")
+                newMemorials.forEachIndexed { index, memorial ->
+                    Log.d("MemorialsFragment", "[$index] Мемориал: id=${memorial.id}, fio=${memorial.fio}, isPublic=${memorial.isPublic}, status=${memorial.publicationStatus}")
+                }
+                
+                if (isFirstPage) {
+                    Log.d("MemorialsFragment", "Первая страница - очищаем список и добавляем ${newMemorials.size} мемориалов")
+                    allMemorials.clear()
+                    allMemorials.addAll(newMemorials)
+                    // Принудительное обновление при смене вкладки, чтобы гарантировать перерисовку элементов
+                    adapter.updateData(allMemorials, forceUpdate = true)
+                    if (allMemorials.isNotEmpty()) {
+                        hideEmptyState()
                     }
-                    
-                    publicMemorials
+                } else {
+                    Log.d("MemorialsFragment", "Дополнительная страница - добавляем ${newMemorials.size} мемориалов к существующим ${allMemorials.size}")
+                    allMemorials.addAll(newMemorials)
+                    // Передаем ПОЛНЫЙ список в адаптер, а не добавляем элементы
+                    adapter.updateData(allMemorials)
                 }
                 
-                println("Текущий таб: ${if (showOnlyMine) "Мои" else "Публичные"}")
-                println("Количество мемориалов в списке: ${currentMemorials.size}")
+                hasMoreData = pagedResponse.hasNext
+                currentPage++
                 
-                // Обновляем данные в адаптере
-                adapter.updateData(currentMemorials)
+                // Обновляем состояние footer
+                updateLoadMoreVisibility()
                 
-                if (currentMemorials.isEmpty()) {
-                    showMessage(if (showOnlyMine) "У вас пока нет мемориалов" else "Нет доступных публичных мемориалов")
+                Log.d("MemorialsFragment", "Итоговое состояние:")
+                Log.d("MemorialsFragment", "- allMemorials.size: ${allMemorials.size}")
+                Log.d("MemorialsFragment", "- hasMoreData: $hasMoreData")
+                Log.d("MemorialsFragment", "- currentPage: $currentPage")
+                
+                if (isFirstPage && allMemorials.isEmpty()) {
+                    val message = if (showOnlyMine) "У вас пока нет мемориалов" else "Нет доступных публичных мемориалов"
+                    Log.d("MemorialsFragment", "Показываем сообщение: $message")
+                    showEmptyState(message)
                 }
+                
+                Log.d("MemorialsFragment", "Загружено ${newMemorials.size} мемориалов, всего: ${allMemorials.size}, hasMore: $hasMoreData")
+                
             } catch (e: Exception) {
+                Log.e("MemorialsFragment", "ОШИБКА при загрузке мемориалов: ${e.message}", e)
                 e.printStackTrace()
                 showMessage("Ошибка загрузки мемориалов: ${e.message}")
+            } finally {
+                Log.d("MemorialsFragment", "=== ЗАВЕРШЕНИЕ ЗАГРУЗКИ СТРАНИЦЫ ===")
+                isLoading = false
+                // Обновляем состояние footer (убираем loading)
+                adapter.updateLoadMoreState(hasMoreData && allMemorials.isNotEmpty(), isLoading = false)
             }
         }
     }
+    
+    private fun loadMoreMemorials() {
+        if (isSearchMode && currentSearchQuery != null) {
+            // В режиме поиска загружаем следующую страницу поиска
+            performSearchPage(currentSearchQuery!!)
+        } else {
+            // В обычном режиме загружаем следующую страницу мемориалов
+            loadMemorialsPage(tabLayout.selectedTabPosition == 0)
+        }
+    }
+    
+    private fun updateLoadMoreVisibility() {
+        // Обновляем состояние footer в адаптере
+        adapter.updateLoadMoreState(hasMoreData && allMemorials.isNotEmpty())
+    }
 
-    private fun searchMemorials(query: String) {
+    private fun performSearch(query: String) {
+        Log.d("MemorialsFragment", "=== НАЧАЛО ПОИСКА ===")
+        Log.d("MemorialsFragment", "Поисковый запрос: '$query'")
+        
+        currentSearchQuery = query
+        isSearchMode = true
+        
+        // Обновляем индикатор режима поиска
+        updateSearchModeIndicator()
+        
+        // Сбрасываем пагинацию для поиска
+        currentPage = 0
+        hasMoreData = true
+        allMemorials.clear()
+        
+        performSearchPage(query, isFirstPage = true)
+    }
+    
+    private fun performSearchPage(query: String, isFirstPage: Boolean = false) {
+        if (isLoading) return
+        
+        isLoading = true
+        
+        Log.d("MemorialsFragment", "=== НАЧАЛО СТРАНИЦЫ ПОИСКА ===")
+        Log.d("MemorialsFragment", "query: '$query', isFirstPage: $isFirstPage, currentPage: $currentPage")
+        
+        if (!isFirstPage) {
+            adapter.updateLoadMoreState(hasMoreData, isLoading = true)
+        }
+
         lifecycleScope.launch {
             try {
-                val memorials = repository.searchMemorials(query)
-                adapter.updateData(memorials)
+                val pagedResponse = repository.searchMemorials(
+                    query = query,
+                    location = currentFilterOptions?.location,
+                    startDate = currentFilterOptions?.startDate,
+                    endDate = currentFilterOptions?.endDate,
+                    isPublic = when {
+                        // В режиме поиска учитываем текущую вкладку
+                        tabLayout.selectedTabPosition == 0 -> null // Мои мемориалы - ищем все (публичные и приватные пользователя)
+                        else -> true // Публичные мемориалы - ищем только опубликованные
+                    },
+                    page = currentPage,
+                    size = pageSize
+                )
+                
+                Log.d("MemorialsFragment", "Результаты поиска:")
+                Log.d("MemorialsFragment", "- content.size: ${pagedResponse.content.size}")
+                Log.d("MemorialsFragment", "- totalElements: ${pagedResponse.totalElements}")
+                Log.d("MemorialsFragment", "- hasNext: ${pagedResponse.hasNext}")
+                
+                val newMemorials = pagedResponse.content
+                
+                if (isFirstPage) {
+                    Log.d("MemorialsFragment", "Первая страница поиска - очищаем и добавляем ${newMemorials.size}")
+                    allMemorials.clear()
+                    allMemorials.addAll(newMemorials)
+                    adapter.updateData(allMemorials, forceUpdate = true)
+                    if (allMemorials.isNotEmpty()) {
+                        hideEmptyState()
+                    }
+                } else {
+                    Log.d("MemorialsFragment", "Дополнительная страница поиска - добавляем ${newMemorials.size}")
+                    allMemorials.addAll(newMemorials)
+                    adapter.updateData(allMemorials)
+                }
+                
+                hasMoreData = pagedResponse.hasNext
+                currentPage++
+                
+                updateLoadMoreVisibility()
+                
+                if (isFirstPage && allMemorials.isEmpty()) {
+                    showEmptyState("По запросу '$query' ничего не найдено")
+                }
+                
             } catch (e: Exception) {
-                showError("Ошибка при поиске: ${e.message}")
+                Log.e("MemorialsFragment", "Ошибка поиска: ${e.message}", e)
+                showMessage("Ошибка поиска: ${e.message}")
+            } finally {
+                isLoading = false
+                adapter.updateLoadMoreState(hasMoreData && allMemorials.isNotEmpty(), isLoading = false)
+            }
+        }
+    }
+    
+    private fun exitSearchMode() {
+        Log.d("MemorialsFragment", "Выход из режима поиска")
+        
+        isSearchMode = false
+        currentSearchQuery = null
+        currentFilterOptions = null
+        searchJob?.cancel()
+        
+        // Обновляем индикатор режима поиска
+        updateSearchModeIndicator()
+        
+        // Возвращаемся к обычному режиму загрузки
+        loadMemorials(tabLayout.selectedTabPosition == 0)
+    }
+
+    private fun updateSearchModeIndicator() {
+        val hasQuery = !currentSearchQuery.isNullOrBlank()
+        val hasFilters = currentFilterOptions?.hasActiveFilters() == true
+        
+        when {
+            hasQuery && hasFilters -> {
+                searchModeIndicator.text = "Поиск: \"$currentSearchQuery\" с фильтрами"
+                searchModeIndicator.visibility = View.VISIBLE
+            }
+            hasQuery -> {
+                searchModeIndicator.text = "Поиск: \"$currentSearchQuery\""
+                searchModeIndicator.visibility = View.VISIBLE
+            }
+            hasFilters -> {
+                searchModeIndicator.text = "Активны фильтры"
+                searchModeIndicator.visibility = View.VISIBLE
+            }
+            else -> {
+                searchModeIndicator.visibility = View.GONE
             }
         }
     }
@@ -272,7 +524,21 @@ class MemorialsFragment : Fragment() {
             try {
                 memorial.id?.let { id ->
                     repository.deleteMemorial(id)
-                    loadMemorials(tabLayout.selectedTabPosition == 0)
+                    // Удаляем из локального списка
+                    allMemorials.removeAll { it.id == id }
+                    adapter.updateData(allMemorials)
+                    updateLoadMoreVisibility()
+                    
+                    // Проверяем, не стал ли список пустым
+                    if (allMemorials.isEmpty()) {
+                        val message = if (tabLayout.selectedTabPosition == 0) {
+                            "У вас пока нет мемориалов"
+                        } else {
+                            "Нет доступных публичных мемориалов"
+                        }
+                        showEmptyState(message)
+                    }
+                    
                     showMessage("Мемориал успешно удален")
                 }
             } catch (e: Exception) {
@@ -372,13 +638,19 @@ class MemorialsFragment : Fragment() {
                             repository.updateMemorialPrivacy(id, false)
                             
                             // Перезагружаем список мемориалов
-                            loadMemorials(tabLayout.selectedTabPosition == 0)
+                            currentPage = 0
+                            hasMoreData = true
+                            allMemorials.clear()
+                            loadMemorialsPage(tabLayout.selectedTabPosition == 0, isFirstPage = true)
                             
                             showMessage("Мемориал теперь приватный")
                         }
                     } catch (e: Exception) {
                         showError("Ошибка при обновлении статуса: ${e.message}")
-                        loadMemorials(tabLayout.selectedTabPosition == 0)
+                        currentPage = 0
+                        hasMoreData = true
+                        allMemorials.clear()
+                        loadMemorialsPage(tabLayout.selectedTabPosition == 0, isFirstPage = true)
                     }
                 }
             }
@@ -415,6 +687,17 @@ class MemorialsFragment : Fragment() {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
+    private fun showEmptyState(message: String) {
+        emptyMemorialsText.text = message
+        emptyMemorialsText.visibility = View.VISIBLE
+        recyclerView.visibility = View.GONE
+    }
+
+    private fun hideEmptyState() {
+        emptyMemorialsText.visibility = View.GONE
+        recyclerView.visibility = View.VISIBLE
+    }
+
     private fun onEditClick(memorial: Memorial) {
         println("onEditClick: нажатие на кнопку редактирования для мемориала ${memorial.id}")
         
@@ -447,3 +730,5 @@ class MemorialsFragment : Fragment() {
         startActivity(intent)
     }
 } 
+
+

@@ -1,6 +1,7 @@
 package ru.sevostyanov.aiscemetery.adapters
 
 import android.content.res.ColorStateList
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,6 +9,8 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.Button
+import android.widget.ProgressBar
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.DiffUtil
@@ -22,11 +25,18 @@ class MemorialAdapter(
     private val onItemClick: (Memorial) -> Unit,
     private val onEditClick: (Memorial) -> Unit,
     private val onDeleteClick: (Memorial) -> Unit,
-    private val onPrivacyClick: (Memorial) -> Unit,
-    private var showControls: Boolean = true // По умолчанию показываем кнопки управления
-) : RecyclerView.Adapter<MemorialAdapter.ViewHolder>() {
+    private var showControls: Boolean = true, // По умолчанию показываем кнопки управления
+    private var showLoadMore: Boolean = false,
+    private var isLoadingMore: Boolean = false,
+    private val onLoadMoreClick: (() -> Unit)? = null
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    companion object {
+        private const val VIEW_TYPE_MEMORIAL = 0
+        private const val VIEW_TYPE_LOAD_MORE = 1
+    }
+
+    class MemorialViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val cardView: MaterialCardView = view as MaterialCardView
         val photoImage: ImageView = view.findViewById(R.id.image_photo)
         val photoAwaitingApproval: ImageView = view.findViewById(R.id.photo_awaiting_approval)
@@ -36,21 +46,74 @@ class MemorialAdapter(
         val mainLocationTextView: TextView = view.findViewById(R.id.text_main_location)
         val editButton: ImageButton = view.findViewById(R.id.button_edit)
         val deleteButton: ImageButton = view.findViewById(R.id.button_delete)
-        val privacyButton: ImageButton = view.findViewById(R.id.button_privacy)
         val treeIndicator: TextView = view.findViewById(R.id.text_tree_indicator)
         val publicIndicator: TextView = view.findViewById(R.id.text_public_indicator)
+        val statusIndicator: TextView = view.findViewById(R.id.text_status_indicator)
         val editorIndicator: TextView = view.findViewById(R.id.text_editor_indicator)
         val pendingChangesIndicator: TextView = view.findViewById(R.id.text_pending_changes)
+        val controlsContainer: View = view.findViewById(R.id.controls_container)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_memorial, parent, false)
-        return ViewHolder(view)
+    class LoadMoreViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val loadMoreButton: Button = view.findViewById(R.id.btn_load_more)
+        val progressBar: ProgressBar = view.findViewById(R.id.progress_load_more)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+    override fun getItemViewType(position: Int): Int {
+        return if (position == memorials.size && showLoadMore) {
+            VIEW_TYPE_LOAD_MORE
+        } else {
+            VIEW_TYPE_MEMORIAL
+        }
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        return when (viewType) {
+            VIEW_TYPE_LOAD_MORE -> {
+                val view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_load_more, parent, false)
+                LoadMoreViewHolder(view)
+            }
+            else -> {
+                val view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_memorial, parent, false)
+                MemorialViewHolder(view)
+            }
+        }
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (holder) {
+            is LoadMoreViewHolder -> {
+                bindLoadMoreViewHolder(holder)
+            }
+            is MemorialViewHolder -> {
+                bindMemorialViewHolder(holder, position)
+            }
+        }
+    }
+
+    private fun bindLoadMoreViewHolder(holder: LoadMoreViewHolder) {
+        holder.loadMoreButton.visibility = if (isLoadingMore) View.GONE else View.VISIBLE
+        holder.progressBar.visibility = if (isLoadingMore) View.VISIBLE else View.GONE
+        
+        holder.loadMoreButton.setOnClickListener {
+            onLoadMoreClick?.invoke()
+        }
+    }
+
+    private fun bindMemorialViewHolder(holder: MemorialViewHolder, position: Int) {
+        Log.d("MemorialAdapter", "=== onBindViewHolder ===")
+        Log.d("MemorialAdapter", "position: $position, memorials.size: ${memorials.size}")
+        
+        if (position >= memorials.size) {
+            Log.e("MemorialAdapter", "ОШИБКА: position=$position >= memorials.size=${memorials.size}")
+            return
+        }
+        
         val memorial = memorials[position]
+        Log.d("MemorialAdapter", "Отображаем мемориал: id=${memorial.id}, fio=${memorial.fio}, showControls=$showControls")
+        
         val context = holder.itemView.context
         
         // Настройка основной информации
@@ -59,6 +122,8 @@ class MemorialAdapter(
             append("${memorial.birthDate}")
             memorial.deathDate?.let { append(" - $it") }
         }
+        
+        Log.d("MemorialAdapter", "Установили основную информацию: name=${memorial.fio}, dates=${holder.datesTextView.text}")
 
         // Отображаем местоположение
         memorial.mainLocation?.let { location ->
@@ -85,14 +150,14 @@ class MemorialAdapter(
         }
 
         // Настройка видимости кнопок управления
-        val controlsVisibility = if (showControls) View.VISIBLE else View.GONE
+        holder.controlsContainer.visibility = if (showControls) View.VISIBLE else View.GONE
+        Log.d("MemorialAdapter", "Видимость controlsContainer: ${if (showControls) "VISIBLE" else "GONE"}")
         
         // Проверяем, находится ли мемориал на модерации, чтобы отключить редактирование
         val isUnderModeration = memorial.publicationStatus == PublicationStatus.PENDING_MODERATION
         val changesUnderModeration = memorial.changesUnderModeration
         
         // Настраиваем кнопку редактирования
-        holder.editButton.visibility = controlsVisibility
         if (isUnderModeration || changesUnderModeration) {
             // Для мемориалов на модерации или с изменениями на модерации делаем кнопку редактирования неактивной и серой
             holder.editButton.isEnabled = false
@@ -112,159 +177,10 @@ class MemorialAdapter(
             holder.editButton.setOnClickListener { onEditClick(memorial) }
         }
         
-        holder.deleteButton.visibility = controlsVisibility
         holder.deleteButton.setOnClickListener { onDeleteClick(memorial) }
         
-        // Проверяем статус публикации, чтобы определить видимость кнопки конфиденциальности
-        val privacyButtonVisibility = if (showControls && 
-            (memorial.publicationStatus == null || memorial.publicationStatus == PublicationStatus.DRAFT)) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
-        holder.privacyButton.visibility = privacyButtonVisibility
-        
-        // Настройка иконки приватности
-        if (privacyButtonVisibility == View.VISIBLE) {
-            holder.privacyButton.apply {
-                setImageResource(if (memorial.isPublic) R.drawable.ic_public else R.drawable.ic_private)
-                contentDescription = if (memorial.isPublic) "Сделать приватным" else "Сделать публичным"
-            }
-        }
-
-        // Настройка индикатора публичности/статуса и стиля карточки
-        holder.publicIndicator.visibility = View.VISIBLE
-        
-        // Отображение индикатора ожидающих изменений или модерации
-        when {
-            memorial.publicationStatus == PublicationStatus.PENDING_MODERATION -> {
-                holder.pendingChangesIndicator.visibility = View.VISIBLE
-                holder.pendingChangesIndicator.text = "⚠️ На модерации (редактирование недоступно)"
-                holder.cardView.apply {
-                    strokeColor = ContextCompat.getColor(context, android.R.color.holo_orange_dark)
-                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                    setCardBackgroundColor(ContextCompat.getColor(context, R.color.moderation_background))
-                }
-                holder.publicIndicator.text = "📝 Черновик"
-                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
-            }
-            memorial.changesUnderModeration && memorial.isUserOwner -> {
-                holder.pendingChangesIndicator.visibility = View.VISIBLE
-                holder.pendingChangesIndicator.text = "🔄 Изменения на модерации"
-                holder.cardView.apply {
-                    strokeColor = ContextCompat.getColor(context, android.R.color.holo_orange_dark)
-                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                    setCardBackgroundColor(ContextCompat.getColor(context, R.color.moderation_background))
-                }
-                holder.publicIndicator.text = "🌐 Опубликован"
-                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
-            }
-            memorial.pendingChanges -> {
-                holder.pendingChangesIndicator.visibility = View.VISIBLE
-                holder.pendingChangesIndicator.text = "⚠️ Ожидает подтверждения изменений"
-            }
-            else -> {
-                holder.pendingChangesIndicator.visibility = View.GONE
-            }
-        }
-        
-        // Определение текста и цвета публичного индикатора на основе статуса публикации
-        when {
-            memorial.publicationStatus == PublicationStatus.PUBLISHED -> {
-                holder.publicIndicator.text = "🌐 Опубликован"
-                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
-                if (holder.pendingChangesIndicator.visibility == View.GONE) {
-                    holder.cardView.apply {
-                        strokeColor = ContextCompat.getColor(context, android.R.color.holo_green_dark)
-                        strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
-                    }
-                }
-            }
-            memorial.publicationStatus == PublicationStatus.REJECTED -> {
-                holder.publicIndicator.text = "❌ Отклонен"
-                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
-                if (holder.pendingChangesIndicator.visibility == View.GONE) {
-                    holder.cardView.apply {
-                        strokeColor = ContextCompat.getColor(context, android.R.color.holo_red_dark)
-                        strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
-                    }
-                }
-            }
-            memorial.publicationStatus == PublicationStatus.DRAFT -> {
-                holder.publicIndicator.text = "📝 Черновик"
-                holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
-                if (holder.pendingChangesIndicator.visibility == View.GONE) {
-                    holder.cardView.apply {
-                        strokeColor = ContextCompat.getColor(context, android.R.color.darker_gray)
-                        strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
-                    }
-                }
-            }
-            memorial.publicationStatus == null -> {
-                // Используем legacy поведение для обратной совместимости
-                if (memorial.isPublic) {
-                    holder.publicIndicator.text = "🌐 Публичный"
-                    holder.publicIndicator.setTextColor(ContextCompat.getColor(context, android.R.color.black))
-                    if (holder.pendingChangesIndicator.visibility == View.GONE) {
-                        holder.cardView.apply {
-                            strokeColor = ContextCompat.getColor(context, android.R.color.holo_blue_light)
-                            strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-                            setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
-                        }
-                    }
-                } else {
-                    holder.publicIndicator.visibility = View.GONE
-                    if (holder.pendingChangesIndicator.visibility == View.GONE) {
-                        holder.cardView.apply {
-                            strokeColor = ContextCompat.getColor(context, android.R.color.transparent)
-                            strokeWidth = 0
-                            setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Принудительно пересчитываем layout после изменения видимости
-        holder.itemView.requestLayout()
-
-        // Отображение индикатора принадлежности к древу
-        holder.treeIndicator.visibility = if (memorial.treeId != null) View.VISIBLE else View.GONE
-        memorial.treeId?.let {
-            holder.treeIndicator.text = "🌳 Древо #$it"
-        }
-        
-        // Отображение индикатора совместного владения
-        if (memorial.isEditor) {
-            // Если текущий пользователь - редактор
-            holder.editorIndicator.visibility = View.VISIBLE
-            holder.editorIndicator.text = "👥 Совместный (редактор)"
-            // Устанавливаем желтый цвет для выделения только если мемориал НЕ на модерации
-            holder.editorIndicator.setTextColor(ContextCompat.getColor(context, R.color.gold))
-            
-            // Выделяем карточку желтым цветом только если нет приоритетного статуса публикации
-            if (memorial.publicationStatus == null || memorial.publicationStatus == PublicationStatus.DRAFT) {
-            holder.cardView.strokeColor = ContextCompat.getColor(context, R.color.gold)
-            holder.cardView.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-            }
-        } else if (showControls && !memorial.editors.isNullOrEmpty()) {
-            // Если пользователь - владелец (showControls = true означает, что это личный мемориал пользователя)
-            // и мемориал имеет редакторов
-            holder.editorIndicator.visibility = View.VISIBLE
-            holder.editorIndicator.text = "👥 Совместный (владелец)"
-            holder.editorIndicator.setTextColor(ContextCompat.getColor(context, R.color.teal_700))
-            
-            // Выделяем карточку teal цветом только если нет приоритетного статуса публикации
-            if (memorial.publicationStatus == null || memorial.publicationStatus == PublicationStatus.DRAFT) {
-                holder.cardView.strokeColor = ContextCompat.getColor(context, R.color.teal_700)
-                holder.cardView.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-            }
-        } else {
-            holder.editorIndicator.visibility = View.GONE
-        }
+        // Применяем новую унифицированную систему стилизации
+        applyMemorialStyling(holder, memorial, context)
 
         // Выбор URL для загрузки фото
         val photoUrl = when {
@@ -284,7 +200,7 @@ class MemorialAdapter(
 
         // Загрузка фото
         if (!photoUrl.isNullOrBlank()) {
-            println("MemorialAdapter: Загрузка изображения из URL: $photoUrl")
+            Log.d("MemorialAdapter", "Загрузка изображения из URL: $photoUrl")
             GlideHelper.loadImage(
                 holder.itemView.context,
                 photoUrl,
@@ -293,7 +209,7 @@ class MemorialAdapter(
                 R.drawable.placeholder_photo
             )
         } else {
-            println("MemorialAdapter: URL изображения пустой или null, загружаем placeholder")
+            Log.d("MemorialAdapter", "URL изображения пустой или null, загружаем placeholder")
             holder.photoImage.setImageResource(R.drawable.placeholder_photo)
         }
 
@@ -302,36 +218,222 @@ class MemorialAdapter(
         if (showControls) {
             holder.editButton.setOnClickListener { onEditClick(memorial) }
             holder.deleteButton.setOnClickListener { onDeleteClick(memorial) }
-            holder.privacyButton.setOnClickListener { onPrivacyClick(memorial) }
+        }
+        
+        Log.d("MemorialAdapter", "onBindViewHolder завершен для position=$position")
+    }
+
+    /**
+     * Применяет унифицированную систему стилизации к карточке мемориала
+     */
+    private fun applyMemorialStyling(holder: MemorialViewHolder, memorial: Memorial, context: android.content.Context) {
+        // Сначала скрываем все индикаторы
+        holder.publicIndicator.visibility = View.GONE
+        holder.statusIndicator.visibility = View.GONE
+        holder.treeIndicator.visibility = View.GONE
+        holder.editorIndicator.visibility = View.GONE
+        holder.pendingChangesIndicator.visibility = View.GONE
+
+        // Определяем основной статус мемориала и применяем соответствующую стилизацию карточки
+        when {
+            memorial.publicationStatus == PublicationStatus.PENDING_MODERATION -> {
+                // Мемориал на модерации
+                holder.cardView.apply {
+                    strokeColor = ContextCompat.getColor(context, R.color.memorial_moderation)
+                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                    setCardBackgroundColor(ContextCompat.getColor(context, R.color.memorial_moderation_bg))
+                }
+                holder.pendingChangesIndicator.apply {
+                    visibility = View.VISIBLE
+                    text = "⚠️ На модерации"
+                    setBackgroundResource(R.drawable.memorial_indicator_moderation)
+                }
+            }
+            memorial.changesUnderModeration && memorial.isUserOwner -> {
+                // Изменения на модерации
+                holder.cardView.apply {
+                    strokeColor = ContextCompat.getColor(context, R.color.memorial_moderation)
+                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                    setCardBackgroundColor(ContextCompat.getColor(context, R.color.memorial_moderation_bg))
+                }
+                holder.pendingChangesIndicator.apply {
+                    visibility = View.VISIBLE
+                    text = "🔄 Изменения на модерации"
+                    setBackgroundResource(R.drawable.memorial_indicator_moderation)
+                }
+            }
+            memorial.pendingChanges -> {
+                // Ожидает подтверждения изменений
+                holder.cardView.apply {
+                    strokeColor = ContextCompat.getColor(context, R.color.memorial_moderation)
+                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                    setCardBackgroundColor(ContextCompat.getColor(context, R.color.white))
+                }
+                holder.pendingChangesIndicator.apply {
+                    visibility = View.VISIBLE
+                    text = "⚠️ Ожидает подтверждения"
+                    setBackgroundResource(R.drawable.memorial_indicator_moderation)
+                }
+            }
+            else -> {
+                // Обычное состояние - применяем стандартную стилизацию
+                holder.cardView.apply {
+                    strokeColor = ContextCompat.getColor(context, R.color.memorial_card_stroke)
+                    strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                    setCardBackgroundColor(ContextCompat.getColor(context, R.color.white))
+                }
+            }
+        }
+
+        // Настройка основного индикатора приватности/публичности (показывается всегда)
+        if (memorial.publicationStatus == PublicationStatus.PUBLISHED) {
+            // Опубликованный мемориал
+            holder.publicIndicator.apply {
+                visibility = View.VISIBLE
+                text = "Опубликован"
+                setBackgroundResource(R.drawable.memorial_indicator_published)
+            }
+        } else {
+            // Все остальные мемориалы считаются приватными
+            holder.publicIndicator.apply {
+                visibility = View.VISIBLE
+                text = "Приватный"
+                setBackgroundResource(R.drawable.memorial_indicator_private)
+            }
+        }
+
+        // Дополнительные статусы модерации (показываются рядом с основными индикаторами)
+        when (memorial.publicationStatus) {
+            PublicationStatus.REJECTED -> {
+                holder.statusIndicator.apply {
+                    visibility = View.VISIBLE
+                    text = "Отклонён"
+                    setBackgroundResource(R.drawable.memorial_indicator_rejected)
+                }
+            }
+            else -> {
+                // Для опубликованных мемориалов дополнительный индикатор не нужен (уже показан в основном)
+                // Остальные статусы обработаны в pendingChangesIndicator
+            }
+        }
+
+        // Отображение индикатора принадлежности к древу
+        memorial.treeId?.let {
+            holder.treeIndicator.apply {
+                visibility = View.VISIBLE
+                text = "🌳 Древо #$it"
+                setBackgroundResource(R.drawable.memorial_indicator_background)
+            }
+        }
+        
+        // Отображение индикатора совместного владения
+        when {
+            memorial.isEditor -> {
+                // Если текущий пользователь - редактор
+                holder.editorIndicator.apply {
+                    visibility = View.VISIBLE
+                    text = "Редактор"
+                    setBackgroundResource(R.drawable.memorial_indicator_collaborative)
+                }
+            }
+            showControls && !memorial.editors.isNullOrEmpty() -> {
+                // Если пользователь - владелец и мемориал имеет редакторов
+                holder.editorIndicator.apply {
+                    visibility = View.VISIBLE
+                    text = "Совместный"
+                    setBackgroundResource(R.drawable.memorial_indicator_collaborative)
+                }
+            }
         }
     }
 
-    override fun getItemCount() = memorials.size
+    override fun getItemCount(): Int {
+        val count = memorials.size + if (showLoadMore) 1 else 0
+        Log.d("MemorialAdapter", "getItemCount(): $count (memorials: ${memorials.size}, showLoadMore: $showLoadMore)")
+        return count
+    }
 
-    fun updateData(newMemorials: List<Memorial>) {
+    fun updateData(newMemorials: List<Memorial>, forceUpdate: Boolean = false) {
+        Log.d("MemorialAdapter", "=== updateData ===")
+        Log.d("MemorialAdapter", "Текущее количество мемориалов: ${memorials.size}")
+        Log.d("MemorialAdapter", "Новое количество мемориалов: ${newMemorials.size}")
+        Log.d("MemorialAdapter", "forceUpdate: $forceUpdate")
+        
+        Log.d("MemorialAdapter", "Старые мемориалы:")
+        memorials.forEachIndexed { index, memorial ->
+            Log.d("MemorialAdapter", "[$index] Старый мемориал: id=${memorial.id}, fio=${memorial.fio}")
+        }
+        
+        Log.d("MemorialAdapter", "Новые мемориалы:")
+        newMemorials.forEachIndexed { index, memorial ->
+            Log.d("MemorialAdapter", "[$index] Новый мемориал: id=${memorial.id}, fio=${memorial.fio}, isPublic=${memorial.isPublic}")
+        }
+        
+        if (forceUpdate) {
+            Log.d("MemorialAdapter", "Принудительное обновление - используем notifyDataSetChanged()")
+            memorials = newMemorials
+            notifyDataSetChanged()
+            Log.d("MemorialAdapter", "updateData завершен (принудительно), итоговое количество: ${memorials.size}")
+            return
+        }
+        
         val diffCallback = object : DiffUtil.Callback() {
-            override fun getOldListSize(): Int = memorials.size
-            override fun getNewListSize(): Int = newMemorials.size
+            override fun getOldListSize(): Int {
+                val size = memorials.size
+                Log.d("MemorialAdapter", "DiffUtil.getOldListSize(): $size")
+                return size
+            }
+            
+            override fun getNewListSize(): Int {
+                val size = newMemorials.size
+                Log.d("MemorialAdapter", "DiffUtil.getNewListSize(): $size")
+                return size
+            }
 
             override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                return memorials[oldItemPosition].id == newMemorials[newItemPosition].id
+                val oldId = memorials[oldItemPosition].id
+                val newId = newMemorials[newItemPosition].id
+                val same = oldId == newId
+                Log.d("MemorialAdapter", "DiffUtil.areItemsTheSame($oldItemPosition, $newItemPosition): oldId=$oldId, newId=$newId, same=$same")
+                return same
             }
 
             override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
                 val oldMemorial = memorials[oldItemPosition]
                 val newMemorial = newMemorials[newItemPosition]
-                return oldMemorial == newMemorial
+                val same = oldMemorial == newMemorial
+                Log.d("MemorialAdapter", "DiffUtil.areContentsTheSame($oldItemPosition, $newItemPosition): same=$same")
+                return same
             }
         }
 
+        Log.d("MemorialAdapter", "Вычисляем DiffResult...")
         val diffResult = DiffUtil.calculateDiff(diffCallback)
+        
+        Log.d("MemorialAdapter", "Обновляем список мемориалов...")
         memorials = newMemorials
+        
+        Log.d("MemorialAdapter", "Применяем изменения к адаптеру...")
         diffResult.dispatchUpdatesTo(this)
+        
+        Log.d("MemorialAdapter", "updateData завершен, итоговое количество: ${memorials.size}")
     }
 
     fun updateControlsVisibility(showControls: Boolean) {
+        Log.d("MemorialAdapter", "=== updateControlsVisibility ===")
+        Log.d("MemorialAdapter", "Изменяем видимость кнопок: ${this.showControls} -> $showControls")
+        
+        val wasChanged = this.showControls != showControls
         this.showControls = showControls
-        notifyDataSetChanged()
+        
+        if (wasChanged) {
+            Log.d("MemorialAdapter", "Видимость кнопок изменилась - форсируем полное обновление")
+            notifyDataSetChanged()
+        } else {
+            Log.d("MemorialAdapter", "Видимость кнопок не изменилась")
+        }
+        
+        Log.d("MemorialAdapter", "updateControlsVisibility завершен")
     }
 
     fun updateMemorial(updatedMemorial: Memorial) {
@@ -354,5 +456,28 @@ class MemorialAdapter(
     fun clear() {
         memorials = emptyList()
         notifyDataSetChanged()
+    }
+
+    fun updateLoadMoreState(showLoadMore: Boolean, isLoading: Boolean = false) {
+        val oldShowLoadMore = this.showLoadMore
+        val oldIsLoading = this.isLoadingMore
+        
+        this.showLoadMore = showLoadMore
+        this.isLoadingMore = isLoading
+        
+        when {
+            !oldShowLoadMore && showLoadMore -> {
+                // Добавляем footer
+                notifyItemInserted(memorials.size)
+            }
+            oldShowLoadMore && !showLoadMore -> {
+                // Убираем footer
+                notifyItemRemoved(memorials.size)
+            }
+            oldShowLoadMore && showLoadMore && oldIsLoading != isLoading -> {
+                // Обновляем состояние footer
+                notifyItemChanged(memorials.size)
+            }
+        }
     }
 } 

@@ -89,9 +89,6 @@ class PendingChangesActivity : AppCompatActivity() {
             onDeleteClick = { memorial ->
                 // Не используется в этом контексте
             },
-            onPrivacyClick = { memorial ->
-                // Не используется в этом контексте
-            },
             showControls = false // Скрываем кнопки управления, используем только клик по карточке
         )
 

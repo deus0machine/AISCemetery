@@ -37,4 +37,28 @@
     <color name="status_pending">#FFC107</color>
     <color name="status_accepted">#4CAF50</color>
     <color name="status_rejected">#F44336</color>
+
+    <!-- Унифицированная цветовая система для мемориалов -->
+    <!-- Основные цвета состояний -->
+    <color name="memorial_draft">#9E9E9E</color>           <!-- Серый для черновиков -->
+    <color name="memorial_published">#4CAF50</color>       <!-- Зелёный для опубликованных -->
+    <color name="memorial_moderation">#FF9800</color>      <!-- Оранжевый для модерации -->
+    <color name="memorial_rejected">#F44336</color>        <!-- Красный для отклонённых -->
+    <color name="memorial_collaborative">#2196F3</color>   <!-- Синий для совместных -->
+    <color name="memorial_private">#78909C</color>         <!-- Сине-серый для приватных -->
+    
+    <!-- Фоновые цвета состояний (светлые версии) -->
+    <color name="memorial_draft_bg">#F5F5F5</color>
+    <color name="memorial_published_bg">#E8F5E8</color>
+    <color name="memorial_moderation_bg">#FFF3E0</color>
+    <color name="memorial_rejected_bg">#FFEBEE</color>
+    <color name="memorial_collaborative_bg">#E3F2FD</color>
+    <color name="memorial_private_bg">#F0F4F7</color>      <!-- Светло-сине-серый для приватных -->
+    
+    <!-- Дополнительные цвета -->
+    <color name="memorial_card_stroke">#E0E0E0</color>     <!-- Стандартная обводка карточки -->
+    <color name="memorial_text_muted">#757575</color>      <!-- Приглушённый текст -->
+    <color name="memorial_text_dark">#212121</color>       <!-- Основной тёмный текст -->
+    <color name="memorial_indicator_bg">#FFFFFF</color>    <!-- Фон для индикаторов -->
+    <color name="memorial_shadow">#1A000000</color>        <!-- Тень для карточек -->
 </resources>

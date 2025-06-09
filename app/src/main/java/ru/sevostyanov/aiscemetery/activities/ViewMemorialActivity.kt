@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,6 +61,10 @@ class ViewMemorialActivity : AppCompatActivity() {
     private lateinit var adminModerationButtonsLayout: LinearLayout
     private lateinit var approveButton: Button
     private lateinit var rejectButton: Button
+    
+    // UI элементы для сообщения о подписке
+    private lateinit var subscriptionMessageTextView: TextView
+    private lateinit var subscriptionInfoButton: Button
     
     private lateinit var notificationsViewModel: NotificationsViewModel
     private lateinit var repository: ru.sevostyanov.aiscemetery.repository.MemorialRepository
@@ -109,13 +114,17 @@ class ViewMemorialActivity : AppCompatActivity() {
         adminModerationButtonsLayout = findViewById(R.id.adminModerationButtonsLayout)
         approveButton = findViewById(R.id.approveButton)
         rejectButton = findViewById(R.id.rejectButton)
+        
+        // Инициализация UI элементов для подписки
+        subscriptionMessageTextView = findViewById(R.id.subscriptionMessageTextView)
+        subscriptionInfoButton = findViewById(R.id.subscriptionInfoButton)
 
         // Получаем мемориал из intent или загружаем по ID
         memorial = intent.getParcelableExtra(EXTRA_MEMORIAL)
         
         Log.d(TAG, "onCreate: получен мемориал из Intent? ${memorial != null}")
         if (memorial != null) {
-            Log.d(TAG, "onCreate: ID=${memorial?.id}, название=${memorial?.fio}, isEditor=${memorial?.isEditor}, createdBy=${memorial?.createdBy}")
+            Log.d(TAG, "onCreate: ID=${memorial?.id}, название=${memorial?.fio}, isEditor=${memorial?.isEditor}, createdBy=${memorial?.createdBy?.id} (${memorial?.createdBy?.fio})")
             loadMemorialData(memorial!!)
         } else {
             // Если мемориал не передан напрямую, пробуем загрузить по ID
@@ -134,6 +143,7 @@ class ViewMemorialActivity : AppCompatActivity() {
         setupEditButton()
         setupOwnershipRequestButton()
         setupPendingChangesButton()
+        setupPhotoClickListener()
     }
 
     override fun onResume() {
@@ -148,6 +158,37 @@ class ViewMemorialActivity : AppCompatActivity() {
                 loadMemorialById(currentMemorialId)
             }
         } ?: Log.d(TAG, "onResume: Мемориал еще не загружен, перезагрузка не требуется.")
+    }
+
+    override fun onCreateOptionsMenu(menu: android.view.Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_view_memorial, menu)
+        updateMenuVisibility(menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                finish()
+                true
+            }
+            R.id.action_report -> {
+                showReportDialog()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun updateMenuVisibility(menu: android.view.Menu?) {
+        val reportItem = menu?.findItem(R.id.action_report)
+        val currentMemorial = memorial
+        
+        // Показываем кнопку жалобы только для публичных мемориалов, которые не принадлежат текущему пользователю
+        reportItem?.isVisible = currentMemorial != null && 
+            currentMemorial.isPublic && 
+            !currentMemorial.isUserOwner && 
+            !isPreviewPendingChanges
     }
 
     private fun loadMemorialData(memorial: Memorial) {
@@ -195,8 +236,30 @@ class ViewMemorialActivity : AppCompatActivity() {
             R.drawable.placeholder_photo
         )
 
-        // Всегда отображаем ФИО мемориала
-        nameTextView.text = memorial.fio
+        // Отображаем ФИО мемориала
+        // В режиме предпросмотра изменений используем pending поля, если они есть
+        val displayName = if (isPreviewPendingChanges) {
+            // Если есть pending поля для отдельных компонентов ФИО, формируем из них
+            if (memorial.pendingFirstName != null || memorial.pendingLastName != null || memorial.pendingMiddleName != null) {
+                val lastName = memorial.pendingLastName ?: ""
+                val firstName = memorial.pendingFirstName ?: ""
+                val middleName = memorial.pendingMiddleName ?: ""
+                
+                // Формируем ФИО в формате "Фамилия Имя Отчество"
+                listOf(lastName, firstName, middleName)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" ")
+                    .takeIf { it.isNotBlank() } ?: memorial.fio
+            } else {
+                // Если pending полей нет, используем обычное fio
+                memorial.fio
+            }
+        } else {
+            // В обычном режиме всегда используем fio
+            memorial.fio
+        }
+        
+        nameTextView.text = displayName
 
         // Если мы в режиме предпросмотра изменений, добавляем индикатор вверху страницы
         if (isPreviewPendingChanges) {
@@ -359,7 +422,7 @@ class ViewMemorialActivity : AppCompatActivity() {
         val user = UserManager.getCurrentUser()
         Log.d(TAG, "loadMemorialData: детали доступа: " +
                 "userId=${user?.id}, " +
-                "creatorId=${memorial.createdBy}, " +
+                "creatorId=${memorial.createdBy?.id}, " +
                 "isEditor=${memorial.isEditor}, " +
                 "isUserEditor=${memorial.isUserEditor}, " +
                 "isUserOwner=${memorial.isUserOwner}, " + 
@@ -368,13 +431,29 @@ class ViewMemorialActivity : AppCompatActivity() {
                 "editors=${memorial.editors}")
         
         // Устанавливаем информацию о создателе
-        createdByTextView.text = "Владелец ID: " + (memorial.createdBy?.toString() ?: "Неизвестно")
+        val ownerDisplayText = if (memorial.isUserOwner) {
+            // Если текущий пользователь - владелец, показываем его ФИО
+            val currentUser = UserManager.getCurrentUser()
+            "Владелец: ${currentUser?.fio ?: "Вы"}"
+        } else {
+            // Если владелец другой пользователь, показываем его имя из объекта User
+            val ownerName = memorial.createdBy?.fio ?: memorial.createdBy?.fullName
+            if (ownerName != null) {
+                "Владелец: $ownerName"
+            } else {
+                "Владелец ID: ${memorial.createdBy?.id?.toString() ?: "Неизвестно"}"
+            }
+        }
+        createdByTextView.text = ownerDisplayText
         
         // Сохраняем мемориал для использования в других методах
         this.memorial = memorial
 
         // Обновляем информацию о статусе публикации
         updatePublicationStatus(memorial)
+        
+        // Обновляем видимость элементов меню
+        invalidateOptionsMenu()
     }
     
     private fun setupRequestAccessButton() {
@@ -467,7 +546,7 @@ class ViewMemorialActivity : AppCompatActivity() {
             }
             
             // Получаем ID получателя и мемориала
-            val receiverId = memorial?.createdBy
+            val receiverId = memorial?.createdBy?.id
             val memorialId = memorial?.id
             
             Log.d(TAG, "Подготовка запроса: receiverId=$receiverId, memorialId=$memorialId")
@@ -538,7 +617,7 @@ class ViewMemorialActivity : AppCompatActivity() {
                 
                 Log.d(TAG, "loadMemorialById: загружен мемориал с сервера: ID=${loadedMemorial.id}, " +
                         "ФИО=${loadedMemorial.fio}, isEditor=${loadedMemorial.isEditor}, " +
-                        "createdBy=${loadedMemorial.createdBy}, " +
+                        "createdBy=${loadedMemorial.createdBy?.id} (${loadedMemorial.createdBy?.fio}), " +
                         "биография=${loadedMemorial.biography?.take(50)}, " +
                         "pendingChanges=${loadedMemorial.pendingChanges}")
                 
@@ -563,13 +642,7 @@ class ViewMemorialActivity : AppCompatActivity() {
         }
     }
     
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
-    }
+
     
     companion object {
         const val EXTRA_MEMORIAL = "extra_memorial"
@@ -630,11 +703,23 @@ class ViewMemorialActivity : AppCompatActivity() {
                 if (isOwner) {
                     moderationCardView.visibility = View.VISIBLE
                     moderationMessageTextView.text = "Мемориал сохранен как черновик. Отправьте его на публикацию для размещения на сайте."
-                    sendForModerationButton.visibility = View.VISIBLE
-                    adminModerationButtonsLayout.visibility = View.GONE
                     
-                    // Настраиваем обработчик для отправки на модерацию
-                    setupSendForModerationButton()
+                    // Проверяем подписку пользователя
+                    if (currentUser?.hasSubscription == true) {
+                        // У пользователя есть подписка - показываем кнопку
+                        sendForModerationButton.visibility = View.VISIBLE
+                        subscriptionMessageTextView.visibility = View.GONE
+                        subscriptionInfoButton.visibility = View.GONE
+                        setupSendForModerationButton()
+                    } else {
+                        // У пользователя нет подписки - показываем сообщение
+                        sendForModerationButton.visibility = View.GONE
+                        subscriptionMessageTextView.visibility = View.VISIBLE
+                        subscriptionInfoButton.visibility = View.VISIBLE
+                        setupSubscriptionInfoButton()
+                    }
+                    
+                    adminModerationButtonsLayout.visibility = View.GONE
                 }
             }
             
@@ -645,6 +730,8 @@ class ViewMemorialActivity : AppCompatActivity() {
                     // Для админа показываем информацию и кнопки одобрения/отклонения
                     moderationMessageTextView.text = "Мемориал ожидает вашего рассмотрения. Вы можете одобрить или отклонить публикацию."
                     sendForModerationButton.visibility = View.GONE
+                    subscriptionMessageTextView.visibility = View.GONE
+                    subscriptionInfoButton.visibility = View.GONE
                     adminModerationButtonsLayout.visibility = View.VISIBLE
                     
                     // Настраиваем обработчики для кнопок админа
@@ -653,6 +740,8 @@ class ViewMemorialActivity : AppCompatActivity() {
                     // Для владельца или других пользователей просто показываем информацию
                     moderationMessageTextView.text = "Мемориал ожидает публикации. Ожидайте решения администратора."
                     sendForModerationButton.visibility = View.GONE
+                    subscriptionMessageTextView.visibility = View.GONE
+                    subscriptionInfoButton.visibility = View.GONE
                     adminModerationButtonsLayout.visibility = View.GONE
                 }
             }
@@ -662,12 +751,24 @@ class ViewMemorialActivity : AppCompatActivity() {
                     // Для владельца показываем информацию о причине отклонения и кнопку повторной отправки
                     moderationCardView.visibility = View.VISIBLE
                     moderationMessageTextView.text = "Публикация мемориала была отклонена. Проверьте уведомления для получения информации о причинах."
-                    sendForModerationButton.visibility = View.VISIBLE
-                    sendForModerationButton.text = "Отправить на повторную публикацию"
-                    adminModerationButtonsLayout.visibility = View.GONE
                     
-                    // Настраиваем обработчик для отправки на модерацию
-                    setupSendForModerationButton()
+                    // Проверяем подписку пользователя
+                    if (currentUser?.hasSubscription == true) {
+                        // У пользователя есть подписка - показываем кнопку
+                        sendForModerationButton.visibility = View.VISIBLE
+                        sendForModerationButton.text = "Отправить на повторную публикацию"
+                        subscriptionMessageTextView.visibility = View.GONE
+                        subscriptionInfoButton.visibility = View.GONE
+                        setupSendForModerationButton()
+                    } else {
+                        // У пользователя нет подписки - показываем сообщение
+                        sendForModerationButton.visibility = View.GONE
+                        subscriptionMessageTextView.visibility = View.VISIBLE
+                        subscriptionInfoButton.visibility = View.VISIBLE
+                        setupSubscriptionInfoButton()
+                    }
+                    
+                    adminModerationButtonsLayout.visibility = View.GONE
                 }
             }
             
@@ -677,10 +778,12 @@ class ViewMemorialActivity : AppCompatActivity() {
                     moderationCardView.visibility = View.VISIBLE
                     moderationMessageTextView.text = "Ваши изменения мемориала находятся на модерации. Дождитесь решения администратора."
                     sendForModerationButton.visibility = View.GONE
+                    subscriptionMessageTextView.visibility = View.GONE
+                    subscriptionInfoButton.visibility = View.GONE
                     adminModerationButtonsLayout.visibility = View.GONE
                 } else {
                     // Для обычного опубликованного мемориала не показываем карточку модерации
-                moderationCardView.visibility = View.GONE
+                    moderationCardView.visibility = View.GONE
                 }
             }
             
@@ -689,11 +792,23 @@ class ViewMemorialActivity : AppCompatActivity() {
                 if (isOwner && !memorial.isPublic) {
                     moderationCardView.visibility = View.VISIBLE
                     moderationMessageTextView.text = "Мемориал не опубликован. Отправьте его на публикацию для размещения на сайте."
-                    sendForModerationButton.visibility = View.VISIBLE
-                    adminModerationButtonsLayout.visibility = View.GONE
                     
-                    // Настраиваем обработчик для отправки на модерацию
-                    setupSendForModerationButton()
+                    // Проверяем подписку пользователя
+                    if (currentUser?.hasSubscription == true) {
+                        // У пользователя есть подписка - показываем кнопку
+                        sendForModerationButton.visibility = View.VISIBLE
+                        subscriptionMessageTextView.visibility = View.GONE
+                        subscriptionInfoButton.visibility = View.GONE
+                        setupSendForModerationButton()
+                    } else {
+                        // У пользователя нет подписки - показываем сообщение
+                        sendForModerationButton.visibility = View.GONE
+                        subscriptionMessageTextView.visibility = View.VISIBLE
+                        subscriptionInfoButton.visibility = View.VISIBLE
+                        setupSubscriptionInfoButton()
+                    }
+                    
+                    adminModerationButtonsLayout.visibility = View.GONE
                 }
             }
         }
@@ -702,6 +817,22 @@ class ViewMemorialActivity : AppCompatActivity() {
     // Настройка кнопки отправки на модерацию
     private fun setupSendForModerationButton() {
         sendForModerationButton.setOnClickListener {
+            // Проверяем подписку пользователя перед отправкой на модерацию
+            val currentUser = UserManager.getCurrentUser()
+            if (currentUser?.hasSubscription != true) {
+                // Если у пользователя нет подписки, показываем сообщение о необходимости подписки
+                AlertDialog.Builder(this)
+                    .setTitle("Требуется подписка")
+                    .setMessage("Для публикации мемориала необходима подписка.\n\nБез подписки ваш мемориал останется приватным и будет доступен только вам.")
+                    .setPositiveButton("Информация о подписке") { _, _ ->
+                        // Здесь можно добавить переход к экрану покупки подписки
+                        Toast.makeText(this, "Функция покупки подписки будет добавлена позже", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Понятно", null)
+                    .show()
+                return@setOnClickListener
+            }
+            
             // Показываем диалог подтверждения с расширенным предупреждением
             AlertDialog.Builder(this)
                 .setTitle("Отправка на публикацию")
@@ -714,6 +845,23 @@ class ViewMemorialActivity : AppCompatActivity() {
                     sendMemorialForModeration()
                 }
                 .setNegativeButton("Отмена", null)
+                .show()
+        }
+    }
+    
+    // Настройка кнопки информации о подписке
+    private fun setupSubscriptionInfoButton() {
+        subscriptionInfoButton.setOnClickListener {
+            // Показываем информацию о подписке
+            AlertDialog.Builder(this)
+                .setTitle("Информация о подписке")
+                .setMessage("С подпиской вы сможете:\n\n" +
+                        "• Публиковать мемориалы для всех пользователей\n" +
+                        "• Создавать генеалогические деревья\n" +
+                        "• Получать приоритетную поддержку\n" +
+                        "• Использовать расширенные функции поиска\n\n" +
+                        "Функция покупки подписки будет добавлена в ближайшее время.")
+                .setPositiveButton("Понятно", null)
                 .show()
         }
     }
@@ -913,5 +1061,146 @@ class ViewMemorialActivity : AppCompatActivity() {
         // Сохраняем мемориал и обновляем статус публикации
         this.memorial = memorial
         updatePublicationStatus(memorial)
+    }
+
+    // Настройка клика по фотографии для просмотра в полном размере
+    private fun setupPhotoClickListener() {
+        photoImageView.setOnClickListener {
+            showEnlargedPhoto()
+        }
+    }
+
+    // Показ увеличенного изображения в диалоге
+    private fun showEnlargedPhoto() {
+        val currentMemorial = memorial ?: return
+        
+        // Определяем какое фото показывать (pending или обычное)
+        val photoUrl = when {
+            isPreviewPendingChanges && currentMemorial.pendingPhotoUrl != null -> currentMemorial.pendingPhotoUrl
+            currentMemorial.isUserOwner && currentMemorial.pendingPhotoUrl != null -> currentMemorial.pendingPhotoUrl
+            currentMemorial.isUserEditor && currentMemorial.pendingPhotoUrl != null && currentMemorial.pendingChanges -> currentMemorial.pendingPhotoUrl
+            else -> currentMemorial.photoUrl
+        }
+        
+        // Если фото отсутствует, показываем сообщение
+        if (photoUrl.isNullOrBlank()) {
+            Toast.makeText(this, "Фотография недоступна", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Создаем диалог
+        val dialog = android.app.Dialog(this)
+        dialog.setContentView(R.layout.dialog_photo_viewer)
+        dialog.window?.setLayout(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        
+        val enlargedPhoto = dialog.findViewById<ru.sevostyanov.aiscemetery.views.ZoomableImageView>(R.id.enlarged_photo)
+        val closeButton = dialog.findViewById<ImageView>(R.id.close_button)
+        
+        // Загружаем изображение
+        GlideHelper.loadImage(
+            this,
+            photoUrl,
+            enlargedPhoto,
+            R.drawable.placeholder_photo,
+            R.drawable.placeholder_photo
+        )
+        
+        // Обработчик закрытия диалога
+        closeButton.setOnClickListener { dialog.dismiss() }
+        
+        // Показываем диалог
+        dialog.show()
+    }
+
+    // Показ диалога жалобы на мемориал
+    private fun showReportDialog() {
+        val currentMemorial = memorial ?: return
+        
+        val dialog = android.app.Dialog(this)
+        dialog.setContentView(R.layout.dialog_report_memorial)
+        dialog.window?.setLayout(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        
+        val reasonEditText = dialog.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.reportReasonEditText)
+        val cancelButton = dialog.findViewById<Button>(R.id.cancelButton)
+        val submitButton = dialog.findViewById<Button>(R.id.submitButton)
+        
+        cancelButton.setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        submitButton.setOnClickListener {
+            val reason = reasonEditText.text.toString().trim()
+            
+            if (reason.isEmpty()) {
+                reasonEditText.error = "Укажите причину жалобы"
+                return@setOnClickListener
+            }
+            
+            if (reason.length < 10) {
+                reasonEditText.error = "Причина должна содержать минимум 10 символов"
+                return@setOnClickListener
+            }
+            
+            // Отправляем жалобу
+            submitReport(currentMemorial.id!!, reason)
+            dialog.dismiss()
+        }
+        
+        dialog.show()
+    }
+
+    // Отправка жалобы на сервер
+    private fun submitReport(memorialId: Long, reason: String) {
+        val progressDialog = android.app.ProgressDialog(this).apply {
+            setMessage("Отправка жалобы...")
+            setCancelable(false)
+            show()
+        }
+
+        lifecycleScope.launch {
+            try {
+                val request = ru.sevostyanov.aiscemetery.models.MemorialReportRequest(
+                    memorialId = memorialId,
+                    reason = reason
+                )
+                
+                val apiService = RetrofitClient.getApiService()
+                val response = withContext(Dispatchers.IO) {
+                    apiService.reportMemorial(memorialId, request)
+                }
+                
+                progressDialog.dismiss()
+                
+                if (response.status == "success") {
+                    Toast.makeText(
+                        this@ViewMemorialActivity,
+                        "Жалоба отправлена администратору",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        this@ViewMemorialActivity,
+                        response.message ?: "Ошибка при отправке жалобы",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                Log.e(TAG, "Ошибка при отправке жалобы: ${e.message}", e)
+                Toast.makeText(
+                    this@ViewMemorialActivity,
+                    "Ошибка при отправке жалобы: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 } 

@@ -14,6 +14,7 @@ import ru.sevostyanov.aiscemetery.RetrofitClient
 import ru.sevostyanov.aiscemetery.models.ApproveChangesRequest
 import ru.sevostyanov.aiscemetery.models.EditorRequest
 import ru.sevostyanov.aiscemetery.models.Memorial
+import ru.sevostyanov.aiscemetery.models.PagedResponse
 import ru.sevostyanov.aiscemetery.models.PrivacyUpdateRequest
 import ru.sevostyanov.aiscemetery.models.PublicationStatus
 import ru.sevostyanov.aiscemetery.user.Guest
@@ -30,12 +31,82 @@ class MemorialRepository {
         apiService.getAllMemorials()
     }
 
+    suspend fun getAllMemorials(page: Int, size: Int): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        apiService.getAllMemorials(page, size)
+    }
+
     suspend fun getMyMemorials(): List<Memorial> = withContext(Dispatchers.IO) {
-        apiService.getMyMemorials()
+        Log.d("MemorialRepository", "=== ЗАПРОС getMyMemorials() (без пагинации) ===")
+        try {
+            val result = apiService.getMyMemorials()
+            Log.d("MemorialRepository", "Получено ${result.size} моих мемориалов без пагинации")
+            result.forEachIndexed { index, memorial ->
+                Log.d("MemorialRepository", "[$index] Мой мемориал: id=${memorial.id}, fio=${memorial.fio}, isPublic=${memorial.isPublic}")
+            }
+            result
+        } catch (e: Exception) {
+            Log.e("MemorialRepository", "Ошибка в getMyMemorials(): ${e.message}", e)
+            throw e
+        }
+    }
+
+    suspend fun getMyMemorials(page: Int, size: Int): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        Log.d("MemorialRepository", "=== ЗАПРОС getMyMemorials(page=$page, size=$size) ===")
+        try {
+            val result = apiService.getMyMemorials(page, size)
+            Log.d("MemorialRepository", "Получен PagedResponse для моих мемориалов:")
+            Log.d("MemorialRepository", "- content.size: ${result.content.size}")
+            Log.d("MemorialRepository", "- page: ${result.page}")
+            Log.d("MemorialRepository", "- totalElements: ${result.totalElements}")
+            Log.d("MemorialRepository", "- totalPages: ${result.totalPages}")
+            Log.d("MemorialRepository", "- hasNext: ${result.hasNext}")
+            
+            result.content.forEachIndexed { index, memorial ->
+                Log.d("MemorialRepository", "[$index] Мой мемориал: id=${memorial.id}, fio=${memorial.fio}, isPublic=${memorial.isPublic}, status=${memorial.publicationStatus}")
+            }
+            result
+        } catch (e: Exception) {
+            Log.e("MemorialRepository", "Ошибка в getMyMemorials(page, size): ${e.message}", e)
+            throw e
+        }
     }
 
     suspend fun getPublicMemorials(): List<Memorial> = withContext(Dispatchers.IO) {
-        apiService.getPublicMemorials()
+        Log.d("MemorialRepository", "=== ЗАПРОС getPublicMemorials() (без пагинации, извлекаем content) ===")
+        try {
+            val pagedResponse = apiService.getPublicMemorials()
+            val result = pagedResponse.content
+            Log.d("MemorialRepository", "Получено ${result.size} публичных мемориалов из paged response")
+            Log.d("MemorialRepository", "Всего элементов на сервере: ${pagedResponse.totalElements}")
+            result.forEachIndexed { index, memorial ->
+                Log.d("MemorialRepository", "[$index] Мемориал: id=${memorial.id}, fio=${memorial.fio}, isPublic=${memorial.isPublic}")
+            }
+            result
+        } catch (e: Exception) {
+            Log.e("MemorialRepository", "Ошибка в getPublicMemorials(): ${e.message}", e)
+            throw e
+        }
+    }
+
+    suspend fun getPublicMemorials(page: Int, size: Int): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        Log.d("MemorialRepository", "=== ЗАПРОС getPublicMemorials(page=$page, size=$size) ===")
+        try {
+            val result = apiService.getPublicMemorials(page, size)
+            Log.d("MemorialRepository", "Получен PagedResponse для публичных мемориалов:")
+            Log.d("MemorialRepository", "- content.size: ${result.content.size}")
+            Log.d("MemorialRepository", "- page: ${result.page}")
+            Log.d("MemorialRepository", "- totalElements: ${result.totalElements}")
+            Log.d("MemorialRepository", "- totalPages: ${result.totalPages}")
+            Log.d("MemorialRepository", "- hasNext: ${result.hasNext}")
+            
+            result.content.forEachIndexed { index, memorial ->
+                Log.d("MemorialRepository", "[$index] Мемориал: id=${memorial.id}, fio=${memorial.fio}, isPublic=${memorial.isPublic}, status=${memorial.publicationStatus}")
+            }
+            result
+        } catch (e: Exception) {
+            Log.e("MemorialRepository", "Ошибка в getPublicMemorials(page, size): ${e.message}", e)
+            throw e
+        }
     }
 
     suspend fun getMemorialById(id: Long): Memorial = withContext(Dispatchers.IO) {
@@ -255,6 +326,18 @@ class MemorialRepository {
         isPublic: Boolean? = null
     ): List<Memorial> = withContext(Dispatchers.IO) {
         apiService.searchMemorials(query, location, startDate, endDate, isPublic)
+    }
+
+    suspend fun searchMemorials(
+        query: String = "",
+        location: String? = null,
+        startDate: String? = null,
+        endDate: String? = null,
+        isPublic: Boolean? = null,
+        page: Int,
+        size: Int
+    ): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        apiService.searchMemorials(query, location, startDate, endDate, isPublic, page, size)
     }
 
     // Получить подробности ожидающих изменений мемориала для предпросмотра

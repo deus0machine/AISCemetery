@@ -41,6 +41,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import android.view.GestureDetector
+import android.view.MotionEvent
 
 @AndroidEntryPoint
 class MapFragment : Fragment(), MapObjectTapListener {
@@ -54,6 +57,9 @@ class MapFragment : Fragment(), MapObjectTapListener {
     private lateinit var searchEditText: EditText
     private lateinit var searchButton: ImageButton
     private lateinit var legendCard: CardView
+    private lateinit var legendButton: FloatingActionButton
+    private lateinit var legendCloseButton: ImageButton
+    private lateinit var infoCloseButton: ImageButton
     
     private val repository = MemorialRepository()
     private var clusterizedCollection: ClusterizedPlacemarkCollection? = null
@@ -115,9 +121,15 @@ class MapFragment : Fragment(), MapObjectTapListener {
         searchEditText = view.findViewById(R.id.search_edit_text)
         searchButton = view.findViewById(R.id.search_button)
         legendCard = view.findViewById(R.id.legend_card)
+        legendButton = view.findViewById(R.id.legend_button)
+        legendCloseButton = view.findViewById(R.id.legend_close_button)
+        infoCloseButton = view.findViewById(R.id.info_close_button)
         
         // Настраиваем поисковую строку
         setupSearch()
+        
+        // Настраиваем обработчики кнопок
+        setupButtonHandlers()
         
         // Скрываем информационную карточку при запуске
         infoCardView.visibility = View.GONE
@@ -164,7 +176,7 @@ class MapFragment : Fragment(), MapObjectTapListener {
         // Инициализируем клики по карте для скрытия инфо-карточки
         mapView.map.addInputListener(object : com.yandex.mapkit.map.InputListener {
             override fun onMapTap(map: com.yandex.mapkit.map.Map, point: Point) {
-                infoCardView.visibility = View.GONE
+                hideMemorialInfo()
             }
 
             override fun onMapLongTap(map: com.yandex.mapkit.map.Map, point: Point) {
@@ -432,6 +444,73 @@ class MapFragment : Fragment(), MapObjectTapListener {
         }
     }
     
+    // Настраиваем обработчики кнопок
+    private fun setupButtonHandlers() {
+        // Кнопка показа легенды
+        legendButton.setOnClickListener {
+            showLegend()
+        }
+        
+        // Кнопка закрытия легенды
+        legendCloseButton.setOnClickListener {
+            hideLegend()
+        }
+        
+        // Кнопка закрытия информационной карточки
+        infoCloseButton.setOnClickListener {
+            hideMemorialInfo()
+        }
+        
+        // Клик по фотографии для увеличенного просмотра
+        memorialPhoto.setOnClickListener {
+            showEnlargedPhoto()
+        }
+        
+        // Настраиваем свайп для закрытия информационной карточки
+        setupSwipeGesture()
+    }
+    
+    // Показать легенду
+    private fun showLegend() {
+        legendCard.visibility = View.VISIBLE
+        legendButton.visibility = View.GONE
+    }
+    
+    // Скрыть легенду
+    private fun hideLegend() {
+        legendCard.visibility = View.GONE
+        legendButton.visibility = View.VISIBLE
+    }
+    
+    // Скрыть информационную карточку мемориала
+    private fun hideMemorialInfo() {
+        infoCardView.visibility = View.GONE
+    }
+    
+    // Настраиваем жест свайпа для закрытия информационной карточки
+    private fun setupSwipeGesture() {
+        val gestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (e1 != null && e2 != null) {
+                    val diffY = e2.y - e1.y
+                    val diffX = kotlin.math.abs(e2.x - e1.x)
+                    
+                    // Проверяем, что это свайп вниз и карточка видима
+                    if (diffY > 100 && diffX < 200 && infoCardView.visibility == View.VISIBLE) {
+                        hideMemorialInfo()
+                        return true
+                    }
+                }
+                return false
+            }
+        })
+        
+        infoCardView.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            false // Позволяем другим обработчикам получить событие
+        }
+    }
+    
     // Выполняем поиск
     private fun performSearch() {
         val query = searchEditText.text.toString().trim().lowercase()
@@ -527,5 +606,43 @@ class MapFragment : Fragment(), MapObjectTapListener {
             Animation(Animation.Type.SMOOTH, 0.5f),
             null
         )
+    }
+
+    // Показ увеличенного изображения в диалоге
+    private fun showEnlargedPhoto() {
+        val memorial = infoCardView.tag as? Memorial ?: return
+        
+        // Если фото отсутствует, показываем сообщение
+        if (memorial.photoUrl.isNullOrBlank()) {
+            Toast.makeText(context, "Фотография недоступна", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Создаем диалог
+        val dialog = android.app.Dialog(requireContext())
+        dialog.setContentView(R.layout.dialog_photo_viewer)
+        dialog.window?.setLayout(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        
+        val enlargedPhoto = dialog.findViewById<ru.sevostyanov.aiscemetery.views.ZoomableImageView>(R.id.enlarged_photo)
+        val closeButton = dialog.findViewById<ImageView>(R.id.close_button)
+        
+        // Загружаем изображение
+        GlideHelper.loadImage(
+            requireContext(),
+            memorial.photoUrl ?: "",
+            enlargedPhoto,
+            R.drawable.placeholder_photo,
+            R.drawable.placeholder_photo
+        )
+        
+        // Обработчик закрытия диалога
+        closeButton.setOnClickListener { dialog.dismiss() }
+        
+        // Показываем диалог
+        dialog.show()
     }
 } 

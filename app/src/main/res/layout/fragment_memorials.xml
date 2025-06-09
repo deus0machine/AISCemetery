@@ -66,6 +66,19 @@
 
         </LinearLayout>
 
+        <!-- Индикатор режима поиска/фильтров -->
+        <TextView
+            android:id="@+id/search_mode_indicator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="8dp"
+            android:textSize="12sp"
+            android:textStyle="italic"
+            android:textColor="@color/purple_200"
+            android:visibility="gone"
+            android:text="Режим поиска активен"/>
+
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -74,16 +87,22 @@
         android:layout_height="match_parent"
         android:layout_below="@id/header_container"
         android:padding="8dp"
+        android:paddingBottom="100dp"
         android:clipToPadding="false"/>
 
-    <!-- Временное отображение тестовых данных -->
+    <!-- Сообщение об отсутствии мемориалов -->
     <TextView
-        android:id="@+id/text_test_data"
-        android:layout_width="match_parent"
+        android:id="@+id/empty_memorials_text"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/header_container"
-        android:padding="16dp"
-        android:textColor="@color/primary_text"/>
+        android:layout_centerInParent="true"
+        android:text="У вас пока нет мемориалов"
+        android:textSize="16sp"
+        android:textColor="@color/secondary_text"
+        android:textStyle="italic"
+        android:visibility="gone"
+        android:gravity="center"
+        android:padding="16dp"/>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_memorial"

@@ -10,11 +10,20 @@ data class User(
     val id: Long,
     
     @SerializedName("username")
-    val username: String,
+    val username: String? = null,
     
     @SerializedName("email")
-    val email: String,
+    val email: String? = null,
     
     @SerializedName("fullName")
-    val fullName: String
+    val fullName: String? = null,
+    
+    @SerializedName("fio")
+    val fio: String? = null,
+    
+    @SerializedName("contacts")
+    val contacts: String? = null,
+    
+    @SerializedName("login") 
+    val login: String? = null
 ) : Parcelable 

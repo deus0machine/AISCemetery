@@ -144,7 +144,10 @@ enum class NotificationType {
     ADMIN_SYSTEM,
     
     @SerializedName("ADMIN_WARNING")
-    ADMIN_WARNING
+    ADMIN_WARNING,
+    
+    @SerializedName("MEMORIAL_REPORT")
+    MEMORIAL_REPORT
 }
 
 enum class NotificationStatus {

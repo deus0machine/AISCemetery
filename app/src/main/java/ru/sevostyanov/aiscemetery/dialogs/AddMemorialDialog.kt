@@ -45,7 +45,6 @@ class AddMemorialDialog : DialogFragment() {
             },
             onEditClick = { /* не используется */ },
             onDeleteClick = { /* не используется */ },
-            onPrivacyClick = { /* не используется */ },
             showControls = false
         )
         binding.recyclerView.layoutManager = LinearLayoutManager(context)

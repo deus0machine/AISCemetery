@@ -31,6 +31,7 @@ import ru.sevostyanov.aiscemetery.models.PublicationStatus
 import ru.sevostyanov.aiscemetery.repository.MemorialRepository
 import ru.sevostyanov.aiscemetery.util.GlideHelper
 import ru.sevostyanov.aiscemetery.util.NetworkUtil
+import ru.sevostyanov.aiscemetery.views.NameInputView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -39,7 +40,7 @@ import java.util.TimeZone
 class EditMemorialActivity : AppCompatActivity() {
 
     private lateinit var photoImageView: ImageView
-    private lateinit var fioEdit: EditText
+    private lateinit var nameInputView: NameInputView
     private lateinit var birthDateButton: Button
     private lateinit var deathDateButton: Button
     private lateinit var biographyEdit: EditText
@@ -59,7 +60,6 @@ class EditMemorialActivity : AppCompatActivity() {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     private lateinit var binding: ActivityEditMemorialBinding
-    private lateinit var editFio: EditText
     private lateinit var buttonBirthDate: Button
     private lateinit var buttonDeathDate: Button
     private lateinit var editBiography: EditText
@@ -146,12 +146,12 @@ class EditMemorialActivity : AppCompatActivity() {
         }
 
         // Инициализация других view
-        editFio = binding.editFio
         buttonBirthDate = binding.buttonBirthDate
         buttonDeathDate = binding.buttonDeathDate
         editBiography = binding.editBiography
         buttonSave = binding.buttonSave
         photoImageView = binding.photoImageView
+        nameInputView = binding.nameInputView
 
         // Загрузка мемориала, если он есть
         val memorial = intent.getParcelableExtra<Memorial>(EXTRA_MEMORIAL)
@@ -196,7 +196,7 @@ class EditMemorialActivity : AppCompatActivity() {
             loadMemorial(memorialId)
         } else {
             // Если это новый мемориал, сбрасываем все поля
-            editFio.setText("")
+            // nameInputView очистится автоматически при создании
             editBiography.setText("")
             buttonBirthDate.text = "Выбрать дату рождения"
             buttonDeathDate.text = "Выбрать дату смерти"
@@ -385,7 +385,9 @@ class EditMemorialActivity : AppCompatActivity() {
                 val memorial = repository.getMemorialById(id)
                 println("Загруженный мемориал: $memorial")
                 memorial?.let {
-                    editFio.setText(it.fio)
+                    // Устанавливаем данные в nameInputView
+                    nameInputView.setMemorial(it)
+                    
                     editBiography.setText(it.biography)
                     
                     // Установка дат
@@ -503,25 +505,23 @@ class EditMemorialActivity : AppCompatActivity() {
             return
         }
 
-        val name = editFio.text.toString().trim()
+        // Получаем данные из nameInputView (теперь только отдельные поля)
+        val (firstName, lastName, middleName) = nameInputView.getCurrentData()
+        
+        // Проверяем валидность данных в nameInputView
+        val validationError = nameInputView.validate()
+        if (validationError != null) {
+            showMessage(validationError)
+            nameInputView.requestFocusOnFirstField()
+            return
+        }
+        
         val description = editBiography.text.toString().trim()
 
-        // Валидация полей согласно серверным ограничениям
-        if (name.isEmpty()) {
-            showMessage("Пожалуйста, укажите ФИО")
-            editFio.requestFocus()
-            return
-        }
-        
-        if (name.length < 2) {
-            showMessage("ФИО должно содержать не менее 2 символов")
-            editFio.requestFocus()
-            return
-        }
-        
-        if (name.length > 255) {
-            showMessage("ФИО не должно превышать 255 символов")
-            editFio.requestFocus()
+        // Валидация биографии
+        if (description.length > 5000) {
+            showMessage("Биография не должна превышать 5000 символов")
+            editBiography.requestFocus()
             return
         }
         
@@ -553,13 +553,6 @@ class EditMemorialActivity : AppCompatActivity() {
                 buttonDeathDate.requestFocus()
                 return
             }
-        }
-        
-        // Проверка биографии на разумную длину
-        if (description.length > 5000) {
-            showMessage("Биография не должна превышать 5000 символов")
-            editBiography.requestFocus()
-            return
         }
 
         val currentMemorial = memorial
@@ -603,7 +596,10 @@ class EditMemorialActivity : AppCompatActivity() {
         
         val newMemorial = Memorial(
             id = currentMemorial?.id,
-            fio = name,
+            fio = "",  // Будет автоматически сформировано на сервере
+            firstName = firstName,
+            lastName = lastName,
+            middleName = middleName,
             biography = description,
             birthDate = birthDate?.let { formatDateForServer(it) },
             deathDate = deathDate?.let { formatDateForServer(it) },
@@ -617,6 +613,12 @@ class EditMemorialActivity : AppCompatActivity() {
             updatedAt = null,
             editors = currentMemorial?.editors,
             isEditor = isEditor,
+            // Pending поля - заполняем только если это изменения редактора
+            pendingFio = if (isEditor && currentMemorial?.id != null) "" else null, // Будет сформировано на сервере
+            pendingFirstName = if (isEditor && currentMemorial?.id != null) firstName else null,
+            pendingLastName = if (isEditor && currentMemorial?.id != null) lastName else null,
+            pendingMiddleName = if (isEditor && currentMemorial?.id != null) middleName else null,
+            pendingBiography = if (isEditor && currentMemorial?.id != null) description else null,
             // Если пользователь редактор и это существующий мемориал, устанавливаем флаг pendingChanges
             pendingChanges = isEditor && currentMemorial?.id != null
         )
@@ -711,6 +713,9 @@ class EditMemorialActivity : AppCompatActivity() {
                             val updatedMemorial = Memorial(
                                 id = savedMemorial.id,
                                 fio = savedMemorial.fio,
+                                firstName = savedMemorial.firstName,
+                                lastName = savedMemorial.lastName,
+                                middleName = savedMemorial.middleName,
                                 birthDate = savedMemorial.birthDate,
                                 deathDate = savedMemorial.deathDate,
                                 biography = savedMemorial.biography,
@@ -725,6 +730,11 @@ class EditMemorialActivity : AppCompatActivity() {
                                 updatedAt = null,
                                 editors = savedMemorial.editors,
                                 isEditor = savedMemorial.isEditor,
+                                pendingFio = savedMemorial.pendingFio,
+                                pendingFirstName = savedMemorial.pendingFirstName,
+                                pendingLastName = savedMemorial.pendingLastName,
+                                pendingMiddleName = savedMemorial.pendingMiddleName,
+                                pendingBiography = savedMemorial.pendingBiography,
                                 pendingChanges = savedMemorial.pendingChanges,
                                 changesUnderModeration = savedMemorial.changesUnderModeration
                             )
@@ -823,6 +833,9 @@ class EditMemorialActivity : AppCompatActivity() {
                                     val updatedMemorial = Memorial(
                                         id = savedMemorial.id,
                                         fio = savedMemorial.fio,
+                                        firstName = savedMemorial.firstName,
+                                        lastName = savedMemorial.lastName,
+                                        middleName = savedMemorial.middleName,
                                         birthDate = savedMemorial.birthDate,
                                         deathDate = savedMemorial.deathDate,
                                         biography = savedMemorial.biography,
@@ -837,6 +850,11 @@ class EditMemorialActivity : AppCompatActivity() {
                                         updatedAt = null,
                                         editors = savedMemorial.editors,
                                         isEditor = savedMemorial.isEditor,
+                                        pendingFio = savedMemorial.pendingFio,
+                                        pendingFirstName = savedMemorial.pendingFirstName,
+                                        pendingLastName = savedMemorial.pendingLastName,
+                                        pendingMiddleName = savedMemorial.pendingMiddleName,
+                                        pendingBiography = savedMemorial.pendingBiography,
                                         pendingChanges = savedMemorial.pendingChanges,
                                         changesUnderModeration = savedMemorial.changesUnderModeration
                                     )

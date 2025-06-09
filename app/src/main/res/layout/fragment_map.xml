@@ -46,6 +46,17 @@
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
+    <!-- Кнопка показа легенды -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/legend_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start|bottom"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_menu_help"
+        app:backgroundTint="@color/white"
+        app:tint="@color/primary_text" />
+
     <!-- Легенда маркеров -->
     <androidx.cardview.widget.CardView
         android:id="@+id/legend_card"
@@ -54,7 +65,8 @@
         android:layout_gravity="start|bottom"
         android:layout_margin="16dp"
         app:cardCornerRadius="8dp"
-        app:cardElevation="4dp">
+        app:cardElevation="4dp"
+        android:visibility="gone">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -62,12 +74,28 @@
             android:orientation="vertical"
             android:padding="12dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Обозначения:"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Обозначения:"
+                    android:textStyle="bold" />
+
+                <ImageButton
+                    android:id="@+id/legend_close_button"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:contentDescription="Закрыть легенду" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -145,62 +173,98 @@
         android:visibility="gone">
 
         <LinearLayout
-            android:id="@+id/info_card_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp"
-            android:foreground="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true">
+            android:orientation="vertical">
 
-            <ImageView
-                android:id="@+id/memorial_photo"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:src="@drawable/placeholder_photo"
-                android:scaleType="centerCrop"
-                android:background="@drawable/circle_background" />
-
+            <!-- Заголовок с крестиком -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="16dp"
-                android:orientation="vertical">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="8dp">
 
                 <TextView
-                    android:id="@+id/memorial_name"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Информация о мемориале"
                     android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:textColor="#000000"
-                    android:text="Имя мемориала" />
-
-                <TextView
-                    android:id="@+id/memorial_dates"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
                     android:textSize="14sp"
-                    android:text="Годы жизни" />
+                    android:textColor="@color/secondary_text" />
 
-                <TextView
-                    android:id="@+id/memorial_address"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="14sp"
-                    android:maxLines="2"
-                    android:ellipsize="end"
-                    android:text="Адрес"
-                    android:layout_marginTop="4dp" />
+                <ImageButton
+                    android:id="@+id/info_close_button"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:contentDescription="Закрыть информацию" />
             </LinearLayout>
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@android:drawable/ic_menu_info_details"
-                android:layout_gravity="center_vertical" />
+            <!-- Основной контент -->
+            <LinearLayout
+                android:id="@+id/info_card_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:paddingTop="8dp"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/memorial_photo"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:src="@drawable/placeholder_photo"
+                    android:scaleType="centerCrop"
+                    android:background="@drawable/circle_background" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="16dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/memorial_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:textColor="#000000"
+                        android:text="Имя мемориала" />
+
+                    <TextView
+                        android:id="@+id/memorial_dates"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:text="Годы жизни" />
+
+                    <TextView
+                        android:id="@+id/memorial_address"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:text="Адрес"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@android:drawable/ic_menu_info_details"
+                    android:layout_gravity="center_vertical" />
+            </LinearLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 </FrameLayout> 

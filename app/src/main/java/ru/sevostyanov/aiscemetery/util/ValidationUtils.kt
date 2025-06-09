@@ -180,4 +180,67 @@ object ValidationUtils {
             else -> null // Для остальных типов связей не проверяем
         }
     }
+    
+    // ========== Валидация отдельных полей ФИО ==========
+    
+    /**
+     * Валидация имени (первое имя)
+     */
+    fun validateFirstName(firstName: String?): String? {
+        if (firstName.isNullOrBlank()) {
+            return "Имя не может быть пустым"
+        }
+        
+        val trimmed = firstName.trim()
+        return when {
+            trimmed.length < 2 -> "Имя должно содержать не менее 2 символов"
+            trimmed.length > 50 -> "Имя не должно превышать 50 символов"
+            !trimmed.matches(Regex("^[a-zA-Zа-яА-ЯёЁ\\-]+$")) -> "Имя может содержать только буквы и дефисы"
+            else -> null
+        }
+    }
+    
+    /**
+     * Валидация фамилии
+     */
+    fun validateLastName(lastName: String?): String? {
+        if (lastName.isNullOrBlank()) {
+            return "Фамилия не может быть пустой"
+        }
+        
+        val trimmed = lastName.trim()
+        return when {
+            trimmed.length < 2 -> "Фамилия должна содержать не менее 2 символов"
+            trimmed.length > 50 -> "Фамилия не должна превышать 50 символов"
+            !trimmed.matches(Regex("^[a-zA-Zа-яА-ЯёЁ\\-]+$")) -> "Фамилия может содержать только буквы и дефисы"
+            else -> null
+        }
+    }
+    
+    /**
+     * Валидация отчества (может быть пустым)
+     */
+    fun validateMiddleName(middleName: String?): String? {
+        if (middleName.isNullOrBlank()) {
+            return null // Отчество необязательно
+        }
+        
+        val trimmed = middleName.trim()
+        return when {
+            trimmed.length < 2 -> "Отчество должно содержать не менее 2 символов"
+            trimmed.length > 50 -> "Отчество не должно превышать 50 символов"
+            !trimmed.matches(Regex("^[a-zA-Zа-яА-ЯёЁ\\-]+$")) -> "Отчество может содержать только буквы и дефисы"
+            else -> null
+        }
+    }
+    
+    /**
+     * Валидация всех полей ФИО как группы
+     */
+    fun validateNameFields(firstName: String?, lastName: String?, middleName: String?): String? {
+        validateFirstName(firstName)?.let { return it }
+        validateLastName(lastName)?.let { return it }
+        validateMiddleName(middleName)?.let { return it }
+        return null
+    }
 } 

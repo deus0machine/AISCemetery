@@ -38,4 +38,54 @@
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">16dp</item>
     </style>
+
+    <!-- Стили для мемориалов -->
+    <style name="MemorialCardStyle">
+        <item name="android:layout_margin">@dimen/memorial_card_margin</item>
+        <item name="cardCornerRadius">@dimen/memorial_card_radius</item>
+        <item name="cardElevation">@dimen/memorial_card_elevation</item>
+        <item name="strokeWidth">@dimen/card_stroke_width</item>
+        <item name="strokeColor">@color/memorial_card_stroke</item>
+        <item name="android:backgroundTint">@color/white</item>
+    </style>
+
+    <style name="MemorialNameTextStyle">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/memorial_text_dark</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="MemorialDatesTextStyle">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/memorial_text_muted</item>
+    </style>
+
+    <style name="MemorialLocationTextStyle">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/memorial_text_muted</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:lineSpacingExtra">2dp</item>
+    </style>
+
+    <style name="MemorialIndicatorTextStyle">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/memorial_text_dark</item>
+        <item name="android:paddingLeft">@dimen/memorial_indicator_padding_horizontal</item>
+        <item name="android:paddingRight">@dimen/memorial_indicator_padding_horizontal</item>
+        <item name="android:paddingTop">@dimen/memorial_indicator_padding_vertical</item>
+        <item name="android:paddingBottom">@dimen/memorial_indicator_padding_vertical</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="MemorialWarningTextStyle">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/memorial_moderation</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:gravity">center</item>
+    </style>
 </resources> 
