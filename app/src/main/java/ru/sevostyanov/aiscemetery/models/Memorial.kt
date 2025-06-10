@@ -2,8 +2,13 @@ package ru.sevostyanov.aiscemetery.models
 
 import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.annotations.JsonAdapter
 import kotlinx.parcelize.Parcelize
 import ru.sevostyanov.aiscemetery.user.UserManager
+import java.lang.reflect.Type
 
 @Parcelize
 data class Memorial(
@@ -42,6 +47,9 @@ data class Memorial(
     
     @SerializedName("photoUrl")
     val photoUrl: String? = null,
+    
+    @SerializedName("documentUrl")
+    val documentUrl: String? = null,
     
     @SerializedName("pendingPhotoUrl")
     val pendingPhotoUrl: String? = null,
@@ -86,6 +94,7 @@ data class Memorial(
     val treeId: Long? = null,
     
     @SerializedName("createdBy")
+    @JsonAdapter(UserDeserializer::class)
     val createdBy: User? = null,
     
     @SerializedName("createdAt")
@@ -147,9 +156,9 @@ data class Memorial(
             publicationStatus == PublicationStatus.PUBLISHED -> "Опубликован"
             publicationStatus == PublicationStatus.PENDING_MODERATION -> "На модерации"
             publicationStatus == PublicationStatus.REJECTED -> "Отклонен"
-            publicationStatus == PublicationStatus.DRAFT -> "Черновик"
+            publicationStatus == PublicationStatus.DRAFT -> "Приватный"
             isPublic -> "Опубликован"
-            else -> "Черновик"
+            else -> "Приватный"
         }
     }
     
@@ -327,4 +336,21 @@ data class EditorRequest(
 data class ApproveChangesRequest(
     @SerializedName("approve")
     val approve: Boolean
-) 
+)
+
+class UserDeserializer : JsonDeserializer<User?> {
+    override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext?): User? {
+        return when {
+            json == null || json.isJsonNull -> null
+            json.isJsonPrimitive && json.asJsonPrimitive.isNumber -> {
+                // Если это число (ID), создаем заглушку User с только ID
+                User(id = json.asLong)
+            }
+            json.isJsonObject -> {
+                // Если это полный объект, используем стандартную десериализацию
+                context?.deserialize(json, User::class.java)
+            }
+            else -> null
+        }
+    }
+} 

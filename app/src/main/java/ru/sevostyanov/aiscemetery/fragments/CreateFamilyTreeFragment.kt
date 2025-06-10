@@ -21,7 +21,6 @@ class CreateFamilyTreeFragment : Fragment() {
     private val viewModel: CreateFamilyTreeViewModel by viewModels()
     private lateinit var nameEditText: EditText
     private lateinit var descriptionEditText: EditText
-    private lateinit var isPublicSwitch: SwitchMaterial
     private lateinit var createButton: Button
     private lateinit var cancelButton: Button
 
@@ -44,7 +43,6 @@ class CreateFamilyTreeFragment : Fragment() {
     private fun initializeViews(view: View) {
         nameEditText = view.findViewById(R.id.edit_name)
         descriptionEditText = view.findViewById(R.id.edit_description)
-        isPublicSwitch = view.findViewById(R.id.switch_is_public)
         createButton = view.findViewById(R.id.button_create)
         cancelButton = view.findViewById(R.id.button_cancel)
     }
@@ -53,7 +51,6 @@ class CreateFamilyTreeFragment : Fragment() {
         createButton.setOnClickListener {
             val name = nameEditText.text.toString().trim()
             val description = descriptionEditText.text.toString().trim()
-            val isPublic = isPublicSwitch.isChecked
 
             if (name.isBlank()) {
                 nameEditText.error = "Введите название дерева"
@@ -82,7 +79,7 @@ class CreateFamilyTreeFragment : Fragment() {
             nameEditText.error = null
             descriptionEditText.error = null
 
-            viewModel.createFamilyTree(name, description, isPublic)
+            viewModel.createFamilyTree(name, description)
         }
 
         cancelButton.setOnClickListener {

@@ -41,6 +41,7 @@ class RegisterActivity : AppCompatActivity() {
         registerButton = findViewById(R.id.register_button)
         privacyConsentCheckbox = findViewById(R.id.privacy_consent_checkbox)
         val backToAuthorize = findViewById<TextView>(R.id.back_to_autorize_link)
+        val userAgreementLink = findViewById<TextView>(R.id.user_agreement_link)
         loginField = findViewById(R.id.login_input)
         passwordField = findViewById(R.id.password_input)
         fioField = findViewById(R.id.fio_input)
@@ -52,6 +53,12 @@ class RegisterActivity : AppCompatActivity() {
         backToAuthorize.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
+        }
+
+        // Обработчик клика по ссылке на пользовательское соглашение
+        userAgreementLink.setOnClickListener {
+            val intent = Intent(this, UserAgreementActivity::class.java)
+            startActivity(intent)
         }
     }
 

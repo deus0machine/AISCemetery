@@ -1,6 +1,7 @@
 package ru.sevostyanov.aiscemetery.viewmodels
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -85,14 +86,34 @@ class FamilyTreeDetailViewModel @Inject constructor(
             try {
                 _isLoading.value = true
                 _error.value = null
-                // Загружаем FamilyTree
-                val tree = repository.getFamilyTreeById(treeId)
-                _familyTree.value = tree
-                // Загружаем связи
-                val relations = repository.getMemorialRelations(treeId)
-                _memorialRelations.value = relations
-                // Загружаем мемориалы пользователя (если нужно для UI)
-                _availableMemorials.value = memorialRepository.getMyMemorials()
+                
+                // Пробуем загрузить полные данные одним запросом
+                try {
+                    val fullData = RetrofitClient.getApiService().getFamilyTreeFullData(treeId)
+                    _familyTree.value = fullData.familyTree
+                    _memorialRelations.value = fullData.relations
+                    
+                    // Извлекаем уникальные мемориалы из связей для доступных мемориалов
+                    val uniqueMemorials = mutableSetOf<Memorial>()
+                    fullData.relations.forEach { relation ->
+                        if (relation.relationType == RelationType.PLACEHOLDER) {
+                            uniqueMemorials.add(relation.sourceMemorial)
+                        } else {
+                            uniqueMemorials.add(relation.sourceMemorial)
+                            uniqueMemorials.add(relation.targetMemorial)
+                        }
+                    }
+                    _availableMemorials.value = uniqueMemorials.toList()
+                    
+                } catch (e: Exception) {
+                    Log.w("FamilyTreeDetailVM", "Full data endpoint not available, using fallback: ${e.message}")
+                    
+                    // Fallback - загружаем данные отдельными запросами
+                    _familyTree.value = repository.getFamilyTreeById(treeId)
+                    _memorialRelations.value = repository.getMemorialRelations(treeId)
+                    _availableMemorials.value = memorialRepository.getMyMemorials()
+                }
+                
                 _isAuthorized.value = true
             } catch (e: Exception) {
                 handleError(e)
@@ -156,21 +177,7 @@ class FamilyTreeDetailViewModel @Inject constructor(
         }
     }
 
-    fun updateFamilyTreeVisibility(isPublic: Boolean) {
-        viewModelScope.launch {
-            try {
-                _isLoading.value = true
-                val currentTree = _familyTree.value ?: return@launch
-                val treeId = currentTree.id ?: return@launch
-                val updatedTree = currentTree.copy(isPublic = isPublic)
-                _familyTree.value = repository.updateFamilyTree(treeId, updatedTree)
-            } catch (e: Exception) {
-                handleError(e)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
+
 
     fun createMemorialRelation(relation: MemorialRelation) {
         viewModelScope.launch {
@@ -247,7 +254,7 @@ class FamilyTreeDetailViewModel @Inject constructor(
         return currentUserId != -1L && treeOwnerId != null && currentUserId == treeOwnerId
     }
 
-    fun updateFamilyTree(id: Long, name: String, description: String, isPublic: Boolean) {
+    fun updateFamilyTree(id: Long, name: String, description: String) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
@@ -261,7 +268,6 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 val updatedTree = currentTree.copy(
                     name = name,
                     description = description,
-                    isPublic = isPublic,
                     userId = currentUser.id
                 )
                 _familyTree.value = repository.updateFamilyTree(id, updatedTree)
@@ -271,5 +277,130 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 _isLoading.value = false
             }
         }
+    }
+
+    // Методы для модерации семейных деревьев
+    fun sendFamilyTreeForModeration(id: Long) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _error.value = null
+                
+                val updatedTree = repository.sendFamilyTreeForModeration(id)
+                _familyTree.value = updatedTree
+                _isAuthorized.value = true
+            } catch (e: Exception) {
+                Log.e("FamilyTreeDetailViewModel", "Error sending tree for moderation: ${e.message}", e)
+                _error.value = e.message
+                
+                // Дополнительная проверка для специфичных ошибок
+                when {
+                    e.message?.contains("Не все мемориалы в дереве опубликованы") == true -> {
+                        // Это уже обработано в репозитории
+                    }
+                    e.message?.contains("must be public") == true -> {
+                        _error.value = "Не все мемориалы в дереве опубликованы. Для отправки дерева на публикацию все включенные мемориалы должны быть опубликованы."
+                    }
+                    else -> {
+                        handleError(e)
+                    }
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun approveFamilyTree(treeId: Long) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _error.value = null
+                val updatedTree = repository.approveFamilyTree(treeId)
+                _familyTree.value = updatedTree
+                _isAuthorized.value = true
+            } catch (e: Exception) {
+                handleError(e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun rejectFamilyTree(treeId: Long, reason: String) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _error.value = null
+                val updatedTree = repository.rejectFamilyTree(treeId, reason)
+                _familyTree.value = updatedTree
+                _isAuthorized.value = true
+            } catch (e: Exception) {
+                handleError(e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun unpublishFamilyTree(treeId: Long) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _error.value = null
+                val updatedTree = repository.unpublishFamilyTree(treeId)
+                _familyTree.value = updatedTree
+                _isAuthorized.value = true
+            } catch (e: Exception) {
+                Log.e("FamilyTreeDetailViewModel", "Error unpublishing tree: ${e.message}", e)
+                handleError(e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    // Проверяем, может ли пользователь редактировать дерево
+    fun canEditTree(): Boolean {
+        val tree = _familyTree.value ?: return false
+        
+        // Проверяем, не находится ли дерево на модерации
+        if (tree.publicationStatus == ru.sevostyanov.aiscemetery.models.PublicationStatus.PENDING_MODERATION) {
+            return false
+        }
+        
+        // Проверяем права пользователя
+        return tree.canEdit()
+    }
+
+    // Проверяем, может ли пользователь отправить дерево на модерацию
+    fun canSendForModeration(): Boolean {
+        val tree = _familyTree.value ?: return false
+        
+        // Может отправить только владелец и только если дерево не опубликовано и не на модерации
+        return tree.isUserOwner && 
+               tree.publicationStatus != ru.sevostyanov.aiscemetery.models.PublicationStatus.PUBLISHED &&
+               tree.publicationStatus != ru.sevostyanov.aiscemetery.models.PublicationStatus.PENDING_MODERATION
+    }
+
+    // Проверяем, может ли пользователь снять дерево с публикации
+    fun canUnpublishTree(): Boolean {
+        val tree = _familyTree.value ?: return false
+        
+        // Может снять с публикации только владелец и только если дерево опубликовано
+        return tree.isUserOwner && 
+               tree.publicationStatus == ru.sevostyanov.aiscemetery.models.PublicationStatus.PUBLISHED
+    }
+
+    // Получаем текстовое описание статуса дерева
+    fun getTreeStatusText(): String {
+        val tree = _familyTree.value ?: return "Неизвестно"
+        return tree.getPublicationStatusText()
+    }
+
+    // Получаем цвет для статуса дерева
+    fun getTreeStatusColor(): Int {
+        val tree = _familyTree.value ?: return android.graphics.Color.GRAY
+        return tree.getPublicationStatusColor()
     }
 } 

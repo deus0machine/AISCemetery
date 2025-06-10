@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import ru.sevostyanov.aiscemetery.models.FamilyTree
+import ru.sevostyanov.aiscemetery.models.PublicationStatus
 import ru.sevostyanov.aiscemetery.repository.FamilyTreeRepository
 import ru.sevostyanov.aiscemetery.user.UserManager
 import javax.inject.Inject
@@ -31,7 +32,7 @@ class CreateFamilyTreeViewModel @Inject constructor(
     private val _createdTree = MutableLiveData<FamilyTree?>()
     val createdTree: LiveData<FamilyTree?> = _createdTree
 
-    fun createFamilyTree(name: String, description: String, isPublic: Boolean) {
+    fun createFamilyTree(name: String, description: String) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
@@ -44,7 +45,8 @@ class CreateFamilyTreeViewModel @Inject constructor(
                 val familyTree = FamilyTree(
                     name = name,
                     description = description,
-                    isPublic = isPublic,
+                    isPublic = false,
+                    publicationStatus = PublicationStatus.DRAFT,
                     userId = currentUser.id
                 )
                 _createdTree.value = familyTreeRepository.createFamilyTree(familyTree)

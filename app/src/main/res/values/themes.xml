@@ -23,4 +23,9 @@
         <item name="android:shadowDy">2</item>
         <item name="android:shadowRadius">2</item>
     </style>
+    
+    <!-- Стиль для активити без ActionBar (аналогичен основному) -->
+    <style name="Theme.AISCemetery.NoActionBar" parent="Theme.AISCemetery">
+        <!-- Наследует все свойства от основной темы -->
+    </style>
 </resources>

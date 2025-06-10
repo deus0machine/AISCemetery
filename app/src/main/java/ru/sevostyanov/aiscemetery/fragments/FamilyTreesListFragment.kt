@@ -28,6 +28,11 @@ import ru.sevostyanov.aiscemetery.databinding.FragmentFamilyTreesListBinding
 import ru.sevostyanov.aiscemetery.models.FamilyTree
 import ru.sevostyanov.aiscemetery.viewmodels.FamilyTreeViewModel
 import androidx.fragment.app.setFragmentResultListener
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import ru.sevostyanov.aiscemetery.dialogs.FamilyTreeFilterDialog
 
 @AndroidEntryPoint
 class FamilyTreesListFragment : Fragment() {
@@ -45,6 +50,11 @@ class FamilyTreesListFragment : Fragment() {
     private lateinit var progressBar: View
     private lateinit var emptyTextView: TextView
     private var isFirstLoad = true
+    
+    // Поиск и фильтрация
+    private var searchJob: Job? = null
+    private var isSearchMode = false
+    private var currentSearchQuery: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -67,7 +77,11 @@ class FamilyTreesListFragment : Fragment() {
         
         // Слушаем результат редактирования дерева
         parentFragmentManager.setFragmentResultListener("family_tree_updated", this) { _, _ ->
-            loadTrees(tabLayout.selectedTabPosition == 0)
+            // Добавляем небольшую задержку для обновления данных на сервере
+            lifecycleScope.launch {
+                kotlinx.coroutines.delay(500) // 500ms задержка
+                loadTrees(tabLayout.selectedTabPosition == 0)
+            }
         }
         
         // Загружаем данные только при первом создании фрагмента
@@ -100,9 +114,7 @@ class FamilyTreesListFragment : Fragment() {
     private fun setupAdapter() {
         adapter = FamilyTreeAdapter(
             onItemClick = { tree ->
-                Toast.makeText(context, "Выбрано дерево: ${tree.name}", Toast.LENGTH_SHORT).show()
-            },
-            onEditClick = { tree ->
+                // При клике на дерево открываем диалог редактирования дерева
                 if (tree.userId == viewModel.getCurrentUserId()) {
                     tree.id?.let { id ->
                         val dialog = FamilyTreeFragment.newInstance(id)
@@ -112,9 +124,22 @@ class FamilyTreesListFragment : Fragment() {
                     Toast.makeText(context, "У вас нет прав на редактирование этого дерева", Toast.LENGTH_SHORT).show()
                 }
             },
+            onEditClick = { tree ->
+                // При клике на карандаш открываем экран редактирования связей дерева
+                if (tree.userId == viewModel.getCurrentUserId()) {
+                    tree.id?.let { id ->
+                        val bundle = Bundle().apply {
+                            putLong("treeId", id)
+                        }
+                        findNavController().navigate(R.id.action_familyTreesListFragment_to_editGenealogyTreeFragment, bundle)
+                    }
+                } else {
+                    Toast.makeText(context, "У вас нет прав на редактирование этого дерева", Toast.LENGTH_SHORT).show()
+                }
+            },
             onDeleteClick = { tree ->
                 if (tree.userId == viewModel.getCurrentUserId()) {
-                    viewModel.deleteFamilyTree(tree.id!!)
+                    showDeleteConfirmationDialog(tree)
                 } else {
                     Toast.makeText(context, "У вас нет прав на удаление этого дерева", Toast.LENGTH_SHORT).show()
                 }
@@ -127,10 +152,14 @@ class FamilyTreesListFragment : Fragment() {
         viewModel.familyTrees.observe(viewLifecycleOwner) { trees ->
             adapter.submitList(trees)
             if (trees.isEmpty()) {
-                showEmptyView(true)
-                showMessage(if (tabLayout.selectedTabPosition == 0) "У вас пока нет деревьев" else "Нет доступных публичных деревьев")
+                val message = if (tabLayout.selectedTabPosition == 0) {
+                    "У вас пока нет деревьев"
+                } else {
+                    "Нет доступных публичных деревьев"
+                }
+                showEmptyState(message)
             } else {
-                showEmptyView(false)
+                hideEmptyState()
             }
         }
 
@@ -146,12 +175,22 @@ class FamilyTreesListFragment : Fragment() {
                     }
                     startActivity(intent)
                     requireActivity().finish()
+                } else {
+                    // При ошибке показываем пустой список
+                    showEmptyState("Ошибка загрузки данных")
                 }
             }
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             showLoading(isLoading)
+            if (!isLoading) {
+                // После завершения загрузки восстанавливаем видимость списка
+                // (если заглушка не активна)
+                if (emptyTextView.visibility != View.VISIBLE) {
+                    recyclerView.visibility = View.VISIBLE
+                }
+            }
         }
     }
 
@@ -177,13 +216,28 @@ class FamilyTreesListFragment : Fragment() {
     private fun setupSearchView() {
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                query?.let { viewModel.searchTrees(it) }
+                query?.let { 
+                    performSearch(it.trim())
+                }
+                searchView.clearFocus()
                 return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                if (newText.isNullOrBlank()) {
-                    loadTrees(tabLayout.selectedTabPosition == 0)
+                // Отменяем предыдущий поиск
+                searchJob?.cancel()
+                
+                val query = newText?.trim()
+                
+                if (query.isNullOrBlank()) {
+                    // Если поисковая строка пустая, возвращаемся к обычному режиму
+                    exitSearchMode()
+                } else {
+                    // Запускаем поиск с задержкой 500ms
+                    searchJob = lifecycleScope.launch {
+                        delay(500)
+                        performSearch(query)
+                    }
                 }
                 return true
             }
@@ -196,7 +250,7 @@ class FamilyTreesListFragment : Fragment() {
         }
 
         filterButton.setOnClickListener {
-            // TODO: Реализовать фильтрацию
+            showFilterDialog()
         }
     }
 
@@ -228,10 +282,22 @@ class FamilyTreesListFragment : Fragment() {
 
     private fun showLoading(show: Boolean) {
         progressBar.visibility = if (show) View.VISIBLE else View.GONE
+        if (show) {
+            // Скрываем список и заглушку во время загрузки
+            recyclerView.visibility = View.GONE
+            emptyTextView.visibility = View.GONE
+        }
     }
 
-    private fun showEmptyView(show: Boolean) {
-        emptyTextView.visibility = if (show) View.VISIBLE else View.GONE
+    private fun showEmptyState(message: String) {
+        emptyTextView.text = message
+        emptyTextView.visibility = View.VISIBLE
+        recyclerView.visibility = View.GONE
+    }
+
+    private fun hideEmptyState() {
+        emptyTextView.visibility = View.GONE
+        recyclerView.visibility = View.VISIBLE
     }
 
     private fun showError(message: String) {
@@ -242,8 +308,68 @@ class FamilyTreesListFragment : Fragment() {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
+    private fun showDeleteConfirmationDialog(tree: FamilyTree) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Удаление дерева")
+            .setMessage("Вы действительно хотите удалить дерево \"${tree.name}\"?")
+            .setPositiveButton("Удалить") { _, _ ->
+                viewModel.deleteFamilyTree(tree.id!!)
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun performSearch(query: String) {
+        currentSearchQuery = query
+        isSearchMode = true
+        
+        // Простой поиск только по названию дерева
+        viewModel.searchTrees(
+            query = query,
+            ownerName = null,
+            startDate = null,
+            endDate = null,
+            myOnly = tabLayout.selectedTabPosition == 0
+        )
+    }
+    
+    private fun exitSearchMode() {
+        isSearchMode = false
+        currentSearchQuery = null
+        searchJob?.cancel()
+        
+        // Возвращаемся к обычному режиму загрузки
+        loadTrees(tabLayout.selectedTabPosition == 0)
+    }
+    
+    private fun showFilterDialog() {
+        val dialog = FamilyTreeFilterDialog.newInstance()
+        dialog.setOnFilterAppliedListener { filterOptions ->
+            // Расширенный поиск с фильтрами - независимо от простого поиска
+            performAdvancedSearch(filterOptions)
+        }
+        dialog.show(parentFragmentManager, "filter_dialog")
+    }
+    
+    private fun performAdvancedSearch(filterOptions: FamilyTreeFilterDialog.FilterOptions) {
+        // Очищаем простой поиск при использовании расширенного
+        searchView.setQuery("", false)
+        currentSearchQuery = null
+        isSearchMode = true
+        
+        // Расширенный поиск со всеми параметрами
+        viewModel.searchTrees(
+            query = filterOptions.treeName,
+            ownerName = filterOptions.ownerName,
+            startDate = filterOptions.startDate,
+            endDate = filterOptions.endDate,
+            myOnly = tabLayout.selectedTabPosition == 0
+        )
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        searchJob?.cancel()
         _binding = null
     }
 } 

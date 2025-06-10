@@ -6,6 +6,8 @@ import ru.sevostyanov.aiscemetery.RetrofitClient
 import ru.sevostyanov.aiscemetery.models.FamilyTree
 import ru.sevostyanov.aiscemetery.models.FamilyTreeAccess
 import ru.sevostyanov.aiscemetery.models.MemorialRelation
+import ru.sevostyanov.aiscemetery.models.PublicationStatus
+import ru.sevostyanov.aiscemetery.models.RelationType
 import ru.sevostyanov.aiscemetery.user.UserManager
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -158,14 +160,121 @@ class FamilyTreeRepository @Inject constructor() {
     }
 
     suspend fun searchTrees(
-        query: String = "",
-        isPublic: Boolean? = null
+        query: String? = null,
+        ownerName: String? = null,
+        startDate: String? = null,
+        endDate: String? = null,
+        myOnly: Boolean = false
     ): List<FamilyTree> = withContext(Dispatchers.IO) {
         try {
-            apiService.searchFamilyTrees(query, isPublic)
+            apiService.searchFamilyTrees(query, ownerName, startDate, endDate, myOnly)
         } catch (e: Exception) {
             e.printStackTrace()
             throw Exception("Ошибка при поиске деревьев: ${e.message}")
+        }
+    }
+
+    // Методы для модерации семейных деревьев
+    suspend fun sendFamilyTreeForModeration(id: Long): FamilyTree = withContext(Dispatchers.IO) {
+        try {
+            apiService.sendFamilyTreeForModeration(id)
+        } catch (e: retrofit2.HttpException) {
+            e.printStackTrace()
+            when (e.code()) {
+                400 -> {
+                    val errorBody = e.response()?.errorBody()?.string()
+                    when {
+                        errorBody?.contains("must be public") == true -> 
+                            throw Exception("Не все мемориалы в дереве опубликованы. Для отправки дерева на публикацию все включенные мемориалы должны быть опубликованы.")
+                        else -> 
+                            throw Exception("Ошибка валидации: ${errorBody ?: e.message()}")
+                    }
+                }
+                401 -> throw Exception("Необходима авторизация")
+                403 -> throw Exception("Недостаточно прав доступа")
+                404 -> throw Exception("Дерево не найдено")
+                else -> throw Exception("Ошибка сервера: ${e.message()}")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Не удалось отправить дерево на модерацию: ${e.message}")
+        }
+    }
+
+    suspend fun approveFamilyTree(id: Long): FamilyTree = withContext(Dispatchers.IO) {
+        try {
+            apiService.approveFamilyTree(id)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Не удалось одобрить дерево: ${e.message}")
+        }
+    }
+
+    suspend fun rejectFamilyTree(id: Long, reason: String): FamilyTree = withContext(Dispatchers.IO) {
+        try {
+            apiService.rejectFamilyTree(id, reason)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Не удалось отклонить дерево: ${e.message}")
+        }
+    }
+
+    suspend fun unpublishFamilyTree(id: Long): FamilyTree = withContext(Dispatchers.IO) {
+        try {
+            apiService.unpublishFamilyTree(id)
+        } catch (e: retrofit2.HttpException) {
+            e.printStackTrace()
+            when (e.code()) {
+                400 -> {
+                    val errorBody = e.response()?.errorBody()?.string()
+                    when {
+                        errorBody?.contains("not published") == true -> 
+                            throw Exception("Дерево не опубликовано и не может быть снято с публикации")
+                        errorBody?.contains("Only tree owner") == true ->
+                            throw Exception("Только владелец дерева может снять его с публикации")
+                        else -> 
+                            throw Exception("Ошибка валидации: ${errorBody ?: e.message()}")
+                    }
+                }
+                401 -> throw Exception("Необходима авторизация")
+                403 -> throw Exception("Недостаточно прав доступа")
+                404 -> throw Exception("Дерево не найдено")
+                else -> throw Exception("Ошибка сервера: ${e.message()}")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Не удалось снять дерево с публикации: ${e.message}")
+        }
+    }
+
+    // Метод для проверки публичности мемориалов в дереве
+    suspend fun checkTreeMemorialsPublicity(treeId: Long): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val relations = apiService.getMemorialRelations(treeId)
+            val memorialIds = mutableSetOf<Long>()
+            
+            // Извлекаем уникальные ID мемориалов из связей
+            relations.forEach { relation ->
+                if (relation.relationType == RelationType.PLACEHOLDER) {
+                    relation.sourceMemorial.id?.let { memorialIds.add(it) }
+                } else {
+                    relation.sourceMemorial.id?.let { memorialIds.add(it) }
+                    relation.targetMemorial.id?.let { memorialIds.add(it) }
+                }
+            }
+            
+            // Проверяем публичность каждого мемориала
+            for (memorialId in memorialIds) {
+                val memorial = RetrofitClient.getApiService().getMemorialById(memorialId)
+                if (memorial.publicationStatus != PublicationStatus.PUBLISHED) {
+                    return@withContext false
+                }
+            }
+            
+            return@withContext true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Ошибка при проверке публичности мемориалов: ${e.message}")
         }
     }
 } 

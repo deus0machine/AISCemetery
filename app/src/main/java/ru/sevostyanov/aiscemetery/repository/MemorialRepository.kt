@@ -36,10 +36,12 @@ class MemorialRepository {
     }
 
     suspend fun getMyMemorials(): List<Memorial> = withContext(Dispatchers.IO) {
-        Log.d("MemorialRepository", "=== ЗАПРОС getMyMemorials() (без пагинации) ===")
+        Log.d("MemorialRepository", "=== ЗАПРОС getMyMemorials() (без пагинации, получаем первую страницу) ===")
         try {
-            val result = apiService.getMyMemorials()
-            Log.d("MemorialRepository", "Получено ${result.size} моих мемориалов без пагинации")
+            val pagedResponse = apiService.getMyMemorials(0, 1000) // Получаем первую страницу с большим размером
+            val result = pagedResponse.content
+            Log.d("MemorialRepository", "Получено ${result.size} моих мемориалов из paged response")
+            Log.d("MemorialRepository", "Всего элементов на сервере: ${pagedResponse.totalElements}")
             result.forEachIndexed { index, memorial ->
                 Log.d("MemorialRepository", "[$index] Мой мемориал: id=${memorial.id}, fio=${memorial.fio}, isPublic=${memorial.isPublic}")
             }
@@ -307,6 +309,88 @@ class MemorialRepository {
         } catch (e: Exception) {
             e.printStackTrace()
             throw Exception("Ошибка при загрузке фото: ${e.message}")
+        }
+    }
+
+    suspend fun uploadDocument(id: Long, documentUri: Uri, context: Context): String = withContext(Dispatchers.IO) {
+        try {
+            // Получаем информацию о файле
+            val contentResolver = context.contentResolver
+            val mimeType = contentResolver.getType(documentUri)
+            
+            // Валидация типа файла
+            if (mimeType == null || (!mimeType.equals("application/pdf") && !mimeType.startsWith("image/"))) {
+                throw Exception("Поддерживаются только PDF файлы и изображения")
+            }
+
+            // Определяем расширение файла
+            val extension = when (mimeType) {
+                "application/pdf" -> "pdf"
+                "image/jpeg" -> "jpg"
+                "image/png" -> "png"
+                "image/jpg" -> "jpg"
+                else -> MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: "pdf"
+            }
+            
+            val fileName = "document_${UUID.randomUUID()}.$extension"
+
+            // Создаем временный файл
+            val tempFile = File(context.cacheDir, fileName)
+
+            try {
+                // Копируем содержимое URI во временный файл
+                contentResolver.openInputStream(documentUri)?.use { input ->
+                    FileOutputStream(tempFile).use { output ->
+                        input.copyTo(output)
+                    }
+                } ?: throw Exception("Не удалось открыть файл документа")
+
+                // Проверяем размер файла (максимум 10MB)
+                if (tempFile.length() > MAX_FILE_SIZE) {
+                    throw Exception("Размер файла не должен превышать 10MB")
+                }
+
+                // Создаем MultipartBody.Part
+                val mediaType = mimeType.toMediaTypeOrNull()
+                val requestFile = tempFile.asRequestBody(mediaType)
+                val body = MultipartBody.Part.createFormData("document", fileName, requestFile)
+
+                // Отправляем файл и возвращаем результат
+                try {
+                    val response = apiService.uploadMemorialDocument(id, body)
+                    val result = response.string()
+                    
+                    // Удаляем временный файл
+                    if (tempFile.exists()) {
+                        tempFile.delete()
+                    }
+                    
+                    result
+                } catch (e: HttpException) {
+                    val errorMessage = when (e.code()) {
+                        403 -> "У вас нет прав для загрузки документов. Требуется подписка."
+                        413 -> "Файл слишком большой. Максимальный размер: 10MB"
+                        415 -> "Неподдерживаемый тип файла. Разрешены только PDF и изображения."
+                        else -> "Ошибка сервера: ${e.message()}"
+                    }
+                    throw Exception(errorMessage)
+                } catch (e: java.net.UnknownHostException) {
+                    throw Exception("Ошибка подключения к серверу. Проверьте подключение к интернету.")
+                } catch (e: java.net.SocketTimeoutException) {
+                    throw Exception("Превышено время ожидания ответа от сервера. Попробуйте позже.")
+                } catch (e: Exception) {
+                    throw Exception("Не удалось загрузить документ: ${e.message}")
+                }
+            } finally {
+                // Всегда удаляем временный файл
+                if (tempFile.exists()) {
+                    tempFile.delete()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MemorialRepository", "Document upload error: ${e.message}", e)
+            e.printStackTrace()
+            throw e
         }
     }
 

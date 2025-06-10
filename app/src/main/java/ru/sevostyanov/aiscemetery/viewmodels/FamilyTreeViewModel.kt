@@ -158,12 +158,18 @@ class FamilyTreeViewModel @Inject constructor(
         }
     }
 
-    fun searchTrees(query: String) {
+    fun searchTrees(
+        query: String? = null,
+        ownerName: String? = null,
+        startDate: String? = null,
+        endDate: String? = null,
+        myOnly: Boolean = false
+    ) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 _error.value = null
-                _familyTrees.value = repository.searchTrees(query)
+                _familyTrees.value = repository.searchTrees(query, ownerName, startDate, endDate, myOnly)
             } catch (e: Exception) {
                 handleError(e)
             } finally {

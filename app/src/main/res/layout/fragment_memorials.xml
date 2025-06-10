@@ -13,15 +13,16 @@
 
         <TextView
             android:id="@+id/title"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Места памяти"
-            android:textSize="24sp"
+            android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="@color/primary_text"
-            android:layout_gravity="center"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"/>
+            android:gravity="center"
+            android:paddingVertical="16dp"
+            android:letterSpacing="0.05"
+            android:fontFamily="@font/roboto_bold" />
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tab_layout"
@@ -114,4 +115,4 @@
         android:src="@drawable/ic_add"
         app:backgroundTint="@color/purple_500"/>
 
-</RelativeLayout> 
+</RelativeLayout>

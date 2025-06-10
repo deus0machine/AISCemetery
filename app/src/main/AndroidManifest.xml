@@ -39,6 +39,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".RegisterActivity" />
+        <activity android:name=".UserAgreementActivity" 
+            android:theme="@style/Theme.AISCemetery.NoActionBar" />
         <activity android:name=".activities.EditMemorialActivity" />
         <activity android:name=".activities.ViewMemorialActivity" />
         <activity android:name=".activities.PendingChangesActivity" />

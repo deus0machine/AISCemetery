@@ -66,6 +66,12 @@ class NotificationsAdapter(
                 NotificationType.MASS_ANNOUNCEMENT -> Pair("ВАЖНОЕ ОБЪЯВЛЕНИЕ", R.color.purple_500)
                 NotificationType.ADMIN_SYSTEM -> Pair("АДМИН СИСТЕМА", R.color.grey)
                 NotificationType.ADMIN_WARNING -> Pair("ПРЕДУПРЕЖДЕНИЕ", R.color.red)
+                // Новые типы для семейных деревьев
+                NotificationType.FAMILY_TREE_MODERATION -> Pair("МОДЕРАЦИЯ ДЕРЕВА", R.color.orange)
+                NotificationType.FAMILY_TREE_APPROVED -> Pair("ДЕРЕВО ОДОБРЕНО", R.color.green)
+                NotificationType.FAMILY_TREE_REJECTED -> Pair("ДЕРЕВО ОТКЛОНЕНО", R.color.red)
+                NotificationType.FAMILY_TREE_ACCESS_GRANTED -> Pair("ДОСТУП К ДЕРЕВУ", R.color.green)
+                NotificationType.FAMILY_TREE_ACCESS_REVOKED -> Pair("ДОСТУП ОТОЗВАН", R.color.red)
                 else -> Pair("УВЕДОМЛЕНИЕ", R.color.grey)
             }
         }
@@ -86,7 +92,12 @@ class NotificationsAdapter(
             notification.type == NotificationType.ADMIN_INFO ||
             notification.type == NotificationType.MASS_ANNOUNCEMENT ||
             notification.type == NotificationType.ADMIN_SYSTEM ||
-            notification.type == NotificationType.ADMIN_WARNING -> TYPE_INFO
+            notification.type == NotificationType.ADMIN_WARNING ||
+            // Информационные уведомления о семейных деревьях (результаты модерации и изменения доступа)
+            notification.type == NotificationType.FAMILY_TREE_APPROVED ||
+            notification.type == NotificationType.FAMILY_TREE_REJECTED ||
+            notification.type == NotificationType.FAMILY_TREE_ACCESS_GRANTED ||
+            notification.type == NotificationType.FAMILY_TREE_ACCESS_REVOKED -> TYPE_INFO
             
             // Стандартные уведомления с возможными действиями (включая исходящие технические)
             else -> TYPE_STANDARD
@@ -201,6 +212,12 @@ class NotificationsAdapter(
                 NotificationType.MASS_ANNOUNCEMENT -> notification.title ?: "Важное объявление"
                 NotificationType.ADMIN_SYSTEM -> notification.title ?: "Системное уведомление"
                 NotificationType.ADMIN_WARNING -> notification.title ?: "Предупреждение"
+                // Новые типы для семейных деревьев
+                NotificationType.FAMILY_TREE_MODERATION -> "Запрос на модерацию генеалогического дерева"
+                NotificationType.FAMILY_TREE_APPROVED -> notification.title ?: "Генеалогическое дерево одобрено"
+                NotificationType.FAMILY_TREE_REJECTED -> notification.title ?: "Генеалогическое дерево отклонено"
+                NotificationType.FAMILY_TREE_ACCESS_GRANTED -> notification.title ?: "Доступ к генеалогическому дереву предоставлен"
+                NotificationType.FAMILY_TREE_ACCESS_REVOKED -> notification.title ?: "Доступ к генеалогическому дереву отозван"
                 else -> "Уведомление"
             }
             titleTextView.text = title
@@ -217,10 +234,18 @@ class NotificationsAdapter(
                 dateTextView.text = notification.createdAt
             }
             
-            // Настройка информации о мемориале
+            // Настройка информации о мемориале или семейном дереве
             if (notification.relatedEntityName != null && 
                 notification.relatedEntityName != "Техническая поддержка") {
-                memorialInfoTextView.text = "Мемориал: ${notification.relatedEntityName}"
+                val entityType = when (notification.type) {
+                    NotificationType.FAMILY_TREE_MODERATION,
+                    NotificationType.FAMILY_TREE_APPROVED,
+                    NotificationType.FAMILY_TREE_REJECTED,
+                    NotificationType.FAMILY_TREE_ACCESS_GRANTED,
+                    NotificationType.FAMILY_TREE_ACCESS_REVOKED -> "Генеалогическое дерево"
+                    else -> "Мемориал"
+                }
+                memorialInfoTextView.text = "$entityType: ${notification.relatedEntityName}"
                 memorialInfoTextView.visibility = View.VISIBLE
             } else {
                 memorialInfoTextView.visibility = View.GONE
@@ -264,6 +289,12 @@ class NotificationsAdapter(
                 NotificationType.ADMIN_SYSTEM -> Pair(android.R.drawable.ic_menu_manage, R.color.grey)
                 NotificationType.ADMIN_WARNING -> Pair(android.R.drawable.ic_dialog_dialer, R.color.red)
                 NotificationType.INFO -> Pair(android.R.drawable.ic_dialog_info, R.color.teal_700)
+                // Новые типы для семейных деревьев
+                NotificationType.FAMILY_TREE_MODERATION -> Pair(android.R.drawable.ic_menu_view, R.color.orange)
+                NotificationType.FAMILY_TREE_APPROVED -> Pair(android.R.drawable.ic_menu_upload, R.color.green)
+                NotificationType.FAMILY_TREE_REJECTED -> Pair(android.R.drawable.ic_menu_close_clear_cancel, R.color.red)
+                NotificationType.FAMILY_TREE_ACCESS_GRANTED -> Pair(android.R.drawable.ic_menu_share, R.color.green)
+                NotificationType.FAMILY_TREE_ACCESS_REVOKED -> Pair(android.R.drawable.ic_menu_delete, R.color.red)
                 else -> Pair(android.R.drawable.ic_dialog_email, R.color.grey)
             }
             
@@ -354,6 +385,27 @@ class NotificationsAdapter(
                 NotificationType.INFO -> {
                     backgroundColorHex = "#E8F5E9" // Light green
                     borderColor = ContextCompat.getColor(context, R.color.teal_700)
+                }
+                // Новые типы для семейных деревьев
+                NotificationType.FAMILY_TREE_MODERATION -> {
+                    backgroundColorHex = "#FFF3E0" // Light orange
+                    borderColor = ContextCompat.getColor(context, R.color.orange)
+                }
+                NotificationType.FAMILY_TREE_APPROVED -> {
+                    backgroundColorHex = "#E8F5E9" // Light green
+                    borderColor = ContextCompat.getColor(context, R.color.green)
+                }
+                NotificationType.FAMILY_TREE_REJECTED -> {
+                    backgroundColorHex = "#FFEBEE" // Light red
+                    borderColor = ContextCompat.getColor(context, R.color.red)
+                }
+                NotificationType.FAMILY_TREE_ACCESS_GRANTED -> {
+                    backgroundColorHex = "#E8F5E9" // Light green
+                    borderColor = ContextCompat.getColor(context, R.color.green)
+                }
+                NotificationType.FAMILY_TREE_ACCESS_REVOKED -> {
+                    backgroundColorHex = "#FFEBEE" // Light red
+                    borderColor = ContextCompat.getColor(context, R.color.red)
                 }
                 else -> {
                     backgroundColorHex = "#F5F5F5" // Light grey
@@ -459,6 +511,12 @@ class NotificationsAdapter(
                 NotificationType.MASS_ANNOUNCEMENT -> notification.title ?: "Важное объявление"
                 NotificationType.ADMIN_SYSTEM -> notification.title ?: "Системное уведомление"
                 NotificationType.ADMIN_WARNING -> notification.title ?: "Предупреждение"
+                // Новые типы для семейных деревьев
+                NotificationType.FAMILY_TREE_MODERATION -> "Запрос на модерацию генеалогического дерева"
+                NotificationType.FAMILY_TREE_APPROVED -> notification.title ?: "Генеалогическое дерево одобрено"
+                NotificationType.FAMILY_TREE_REJECTED -> notification.title ?: "Генеалогическое дерево отклонено"
+                NotificationType.FAMILY_TREE_ACCESS_GRANTED -> notification.title ?: "Доступ к генеалогическому дереву предоставлен"
+                NotificationType.FAMILY_TREE_ACCESS_REVOKED -> notification.title ?: "Доступ к генеалогическому дереву отозван"
                 else -> "Уведомление"
             }
             titleTextView.text = title
@@ -488,10 +546,18 @@ class NotificationsAdapter(
             // Настройка информации о пользователе
             configureUserInfo(notification)
             
-            // Настройка информации о мемориале
+            // Настройка информации о мемориале или семейном дереве
             if (notification.relatedEntityName != null && 
                 notification.relatedEntityName != "Техническая поддержка") {
-                memorialInfoTextView.text = "Мемориал: ${notification.relatedEntityName}"
+                val entityType = when (notification.type) {
+                    NotificationType.FAMILY_TREE_MODERATION,
+                    NotificationType.FAMILY_TREE_APPROVED,
+                    NotificationType.FAMILY_TREE_REJECTED,
+                    NotificationType.FAMILY_TREE_ACCESS_GRANTED,
+                    NotificationType.FAMILY_TREE_ACCESS_REVOKED -> "Генеалогическое дерево"
+                    else -> "Мемориал"
+                }
+                memorialInfoTextView.text = "$entityType: ${notification.relatedEntityName}"
                 memorialInfoTextView.visibility = View.VISIBLE
             } else {
                 memorialInfoTextView.visibility = View.GONE

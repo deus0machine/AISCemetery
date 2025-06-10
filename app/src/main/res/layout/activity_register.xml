@@ -164,6 +164,23 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- User Agreement Link -->
+                <TextView
+                    android:id="@+id/user_agreement_link"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="📄 Ознакомиться с пользовательским соглашением"
+                    android:textSize="14sp"
+                    android:textColor="@color/purple_500"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:padding="8dp"
+                    android:gravity="center"
+                    android:drawablePadding="8dp" />
+
                 <!-- Privacy Consent Checkbox -->
                 <LinearLayout
                     android:layout_width="match_parent"

@@ -64,6 +64,9 @@ class NotificationPageFragment : Fragment() {
         setupRecyclerView()
         setupObservers()
         
+        // Очищаем предыдущие ошибки
+        viewModel.clearError()
+        
         // Load notifications
         if (isIncoming) {
             viewModel.loadIncomingNotifications()
@@ -74,6 +77,9 @@ class NotificationPageFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        // Очищаем предыдущие ошибки
+        viewModel.clearError()
+        
         // Обновляем уведомления при возвращении к фрагменту
         // чтобы правильно отображался статус после подтверждения/отклонения изменений
         if (isIncoming) {
@@ -387,7 +393,7 @@ class NotificationPageFragment : Fragment() {
         }
         
         viewModel.error.observe(viewLifecycleOwner) { errorMessage ->
-            if (!errorMessage.isNullOrEmpty()) {
+            if (!errorMessage.isNullOrEmpty() && errorMessage.isNotBlank()) {
                 Log.e("NotificationPage", "Ошибка: $errorMessage")
                 Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
             }

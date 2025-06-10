@@ -8,6 +8,18 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Деревья памяти"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_text"
+            android:gravity="center"
+            android:paddingVertical="16dp"
+            android:letterSpacing="0.05"
+            android:fontFamily="@font/roboto_bold" />
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tab_layout"
@@ -52,28 +64,39 @@
 
         </LinearLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerView"
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding="8dp"
-            android:clipToPadding="false" />
+            android:layout_height="match_parent">
 
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone" />
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="8dp"
+                android:clipToPadding="false" />
 
-        <TextView
-            android:id="@+id/text_empty"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="Нет доступных деревьев"
-            android:textSize="16sp"
-            android:visibility="gone" />
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:visibility="gone" />
+
+            <!-- Сообщение об отсутствии деревьев -->
+            <TextView
+                android:id="@+id/text_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="У вас пока нет деревьев"
+                android:textSize="16sp"
+                android:textColor="@color/secondary_text"
+                android:textStyle="italic"
+                android:visibility="gone"
+                android:gravity="center"
+                android:padding="16dp"/>
+
+        </RelativeLayout>
 
     </LinearLayout>
 

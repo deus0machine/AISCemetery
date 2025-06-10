@@ -32,12 +32,18 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
 
     private val apiService = RetrofitClient.getApiService()
 
+    // Очистка ошибки
+    fun clearError() {
+        _error.value = null
+    }
+
     // Загрузка входящих уведомлений
     fun loadIncomingNotifications() {
         viewModelScope.launch {
             try {
                 Log.d(TAG, "Загружаем входящие уведомления")
                 _isLoading.value = true
+                _error.value = null  // Сбрасываем ошибку перед новым запросом
                 val notifications = apiService.getMyNotifications()
                 Log.d(TAG, "Получены входящие уведомления: ${notifications.size}")
                 
@@ -88,6 +94,7 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
             try {
                 Log.d(TAG, "Загружаем исходящие уведомления")
                 _isLoading.value = true
+                _error.value = null  // Сбрасываем ошибку перед новым запросом
                 val notifications = apiService.getSentNotifications()
                 Log.d(TAG, "Получены исходящие уведомления: ${notifications.size}")
                 

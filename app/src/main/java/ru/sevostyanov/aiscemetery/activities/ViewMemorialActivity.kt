@@ -699,10 +699,10 @@ class ViewMemorialActivity : AppCompatActivity() {
         
         when (memorial.publicationStatus) {
             PublicationStatus.DRAFT -> {
-                // Черновик - показываем кнопку отправки на модерацию только владельцу
+                // Приватный - показываем кнопку отправки на модерацию только владельцу
                 if (isOwner) {
                     moderationCardView.visibility = View.VISIBLE
-                    moderationMessageTextView.text = "Мемориал сохранен как черновик. Отправьте его на публикацию для размещения на сайте."
+                    moderationMessageTextView.text = "Мемориал приватный. Отправьте его на публикацию для размещения на сайте."
                     
                     // Проверяем подписку пользователя
                     if (currentUser?.hasSubscription == true) {
@@ -829,6 +829,20 @@ class ViewMemorialActivity : AppCompatActivity() {
                         Toast.makeText(this, "Функция покупки подписки будет добавлена позже", Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton("Понятно", null)
+                    .show()
+                return@setOnClickListener
+            }
+            
+            // Проверяем наличие документа
+            if (memorial?.documentUrl.isNullOrEmpty()) {
+                AlertDialog.Builder(this)
+                    .setTitle("Требуется документ")
+                    .setMessage("Для публикации мемориала необходимо прикрепить документ, подтверждающий информацию (свидетельство о рождении, свидетельство о смерти и т.д.).\n\nПожалуйста, отредактируйте мемориал и добавьте документ перед отправкой на публикацию.")
+                    .setPositiveButton("Редактировать") { _, _ ->
+                        // Открываем экран редактирования
+                        memorial?.let { EditMemorialActivity.start(this, it) }
+                    }
+                    .setNegativeButton("Отмена", null)
                     .show()
                 return@setOnClickListener
             }

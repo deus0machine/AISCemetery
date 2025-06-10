@@ -52,13 +52,14 @@ data class Notification(
     @SerializedName("urgent")
     val urgent: Boolean = false
 ) : Parcelable {
-    // Проверяет, является ли уведомление связанным с модерацией мемориала
+    // Проверяет, является ли уведомление связанным с модерацией мемориала или семейного дерева
     fun isRelatedToModeration(): Boolean {
         // Защита от null в типе уведомления
         if (type == null) return false
         
-        // Прямой тип MODERATION
-        if (type == NotificationType.MODERATION) return true
+        // Прямые типы модерации
+        if (type == NotificationType.MODERATION || 
+            type == NotificationType.FAMILY_TREE_MODERATION) return true
         
         // Системные уведомления с заголовком/сообщением о модерации
         if (type == NotificationType.SYSTEM) {
@@ -75,13 +76,21 @@ data class Notification(
         return false
     }
     
-    // Определяет, был ли мемориал одобрен (для уведомлений о модерации)
+    // Определяет, был ли мемориал или семейное дерево одобрено (для уведомлений о модерации)
     fun isMemorialApproved(): Boolean {
         // Защита от null
-        if (type == null || !isRelatedToModeration()) return false
+        if (type == null) return false
         
-        val titleLower = title?.lowercase() ?: ""
-        return titleLower.contains("опубликован") && !titleLower.contains("не опубликован")
+        // Прямой тип одобрения семейного дерева
+        if (type == NotificationType.FAMILY_TREE_APPROVED) return true
+        
+        // Для других типов проверяем заголовок
+        if (isRelatedToModeration()) {
+            val titleLower = title?.lowercase() ?: ""
+            return titleLower.contains("опубликован") && !titleLower.contains("не опубликован")
+        }
+        
+        return false
     }
 }
 
@@ -147,7 +156,23 @@ enum class NotificationType {
     ADMIN_WARNING,
     
     @SerializedName("MEMORIAL_REPORT")
-    MEMORIAL_REPORT
+    MEMORIAL_REPORT,
+    
+    // Типы уведомлений для семейных деревьев
+    @SerializedName("FAMILY_TREE_MODERATION")
+    FAMILY_TREE_MODERATION,
+    
+    @SerializedName("FAMILY_TREE_APPROVED")
+    FAMILY_TREE_APPROVED,
+    
+    @SerializedName("FAMILY_TREE_REJECTED")
+    FAMILY_TREE_REJECTED,
+    
+    @SerializedName("FAMILY_TREE_ACCESS_GRANTED")
+    FAMILY_TREE_ACCESS_GRANTED,
+    
+    @SerializedName("FAMILY_TREE_ACCESS_REVOKED")
+    FAMILY_TREE_ACCESS_REVOKED
 }
 
 enum class NotificationStatus {

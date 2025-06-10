@@ -5,20 +5,22 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.ImageButton
 import android.widget.Toast
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.android.material.switchmaterial.SwitchMaterial
-import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.viewmodels.FamilyTreeDetailViewModel
 import android.widget.EditText
-import android.widget.Switch
+import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.fragment.app.setFragmentResult
 import android.util.Log
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import ru.sevostyanov.aiscemetery.models.PublicationStatus
 
 @AndroidEntryPoint
 class FamilyTreeFragment : BottomSheetDialogFragment() {
@@ -38,7 +40,11 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
 
     private lateinit var nameEditText: EditText
     private lateinit var descriptionEditText: EditText
-    private lateinit var isPublicSwitch: Switch
+    private lateinit var publicationStatusTextView: TextView
+    private lateinit var moderationCardView: CardView
+    private lateinit var moderationMessageTextView: TextView
+    private lateinit var sendForModerationButton: Button
+    private lateinit var unpublishButton: Button
     private lateinit var viewGenealogyButton: Button
     private lateinit var editGenealogyButton: Button
     private lateinit var saveButton: Button
@@ -71,7 +77,11 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
     private fun initializeViews(view: View) {
         nameEditText = view.findViewById(R.id.text_name)
         descriptionEditText = view.findViewById(R.id.text_description)
-        isPublicSwitch = view.findViewById(R.id.switch_is_public)
+        publicationStatusTextView = view.findViewById(R.id.text_publication_status)
+        moderationCardView = view.findViewById(R.id.moderation_card)
+        moderationMessageTextView = view.findViewById(R.id.moderation_message)
+        sendForModerationButton = view.findViewById(R.id.button_send_for_moderation)
+        unpublishButton = view.findViewById(R.id.button_unpublish)
         viewGenealogyButton = view.findViewById(R.id.button_view_genealogy)
         editGenealogyButton = view.findViewById(R.id.button_edit_genealogy)
         saveButton = view.findViewById(R.id.button_save)
@@ -82,7 +92,20 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
             tree?.let {
                 nameEditText.setText(it.name)
                 descriptionEditText.setText(it.description ?: "")
-                isPublicSwitch.isChecked = it.isPublic
+                updatePublicationStatus(it)
+                
+                // Блокируем редактирование если дерево на модерации
+                val canEdit = viewModel.canEditTree()
+                nameEditText.isEnabled = canEdit
+                descriptionEditText.isEnabled = canEdit
+                saveButton.isEnabled = canEdit
+                editGenealogyButton.isEnabled = canEdit
+                
+                // Обновляем доступность кнопки отправки на модерацию
+                sendForModerationButton.isEnabled = viewModel.canSendForModeration()
+                
+                // Обновляем видимость кнопки снятия с публикации
+                unpublishButton.visibility = if (viewModel.canUnpublishTree()) View.VISIBLE else View.GONE
             }
             // dismiss только если было сохранение
             if (wasSaved && tree != null && tree.id == treeId) {
@@ -93,21 +116,152 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
 
         viewModel.error.observe(viewLifecycleOwner) { error ->
             error?.let {
-                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                // Для длинных сообщений об ошибках используем LONG
+                val duration = if (it.length > 50) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
+                Toast.makeText(context, it, duration).show()
             }
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            saveButton.isEnabled = !isLoading
+            // Блокируем все кнопки во время загрузки, но учитываем модерацию
+            val tree = viewModel.familyTree.value
+            val canEdit = tree?.let { viewModel.canEditTree() } ?: false
+            val canSendForModeration = tree?.let { viewModel.canSendForModeration() } ?: false
+            val canUnpublish = tree?.let { viewModel.canUnpublishTree() } ?: false
+            
+            saveButton.isEnabled = !isLoading && canEdit
+            editGenealogyButton.isEnabled = !isLoading && canEdit
+            sendForModerationButton.isEnabled = !isLoading && canSendForModeration
+            unpublishButton.isEnabled = !isLoading && canUnpublish
+            viewGenealogyButton.isEnabled = !isLoading // Просмотр всегда доступен
+        }
+    }
+
+    private fun updatePublicationStatus(tree: ru.sevostyanov.aiscemetery.models.FamilyTree) {
+        publicationStatusTextView.text = "Статус: ${tree.getPublicationStatusText()}"
+        
+        when (tree.publicationStatus) {
+            PublicationStatus.DRAFT -> {
+                if (tree.isUserOwner) {
+                    moderationCardView.visibility = View.VISIBLE
+                    moderationMessageTextView.text = "Дерево приватное. Отправьте его на публикацию для размещения на сайте."
+                    sendForModerationButton.text = "Отправить на публикацию"
+                    setupSendForModerationButton()
+                } else {
+                    moderationCardView.visibility = View.GONE
+                }
+            }
+            
+            PublicationStatus.PENDING_MODERATION -> {
+                moderationCardView.visibility = View.VISIBLE
+                moderationMessageTextView.text = "Дерево ожидает публикации. Редактирование заблокировано до принятия решения администратором."
+                sendForModerationButton.visibility = View.GONE
+            }
+            
+            PublicationStatus.REJECTED -> {
+                if (tree.isUserOwner) {
+                    moderationCardView.visibility = View.VISIBLE
+                    moderationMessageTextView.text = "Публикация дерева была отклонена. Проверьте уведомления для получения информации о причинах."
+                    sendForModerationButton.text = "Отправить на повторную публикацию"
+                    sendForModerationButton.visibility = View.VISIBLE
+                    setupSendForModerationButton()
+                } else {
+                    moderationCardView.visibility = View.GONE
+                }
+            }
+            
+            PublicationStatus.PUBLISHED -> {
+                moderationCardView.visibility = View.GONE
+            }
+            
+            null -> {
+                // Для совместимости со старой версией API
+                if (tree.isUserOwner && !tree.isPublic) {
+                    moderationCardView.visibility = View.VISIBLE
+                    moderationMessageTextView.text = "Дерево приватное. Отправьте его на публикацию для размещения на сайте."
+                    sendForModerationButton.text = "Отправить на публикацию"
+                    setupSendForModerationButton()
+                } else {
+                    moderationCardView.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun setupSendForModerationButton() {
+        sendForModerationButton.setOnClickListener {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Отправка на публикацию")
+                .setMessage("Перед отправкой дерева на публикацию все мемориалы в дереве должны быть опубликованы.\n\n" +
+                        "Отправить дерево на публикацию?\n\n" +
+                        "Важно! После отправки на публикацию:\n" +
+                        "• Дерево станет недоступно для редактирования\n" +
+                        "• Изменения будут возможны только после решения администратора\n" +
+                        "• Вы получите уведомление о результате проверки")
+                .setPositiveButton("Отправить") { _, _ ->
+                    sendTreeForModeration()
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+        }
+    }
+
+    private fun sendTreeForModeration() {
+        lifecycleScope.launch {
+            try {
+                viewModel.sendFamilyTreeForModeration(treeId)
+                Toast.makeText(requireContext(), "Дерево отправлено на публикацию", Toast.LENGTH_SHORT).show()
+                
+                // Сначала уведомляем о необходимости обновления
+                setFragmentResult("family_tree_updated", Bundle())
+                
+                // Закрываем диалог после успешной отправки
+                dismiss()
+            } catch (e: Exception) {
+                Log.e("FamilyTreeFragment", "Ошибка при отправке дерева на модерацию: ${e.message}", e)
+                Toast.makeText(requireContext(), "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun unpublishTree() {
+        lifecycleScope.launch {
+            try {
+                viewModel.unpublishFamilyTree(treeId)
+                Toast.makeText(requireContext(), "Дерево снято с публикации", Toast.LENGTH_SHORT).show()
+                
+                // Сначала уведомляем о необходимости обновления
+                setFragmentResult("family_tree_updated", Bundle())
+                
+                // Закрываем диалог после успешного снятия
+                dismiss()
+            } catch (e: Exception) {
+                Log.e("FamilyTreeFragment", "Ошибка при снятии дерева с публикации: ${e.message}", e)
+                Toast.makeText(requireContext(), "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
     private fun setupClickListeners() {
 
+        unpublishButton.setOnClickListener {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Снятие с публикации")
+                .setMessage("Вы уверены, что хотите снять дерево с публикации?\n\n" +
+                        "После снятия с публикации:\n" +
+                        "• Дерево станет приватным\n" +
+                        "• Оно не будет отображаться в публичном каталоге\n" +
+                        "• Доступ к нему будут иметь только вы и пользователи с предоставленными правами")
+                .setPositiveButton("Снять с публикации") { _, _ ->
+                    unpublishTree()
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+        }
+
         saveButton.setOnClickListener {
             val name = nameEditText.text.toString()
             val description = descriptionEditText.text.toString()
-            val isPublic = isPublicSwitch.isChecked
 
             if (name.isBlank()) {
                 Toast.makeText(context, "Введите название дерева", Toast.LENGTH_SHORT).show()
@@ -118,8 +272,7 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
             viewModel.updateFamilyTree(
                 id = treeId,
                 name = name,
-                description = description,
-                isPublic = isPublic
+                description = description
             )
         }
 
@@ -129,61 +282,15 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
             // Закрываем текущий диалог
             dismiss()
             
+            // Переходим к фрагменту просмотра генеалогии
             try {
-                // Простой способ - попробуем найти NavController через активность
-                val activity = requireActivity()
-                Log.d("FamilyTreeFragment", "Activity получена: ${activity.javaClass.simpleName}")
-                
-                val navHostFragment = activity.supportFragmentManager
-                    .findFragmentById(R.id.nav_host_fragment)
-                
-                Log.d("FamilyTreeFragment", "NavHostFragment: ${navHostFragment?.javaClass?.simpleName}")
-                
-                if (navHostFragment != null) {
-                    val navController = navHostFragment.findNavController()
-                    Log.d("FamilyTreeFragment", "NavController получен: $navController")
-                    
-                    // Проверяем текущий destination
-                    val currentDestination = navController.currentDestination
-                    Log.d("FamilyTreeFragment", "Текущий destination: ${currentDestination?.label}")
-                    
-                    val bundle = Bundle().apply {
-                        putLong("treeId", treeId)
-                    }
-                    Log.d("FamilyTreeFragment", "Bundle создан с treeId: $treeId")
-                    
-                    // Пытаемся навигировать
-                    navController.navigate(R.id.action_familyTreesListFragment_to_genealogyTreeFragment, bundle)
-                    Log.d("FamilyTreeFragment", "Навигация выполнена успешно")
-                } else {
-                    Log.e("FamilyTreeFragment", "NavHostFragment не найден!")
-                    Toast.makeText(context, "NavHostFragment не найден", Toast.LENGTH_SHORT).show()
+                val bundle = Bundle().apply {
+                    putLong("treeId", treeId)
                 }
+                findNavController().navigate(R.id.action_familyTreesListFragment_to_genealogyTreeFragment, bundle)
             } catch (e: Exception) {
-                Log.e("FamilyTreeFragment", "Ошибка навигации через action: ${e.message}")
-                
-                // Пробуем альтернативный способ - навигация напрямую к destination
-                try {
-                    val activity = requireActivity()
-                    val navHostFragment = activity.supportFragmentManager
-                        .findFragmentById(R.id.nav_host_fragment)
-                    
-                    if (navHostFragment != null) {
-                        val navController = navHostFragment.findNavController()
-                        val bundle = Bundle().apply {
-                            putLong("treeId", treeId)
-                        }
-                        
-                        // Навигация напрямую к destination
-                        navController.navigate(R.id.genealogyTreeFragment, bundle)
-                        Log.d("FamilyTreeFragment", "Прямая навигация выполнена успешно")
-                    } else {
-                        Toast.makeText(context, "NavHostFragment не найден", Toast.LENGTH_SHORT).show()
-                    }
-                } catch (e2: Exception) {
-                    Log.e("FamilyTreeFragment", "Ошибка прямой навигации: ${e2.message}", e2)
-                    Toast.makeText(context, "Ошибка навигации: ${e2.message}", Toast.LENGTH_LONG).show()
-                }
+                Log.e("FamilyTreeFragment", "Ошибка навигации: ${e.message}", e)
+                Toast.makeText(context, "Ошибка при переходе к дереву", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -193,38 +300,17 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
             // Закрываем текущий диалог
             dismiss()
             
+            // Переходим к фрагменту редактирования генеалогии
             try {
-                // Используем NavController для навигации
-                val activity = requireActivity()
-                val navHostFragment = activity.supportFragmentManager
-                    .findFragmentById(R.id.nav_host_fragment)
-                
-                if (navHostFragment != null) {
-                    val navController = navHostFragment.findNavController()
-                    
-                    val bundle = Bundle().apply {
-                        putLong("treeId", treeId)
-                    }
-                    
-                    // Используем действие из familyTreesListFragment или прямую навигацию
-                    try {
-                        navController.navigate(R.id.action_familyTreesListFragment_to_editGenealogyTreeFragment, bundle)
-                        Log.d("FamilyTreeFragment", "Навигация через action выполнена успешно")
-                    } catch (e: Exception) {
-                        // Fallback - прямая навигация к destination
-                        navController.navigate(R.id.editGenealogyTreeFragment, bundle)
-                        Log.d("FamilyTreeFragment", "Прямая навигация выполнена успешно")
-                    }
-                    
-                } else {
-                    Log.e("FamilyTreeFragment", "NavHostFragment не найден!")
-                    Toast.makeText(context, "Ошибка навигации", Toast.LENGTH_SHORT).show()
+                val bundle = Bundle().apply {
+                    putLong("treeId", treeId)
                 }
-                
+                findNavController().navigate(R.id.action_familyTreesListFragment_to_editGenealogyTreeFragment, bundle)
             } catch (e: Exception) {
-                Log.e("FamilyTreeFragment", "Ошибка при переходе к редактированию: ${e.message}", e)
-                Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+                Log.e("FamilyTreeFragment", "Ошибка навигации: ${e.message}", e)
+                Toast.makeText(context, "Ошибка при переходе к редактору", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
 } 

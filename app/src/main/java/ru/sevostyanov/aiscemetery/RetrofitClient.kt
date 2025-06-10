@@ -28,6 +28,7 @@ import ru.sevostyanov.aiscemetery.models.ApproveChangesRequest
 import ru.sevostyanov.aiscemetery.models.EditorRequest
 import ru.sevostyanov.aiscemetery.models.FamilyTree
 import ru.sevostyanov.aiscemetery.models.FamilyTreeAccess
+import ru.sevostyanov.aiscemetery.models.FamilyTreeFullData
 import ru.sevostyanov.aiscemetery.models.FamilyTreeUpdateDTO
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.models.MemorialOwnershipRequest
@@ -225,9 +226,6 @@ object RetrofitClient {
         ): PagedResponse<Memorial>
 
         @GET("/api/memorials/my")
-        suspend fun getMyMemorials(): List<Memorial>
-
-        @GET("/api/memorials/my")
         suspend fun getMyMemorials(
             @Query("page") page: Int,
             @Query("size") size: Int
@@ -279,6 +277,10 @@ object RetrofitClient {
         @DELETE("/api/memorials/{id}/photo")
         suspend fun deleteMemorialPhoto(@Path("id") id: Long)
 
+        @Multipart
+        @POST("/api/memorials/{id}/document")
+        suspend fun uploadMemorialDocument(@Path("id") id: Long, @Part document: MultipartBody.Part): ResponseBody
+
         @GET("/api/memorials/search")
         suspend fun searchMemorials(
             @Query("query") query: String,
@@ -311,6 +313,9 @@ object RetrofitClient {
         @GET("api/family-trees/{id}")
         suspend fun getFamilyTreeById(@Path("id") id: Long): FamilyTree
 
+        @GET("api/family-trees/{id}/full-data")
+        suspend fun getFamilyTreeFullData(@Path("id") id: Long): FamilyTreeFullData
+
         @POST("api/family-trees")
         suspend fun createFamilyTree(@Body familyTree: FamilyTree): FamilyTree
 
@@ -325,8 +330,11 @@ object RetrofitClient {
 
         @GET("api/family-trees/search")
         suspend fun searchFamilyTrees(
-            @Query("query") query: String,
-            @Query("isPublic") isPublic: Boolean? = null
+            @Query("query") query: String?,
+            @Query("ownerName") ownerName: String?,
+            @Query("startDate") startDate: String?,
+            @Query("endDate") endDate: String?,
+            @Query("myOnly") myOnly: Boolean = false
         ): List<FamilyTree>
 
         @GET("api/family-trees/{treeId}/access")
@@ -438,5 +446,18 @@ object RetrofitClient {
         // Метод для отправки жалобы на мемориал
         @POST("/api/memorials/{id}/report")
         suspend fun reportMemorial(@Path("id") id: Long, @Body request: ru.sevostyanov.aiscemetery.models.MemorialReportRequest): ru.sevostyanov.aiscemetery.models.MemorialReportResponse
+
+        // Методы для модерации семейных деревьев
+        @POST("api/family-trees/{id}/send-for-moderation")
+        suspend fun sendFamilyTreeForModeration(@Path("id") id: Long): FamilyTree
+
+        @POST("api/family-trees/{id}/unpublish")
+        suspend fun unpublishFamilyTree(@Path("id") id: Long): FamilyTree
+        
+        @POST("api/family-trees/{id}/approve")
+        suspend fun approveFamilyTree(@Path("id") id: Long): FamilyTree
+        
+        @POST("api/family-trees/{id}/reject")
+        suspend fun rejectFamilyTree(@Path("id") id: Long, @Body reason: String): FamilyTree
     }
 }

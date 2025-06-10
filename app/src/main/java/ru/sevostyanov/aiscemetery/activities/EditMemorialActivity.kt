@@ -8,16 +8,21 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.cardview.widget.CardView
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -46,14 +51,25 @@ class EditMemorialActivity : AppCompatActivity() {
     private lateinit var biographyEdit: EditText
     private lateinit var mainLocationButton: Button
     private lateinit var burialLocationButton: Button
+    private lateinit var documentCard: CardView
+    private lateinit var documentSubscriptionRequiredLayout: LinearLayout
+    private lateinit var documentUploadLayout: LinearLayout
+    private lateinit var documentUploadedLayout: LinearLayout
+    private lateinit var documentIcon: ImageView
+    private lateinit var documentText: TextView
+    private lateinit var documentStatus: TextView
+    private lateinit var documentName: TextView
+    private lateinit var documentDelete: ImageView
 
     private var selectedPhotoUri: Uri? = null
+    private var selectedDocumentUri: Uri? = null
     private var birthDate: Long? = null
     private var deathDate: Long? = null
     private var mainLocation: Location? = null
     private var burialLocation: Location? = null
     private var shouldDeletePhoto: Boolean = false
     private var hasSubscription: Boolean = false
+    private var currentDocumentUrl: String? = null
 
     private var memorial: Memorial? = null
     private lateinit var repository: MemorialRepository
@@ -110,6 +126,32 @@ class EditMemorialActivity : AppCompatActivity() {
         }
     }
 
+    private val pickDocument = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let { selectedUri ->
+            try {
+                // Проверяем тип и размер файла
+                val mimeType = contentResolver.getType(selectedUri)
+                if (mimeType == null || (!mimeType.equals("application/pdf") && !mimeType.startsWith("image/"))) {
+                    showError("Поддерживаются только PDF файлы и изображения")
+                    return@let
+                }
+
+                contentResolver.openInputStream(selectedUri)?.use { inputStream ->
+                    val fileSize = inputStream.available()
+                    if (fileSize > MAX_FILE_SIZE) {
+                        showError("Размер файла не должен превышать 10MB")
+                        return@let
+                    }
+                }
+
+                selectedDocumentUri = selectedUri
+                updateDocumentUI(getFileName(selectedUri))
+            } catch (e: Exception) {
+                showError("Ошибка при выборе документа: ${e.message}")
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -152,6 +194,17 @@ class EditMemorialActivity : AppCompatActivity() {
         buttonSave = binding.buttonSave
         photoImageView = binding.photoImageView
         nameInputView = binding.nameInputView
+        
+        // Инициализация элементов документа
+        documentCard = binding.documentCard
+        documentSubscriptionRequiredLayout = binding.documentSubscriptionRequiredLayout
+        documentUploadLayout = binding.documentUploadLayout
+        documentUploadedLayout = binding.documentUploadedLayout
+        documentIcon = binding.documentIcon
+        documentText = binding.documentText
+        documentStatus = binding.documentStatus
+        documentName = binding.documentName
+        documentDelete = binding.documentDelete
 
         // Загрузка мемориала, если он есть
         val memorial = intent.getParcelableExtra<Memorial>(EXTRA_MEMORIAL)
@@ -289,6 +342,23 @@ class EditMemorialActivity : AppCompatActivity() {
                     burialLocationButton.text = location.address ?: "Место захоронения выбрано"
                 }
             }
+        }
+        
+        // Настройка обработчиков для документов
+        setupDocumentUI()
+        
+        documentUploadLayout.setOnClickListener {
+            if (hasSubscription) {
+                pickDocument.launch("*/*")
+            } else {
+                showSubscriptionRequiredDialog()
+            }
+        }
+        
+        documentDelete.setOnClickListener {
+            selectedDocumentUri = null
+            currentDocumentUrl = null
+            updateDocumentUI("")
         }
     }
 
@@ -473,6 +543,12 @@ class EditMemorialActivity : AppCompatActivity() {
                     it.photoUrl?.let { url ->
                         loadImage(url)
                     }
+                    
+                    // Обработка документа
+                    if (!it.documentUrl.isNullOrEmpty()) {
+                        currentDocumentUrl = it.documentUrl
+                        updateDocumentUI("Документ загружен")
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -645,6 +721,16 @@ class EditMemorialActivity : AppCompatActivity() {
         
         if (isOwner && isPublishedMemorial && currentMemorial?.id != null) {
             // Владелец редактирует опубликованный мемориал - предлагаем отправить изменения на модерацию
+            // Проверяем наличие документа
+            if (selectedDocumentUri == null && currentMemorial?.documentUrl.isNullOrEmpty()) {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle("Требуется документ")
+                    .setMessage("Для отправки мемориала на публикацию необходимо прикрепить документ, подтверждающий информацию (свидетельство о рождении, свидетельство о смерти и т.д.).\n\nПожалуйста, выберите документ перед отправкой на публикацию.")
+                    .setPositiveButton("ОК", null)
+                    .show()
+                return
+            }
+            
             MaterialAlertDialogBuilder(this)
                 .setTitle("Отправить изменения на публикацию?")
                 .setMessage("Поскольку мемориал уже опубликован, ваши изменения должны быть проверены администратором перед публикацией.\n\n" +
@@ -742,6 +828,23 @@ class EditMemorialActivity : AppCompatActivity() {
                         }
                     } catch (e: Exception) {
                         showError("Ошибка при загрузке фото: ${e.message}")
+                        return@launch
+                    }
+                }
+
+                // Если есть новый документ для загрузки
+                val currentDocumentUri = selectedDocumentUri
+                if (currentDocumentUri != null) {
+                    try {
+                        finalMemorial.id?.let { id ->
+                            val documentUrl = repository.uploadDocument(id, currentDocumentUri, activityContext)
+                            println("Документ успешно загружен для модерации: $documentUrl")
+                            
+                            // Обновляем currentDocumentUrl для отображения в UI
+                            currentDocumentUrl = documentUrl
+                        }
+                    } catch (e: Exception) {
+                        showError("Ошибка при загрузке документа: ${e.message}")
                         return@launch
                     }
                 }
@@ -883,6 +986,46 @@ class EditMemorialActivity : AppCompatActivity() {
                     }
                 }
 
+                // Если есть новый документ для загрузки
+                val currentDocumentUri = selectedDocumentUri
+                if (currentDocumentUri != null) {
+                    if (!NetworkUtil.isInternetAvailable(activityContext)) {
+                        showError("Нет подключения к интернету. Документ будет загружен позже")
+                        setResult(Activity.RESULT_OK)
+                        finish()
+                        return@launch
+                    }
+
+                    try {
+                        contentResolver.openInputStream(currentDocumentUri)?.use { inputStream ->
+                            val fileSize = inputStream.available()
+                            if (fileSize > MAX_FILE_SIZE) {
+                                showError("Размер файла не должен превышать 10MB")
+                                return@launch
+                            }
+                        }
+                        try {
+                            savedMemorial.id?.let { id ->
+                                val documentUrl = repository.uploadDocument(id, currentDocumentUri, activityContext)
+                                println("Документ успешно загружен: $documentUrl")
+                                
+                                // Обновляем currentDocumentUrl для отображения в UI
+                                currentDocumentUrl = documentUrl
+                                runOnUiThread {
+                                    showMessage("Документ успешно загружен")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            showError("Ошибка при загрузке документа: ${e.message}")
+                            return@launch
+                        }
+                    } catch (e: Exception) {
+                        showError("Ошибка при загрузке документа: ${e.message}")
+                        return@launch
+                    }
+                }
+
                 // Показываем сообщение в зависимости от статуса (редактор или владелец)
                 runOnUiThread {
                     // Если пользователь редактор (но не владелец) и это существующий мемориал
@@ -941,6 +1084,56 @@ class EditMemorialActivity : AppCompatActivity() {
             }
             .setNegativeButton("Отмена", null)
             .show()
+    }
+
+    private fun getFileName(uri: Uri): String {
+        var result: String? = null
+        if (uri.scheme == "content") {
+            val cursor = contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val columnIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (columnIndex != -1) {
+                        result = it.getString(columnIndex)
+                    }
+                }
+            }
+        }
+        if (result == null) {
+            result = uri.path
+            val cut = result?.lastIndexOf('/')
+            if (cut != -1 && cut != null) {
+                result = result?.substring(cut + 1)
+            }
+        }
+        return result ?: "Документ"
+    }
+
+    private fun setupDocumentUI() {
+        if (hasSubscription) {
+            documentSubscriptionRequiredLayout.visibility = View.GONE
+            documentUploadLayout.visibility = View.VISIBLE
+        } else {
+            documentSubscriptionRequiredLayout.visibility = View.VISIBLE
+            documentUploadLayout.visibility = View.GONE
+        }
+        documentUploadedLayout.visibility = View.GONE
+    }
+
+    private fun updateDocumentUI(fileName: String) {
+        if (fileName.isNotEmpty()) {
+            // Показываем UI с загруженным документом
+            documentUploadLayout.visibility = View.GONE
+            documentUploadedLayout.visibility = View.VISIBLE
+            documentName.text = fileName
+            Toast.makeText(this, "Выбран документ: $fileName", Toast.LENGTH_SHORT).show()
+        } else {
+            // Показываем UI для загрузки документа
+            if (hasSubscription) {
+                documentUploadLayout.visibility = View.VISIBLE
+                documentUploadedLayout.visibility = View.GONE
+            }
+        }
     }
 
     companion object {
