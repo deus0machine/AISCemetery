@@ -2,128 +2,165 @@ package ru.sevostyanov.aiscemetery
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.textfield.TextInputEditText
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.POST
+import ru.sevostyanov.aiscemetery.user.Guest
+import ru.sevostyanov.aiscemetery.user.UserManager
 
 class LoginActivity : AppCompatActivity() {
+    private var isInitialized = false
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    val loginService = RetrofitClient.getLoginService()
-
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        RetrofitClient.initialize(this)
-        setContentView(R.layout.activity_login)
+        
+        if (isInitialized) {
+            Log.d("LoginActivity", "Activity already initialized, skipping")
+            return
+        }
+        
+        try {
+            // Инициализируем RetrofitClient
+            RetrofitClient.initialize(this)
+            
+            // Проверяем, есть ли активная сессия
+            val user = UserManager.getCurrentUser() ?: UserManager.loadUserFromPreferences(this)
+            if (user != null) {
+                Log.d("LoginActivity", "User already logged in, starting MainActivity")
+                startMainActivity()
+                return
+            }
 
-        val loginButton = findViewById<Button>(R.id.login_button)
-        val registerLink = findViewById<TextView>(R.id.register_link)
-        val loginField = findViewById<EditText>(R.id.login_email)
-        val passwordField = findViewById<EditText>(R.id.login_password)
+            setContentView(R.layout.activity_login)
+            isInitialized = true
 
-        // Авторизация
-        loginButton.setOnClickListener {
-            val login = loginField.text.toString().trim()
-            val password = passwordField.text.toString().trim()
+            val loginButton = findViewById<MaterialButton>(R.id.login_button)
+            val registerLink = findViewById<TextView>(R.id.register_link)
+            val loginField = findViewById<TextInputEditText>(R.id.login_email)
+            val passwordField = findViewById<TextInputEditText>(R.id.login_password)
 
-            if (login.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Введите логин и пароль", Toast.LENGTH_SHORT).show()
-            } else {
-                authenticateUser(login, password)
+            // Авторизация
+            loginButton.setOnClickListener {
+                val login = loginField.text.toString().trim()
+                val password = passwordField.text.toString().trim()
+
+                if (login.isEmpty() || password.isEmpty()) {
+                    Toast.makeText(this, "Введите логин и пароль", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Показываем состояние загрузки
+                    loginButton.text = "Вход..."
+                    loginButton.isEnabled = false
+                    authenticateUser(login, password)
+                }
+            }
+
+            registerLink.setOnClickListener {
+                startActivity(Intent(this, RegisterActivity::class.java))
+            }
+        } catch (e: Exception) {
+            Log.e("LoginActivity", "Initialization error", e)
+            Toast.makeText(this, "Ошибка инициализации: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Проверяем авторизацию только если активити уже инициализирована
+        if (isInitialized) {
+            val user = UserManager.getCurrentUser() ?: UserManager.loadUserFromPreferences(this)
+            if (user != null) {
+                Log.d("LoginActivity", "User logged in during onResume, starting MainActivity")
+                startMainActivity()
             }
         }
+    }
 
-        registerLink.setOnClickListener {
-            startActivity(Intent(this, RegisterActivity::class.java))
-        }
+    private fun startMainActivity() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 
     companion object {
         const val KEY_USER_ID = "user_id"
-        const val KEY_USER_NAME = "user_fio"
+        const val KEY_USER_NAME = "user_name"
         const val KEY_USER_CONTACTS = "user_contacts"
-        const val KEY_USER_REG_DATE = "user_dateOfRegistration"
-        const val KEY_USER_BALANCE = "user_balance"
+        const val KEY_USER_REG_DATE = "user_reg_date"
+        const val KEY_USER_LOGIN = "user_login"
+        const val KEY_USER_HAS_SUBSCRIPTION = "user_has_subscription"
         const val KEY_USER_ROLE = "user_role"
         const val KEY_USER_TOKEN = "user_token"
     }
 
-    private fun saveUserData(userId: Long, fio: String, contacts: String, regDate: String, balance: Long, role: String, token: String) {
-        val sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE)
-        with(sharedPreferences.edit()) {
-            putLong(KEY_USER_ID, userId)
-            putString(KEY_USER_NAME, fio)
-            putString(KEY_USER_CONTACTS, contacts)
-            putString(KEY_USER_REG_DATE, regDate)
-            putLong(KEY_USER_BALANCE, balance)
-            putString(KEY_USER_ROLE, role) // Сохраняем роль
-            putString(KEY_USER_TOKEN, token)
-            apply()
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun authenticateUser(login: String, password: String) {
-        val call = loginService.login(UserCredentials(login, password))
+        try {
+            val call = RetrofitClient.getLoginService().login(RetrofitClient.UserCredentials(login, password))
 
-        call.enqueue(object : Callback<LoginResponse> {
-            override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
-                if (response.isSuccessful && response.body()?.status == "SUCCESS") {
-                    val userProfile = response.body()
-                    saveUserData(
-                        userProfile?.id ?: -1L,
-                        userProfile?.fio ?: "Неизвестно",
-                        userProfile?.contacts ?: "Неизвестно",
-                        userProfile?.dateOfRegistration ?: "Неизвестно",
-                        userProfile?.balance ?: -1L,
-                        userProfile?.role ?: "USER", // Передаём роль, по умолчанию "USER"
-                        userProfile?.token ?: "" // Сохраняем токен
-                    )
-
-                    // Запуск MainActivity
-                    val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                    startActivity(intent)
-                    finish()
-                } else {
-                    Toast.makeText(this@LoginActivity, "Неверный логин или пароль", Toast.LENGTH_SHORT).show()
+            call.enqueue(object : Callback<RetrofitClient.LoginResponse> {
+                override fun onResponse(call: Call<RetrofitClient.LoginResponse>, response: Response<RetrofitClient.LoginResponse>) {
+                    // Восстанавливаем кнопку
+                    val loginButton = findViewById<MaterialButton>(R.id.login_button)
+                    loginButton.text = "Войти"
+                    loginButton.isEnabled = true
+                    
+                    if (response.isSuccessful && response.body()?.status == "SUCCESS") {
+                        val userProfile = response.body()
+                        val token = userProfile?.token ?: ""
+                        Log.d("LoginActivity", "Received token: $token")
+                        
+                        // Сохраняем ID пользователя
+                        val userId = userProfile?.id ?: -1L
+                        if (userId != -1L) {
+                            RetrofitClient.saveUserId(userId)
+                        }
+                        
+                        RetrofitClient.setToken(token)
+                        
+                        val guest = Guest(
+                            id = userId,
+                            fio = userProfile?.fio ?: "",
+                            contacts = userProfile?.contacts ?: "",
+                            dateOfRegistration = userProfile?.dateOfRegistration ?: "",
+                            login = login,
+                            hasSubscription = userProfile?.hasSubscription ?: false,
+                            role = userProfile?.role ?: "USER",
+                            token = token
+                        )
+                        Log.d("LoginActivity", "Created guest object: $guest")
+                        UserManager.saveUserToPreferences(this@LoginActivity, guest)
+                        Log.d("LoginActivity", "Saved user data to preferences")
+                        startMainActivity()
+                    } else {
+                        val errorMessage = response.errorBody()?.string() ?: response.message()
+                        Log.e("LoginActivity", "Login failed: $errorMessage")
+                        Toast.makeText(this@LoginActivity, "Ошибка авторизации: $errorMessage", Toast.LENGTH_SHORT).show()
+                    }
                 }
-            }
 
-            override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
-                Toast.makeText(this@LoginActivity, "Ошибка подключения: ${t.message}", Toast.LENGTH_SHORT).show()
-            }
-        })
-    }
-
-    data class UserCredentials(val login: String, val password: String)
-
-    data class LoginResponse(
-        val status: String,
-        val id: Long?,
-        val fio: String?,
-        val contacts: String?,
-        val dateOfRegistration: String?,
-        val login: String?,
-        val balance: Long?,
-        val role: String?,
-        val token: String?
-    )
-
-    // Интерфейс для LoginService
-    interface LoginService {
-        @POST("/api/login")
-        fun login(@Body credentials: UserCredentials): Call<LoginResponse>
+                override fun onFailure(call: Call<RetrofitClient.LoginResponse>, t: Throwable) {
+                    // Восстанавливаем кнопку
+                    val loginButton = findViewById<MaterialButton>(R.id.login_button)
+                    loginButton.text = "Войти"
+                    loginButton.isEnabled = true
+                    
+                    Log.e("LoginActivity", "Network error", t)
+                    Toast.makeText(this@LoginActivity, "Ошибка сети: ${t.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
+        } catch (e: Exception) {
+            Log.e("LoginActivity", "Authentication error", e)
+            Toast.makeText(this, "Ошибка авторизации: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 }
 

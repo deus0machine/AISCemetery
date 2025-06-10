@@ -1,0 +1,53 @@
+\doxysection{ru.\+cemeterysystem.\+controllers.\+User\+Controller Class Reference}
+\hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller}{}\label{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller}\index{ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+Response\+Entity$<$ Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_abd1e71534439d47b6b591e8ce4b9fabc}{get\+Guest\+By\+Id}} (@Path\+Variable Long guest\+Id)
+\item 
+Response\+Entity$<$ Map$<$ String, String $>$ $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_ae3eb698990c7ba045660689a4027bfbc}{register\+Guest}} (@Request\+Body \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} user)
+\item 
+Response\+Entity$<$ Map$<$ String, Object $>$ $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_a5e8711990d2c84b6e1158a0fad95e3d2}{login}} (@Request\+Body Map$<$ String, String $>$ credentials)
+\item 
+Response\+Entity$<$ List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_af4716f9de4536cb1cd0596738feed1e6}{get\+Guests}} ()
+\item 
+Response\+Entity$<$ Void $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_a3565f13862ac61cb926647e4268cbb8c}{delete\+Guest}} (@Path\+Variable Long id)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_a3565f13862ac61cb926647e4268cbb8c}\index{ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}!deleteGuest@{deleteGuest}}
+\index{deleteGuest@{deleteGuest}!ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}}
+\doxysubsubsection{\texorpdfstring{deleteGuest()}{deleteGuest()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_a3565f13862ac61cb926647e4268cbb8c} 
+Response\+Entity$<$ Void $>$ ru.\+cemeterysystem.\+controllers.\+User\+Controller.\+delete\+Guest (\begin{DoxyParamCaption}\item[{@Path\+Variable Long}]{id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_abd1e71534439d47b6b591e8ce4b9fabc}\index{ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}!getGuestById@{getGuestById}}
+\index{getGuestById@{getGuestById}!ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}}
+\doxysubsubsection{\texorpdfstring{getGuestById()}{getGuestById()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_abd1e71534439d47b6b591e8ce4b9fabc} 
+Response\+Entity$<$ Optional$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ $>$ ru.\+cemeterysystem.\+controllers.\+User\+Controller.\+get\+Guest\+By\+Id (\begin{DoxyParamCaption}\item[{@Path\+Variable Long}]{guest\+Id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_af4716f9de4536cb1cd0596738feed1e6}\index{ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}!getGuests@{getGuests}}
+\index{getGuests@{getGuests}!ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}}
+\doxysubsubsection{\texorpdfstring{getGuests()}{getGuests()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_af4716f9de4536cb1cd0596738feed1e6} 
+Response\+Entity$<$ List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}} $>$ $>$ ru.\+cemeterysystem.\+controllers.\+User\+Controller.\+get\+Guests (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_a5e8711990d2c84b6e1158a0fad95e3d2}\index{ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}!login@{login}}
+\index{login@{login}!ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}}
+\doxysubsubsection{\texorpdfstring{login()}{login()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_a5e8711990d2c84b6e1158a0fad95e3d2} 
+Response\+Entity$<$ Map$<$ String, Object $>$ $>$ ru.\+cemeterysystem.\+controllers.\+User\+Controller.\+login (\begin{DoxyParamCaption}\item[{@Request\+Body Map$<$ String, String $>$}]{credentials}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_ae3eb698990c7ba045660689a4027bfbc}\index{ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}!registerGuest@{registerGuest}}
+\index{registerGuest@{registerGuest}!ru.cemeterysystem.controllers.UserController@{ru.cemeterysystem.controllers.UserController}}
+\doxysubsubsection{\texorpdfstring{registerGuest()}{registerGuest()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_user_controller_ae3eb698990c7ba045660689a4027bfbc} 
+Response\+Entity$<$ Map$<$ String, String $>$ $>$ ru.\+cemeterysystem.\+controllers.\+User\+Controller.\+register\+Guest (\begin{DoxyParamCaption}\item[{@Request\+Body \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_user}{User}}}]{user}{}\end{DoxyParamCaption})}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Cemetery\+System/src/main/java/ru/cemeterysystem/controllers/\mbox{\hyperlink{_user_controller_8java}{User\+Controller.\+java}}\end{DoxyCompactItemize}

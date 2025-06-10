@@ -1,0 +1,64 @@
+\doxysection{ru.\+cemeterysystem.\+controllers.\+Order\+Controller Class Reference}
+\hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller}{}\label{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller}\index{ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a3b698ac84502c94f6671df400d0086cd}{Order\+Controller}} (\mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_order_service}{Order\+Service}} order\+Service)
+\item 
+Response\+Entity$<$ List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_ab198d3d84c78ae7688b4eed3ed48e2e5}{get\+Orders\+By\+Guest}} (@Path\+Variable Long guest\+Id)
+\item 
+Response\+Entity$<$ List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a77045f8ccd9a8f9658827f53b92c91da}{get\+Orders\+Between\+Dates}} ( @Request\+Param("{}start\+Date"{}) Long start\+Date\+Millis, @Request\+Param("{}end\+Date"{}) Long end\+Date\+Millis)
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_order_report_d_t_o}{Order\+Report\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a78f80c9716c311b59dfff5e055587147}{get\+All\+Orders}} ()
+\item 
+Response\+Entity$<$ Void $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a4022759b002c02521caa001563e42f59}{update\+Order\+Status}} (@Path\+Variable Long id, @Request\+Body boolean is\+Completed)
+\item 
+Response\+Entity$<$ Void $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a5d64ae30afa07d35a3aedd6d18b409b4}{delete\+Burial}} (@Path\+Variable Long id)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a3b698ac84502c94f6671df400d0086cd}\index{ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}!OrderController@{OrderController}}
+\index{OrderController@{OrderController}!ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}}
+\doxysubsubsection{\texorpdfstring{OrderController()}{OrderController()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a3b698ac84502c94f6671df400d0086cd} 
+ru.\+cemeterysystem.\+controllers.\+Order\+Controller.\+Order\+Controller (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classru_1_1cemeterysystem_1_1services_1_1_order_service}{Order\+Service}}}]{order\+Service}{}\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a5d64ae30afa07d35a3aedd6d18b409b4}\index{ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}!deleteBurial@{deleteBurial}}
+\index{deleteBurial@{deleteBurial}!ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}}
+\doxysubsubsection{\texorpdfstring{deleteBurial()}{deleteBurial()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a5d64ae30afa07d35a3aedd6d18b409b4} 
+Response\+Entity$<$ Void $>$ ru.\+cemeterysystem.\+controllers.\+Order\+Controller.\+delete\+Burial (\begin{DoxyParamCaption}\item[{@Path\+Variable Long}]{id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a78f80c9716c311b59dfff5e055587147}\index{ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}!getAllOrders@{getAllOrders}}
+\index{getAllOrders@{getAllOrders}!ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}}
+\doxysubsubsection{\texorpdfstring{getAllOrders()}{getAllOrders()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a78f80c9716c311b59dfff5e055587147} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_order_report_d_t_o}{Order\+Report\+DTO}} $>$ ru.\+cemeterysystem.\+controllers.\+Order\+Controller.\+get\+All\+Orders (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a77045f8ccd9a8f9658827f53b92c91da}\index{ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}!getOrdersBetweenDates@{getOrdersBetweenDates}}
+\index{getOrdersBetweenDates@{getOrdersBetweenDates}!ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}}
+\doxysubsubsection{\texorpdfstring{getOrdersBetweenDates()}{getOrdersBetweenDates()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a77045f8ccd9a8f9658827f53b92c91da} 
+Response\+Entity$<$ List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ $>$ ru.\+cemeterysystem.\+controllers.\+Order\+Controller.\+get\+Orders\+Between\+Dates (\begin{DoxyParamCaption}\item[{@Request\+Param("{}start\+Date"{}) Long}]{start\+Date\+Millis}{, }\item[{@Request\+Param("{}end\+Date"{}) Long}]{end\+Date\+Millis}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_ab198d3d84c78ae7688b4eed3ed48e2e5}\index{ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}!getOrdersByGuest@{getOrdersByGuest}}
+\index{getOrdersByGuest@{getOrdersByGuest}!ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}}
+\doxysubsubsection{\texorpdfstring{getOrdersByGuest()}{getOrdersByGuest()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_ab198d3d84c78ae7688b4eed3ed48e2e5} 
+Response\+Entity$<$ List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1models_1_1_order}{Order}} $>$ $>$ ru.\+cemeterysystem.\+controllers.\+Order\+Controller.\+get\+Orders\+By\+Guest (\begin{DoxyParamCaption}\item[{@Path\+Variable Long}]{guest\+Id}{}\end{DoxyParamCaption})}
+
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a4022759b002c02521caa001563e42f59}\index{ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}!updateOrderStatus@{updateOrderStatus}}
+\index{updateOrderStatus@{updateOrderStatus}!ru.cemeterysystem.controllers.OrderController@{ru.cemeterysystem.controllers.OrderController}}
+\doxysubsubsection{\texorpdfstring{updateOrderStatus()}{updateOrderStatus()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_order_controller_a4022759b002c02521caa001563e42f59} 
+Response\+Entity$<$ Void $>$ ru.\+cemeterysystem.\+controllers.\+Order\+Controller.\+update\+Order\+Status (\begin{DoxyParamCaption}\item[{@Path\+Variable Long}]{id}{, }\item[{@Request\+Body boolean}]{is\+Completed}{}\end{DoxyParamCaption})}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Cemetery\+System/src/main/java/ru/cemeterysystem/controllers/\mbox{\hyperlink{_order_controller_8java}{Order\+Controller.\+java}}\end{DoxyCompactItemize}

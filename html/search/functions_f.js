@@ -1,0 +1,7 @@
+var searchData=
+[
+  ['updatememorial_0',['updateMemorial',['../classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller.html#aea77bc82c77112d9d204956aef2225b9',1,'ru.cemeterysystem.controllers.MemorialController.updateMemorial()'],['../classru_1_1cemeterysystem_1_1services_1_1_memorial_service.html#a44be0f07555755d1ce08914a500eec63',1,'ru.cemeterysystem.services.MemorialService.updateMemorial()']]],
+  ['updatememorialprivacy_1',['updateMemorialPrivacy',['../classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller.html#a45648e415fed92f44d8062038aa915d7',1,'ru.cemeterysystem.controllers.MemorialController.updateMemorialPrivacy()'],['../classru_1_1cemeterysystem_1_1services_1_1_memorial_service.html#aab20082beb56334c1b83c18faa43d60d',1,'ru.cemeterysystem.services.MemorialService.updateMemorialPrivacy()']]],
+  ['updateorderstatus_2',['updateOrderStatus',['../classru_1_1cemeterysystem_1_1controllers_1_1_order_controller.html#a4022759b002c02521caa001563e42f59',1,'ru::cemeterysystem::controllers::OrderController']]],
+  ['uploadphoto_3',['uploadPhoto',['../classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller.html#a0065b2364634ede663854004a77a4c83',1,'ru.cemeterysystem.controllers.MemorialController.uploadPhoto()'],['../classru_1_1cemeterysystem_1_1services_1_1_memorial_service.html#a604b1b89f6c0584f97486322e0a13e3a',1,'ru.cemeterysystem.services.MemorialService.uploadPhoto()']]]
+];

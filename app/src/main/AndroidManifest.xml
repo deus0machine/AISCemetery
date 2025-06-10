@@ -1,37 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="ru.sevostyanov.aiscemetery">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
-
+        android:name=".CemeteryApplication"
         android:networkSecurityConfig="@xml/network_security_config"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label=""
+        android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AISCemetery"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
         tools:targetApi="31">
-        <activity android:name=".RegisterActivity" />
-        <activity android:name=".user.GuestListActivity" />
-        <activity android:name=".MainActivity" />
-        <activity android:name=".order.OrdersActivity" />
-        <activity android:name=".memorial.BurialDetailsActivity" />
         <activity android:name=".LoginActivity"
-            android:exported="true">
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".RegisterActivity" />
+        <activity android:name=".UserAgreementActivity" 
+            android:theme="@style/Theme.AISCemetery.NoActionBar" />
+        <activity android:name=".activities.EditMemorialActivity" />
+        <activity android:name=".activities.ViewMemorialActivity" />
+        <activity android:name=".activities.PendingChangesActivity" />
+        <activity android:name=".user.GuestListActivity" />
+        <activity android:name=".MainActivity" />
     </application>
 
 </manifest>

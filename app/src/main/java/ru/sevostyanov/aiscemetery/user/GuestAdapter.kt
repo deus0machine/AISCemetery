@@ -33,7 +33,7 @@ class GuestAdapter(
         holder.contacts.text = guest.contacts ?: "No Contacts"
         holder.dateOfRegistration.text = "Registered: ${guest.dateOfRegistration}"
         holder.login.text = "Login: ${guest.login}"
-        holder.balance.text = "Balance: ${guest.balance} ₽"
+        //holder.balance.text = "Balance: ${guest.balance} ₽"
         holder.deleteButton.setOnClickListener { onDeleteClick(guest) }
     }
 

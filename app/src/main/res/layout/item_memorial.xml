@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/MemorialCardStyle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/memorial_card_padding">
+
+        <!-- Фото мемориала -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/photo_card"
+            android:layout_width="@dimen/memorial_photo_size"
+            android:layout_height="@dimen/memorial_photo_size"
+            app:cardCornerRadius="@dimen/memorial_photo_radius"
+            app:cardElevation="1dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/image_photo"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="Фото"
+                android:src="@drawable/placeholder_photo"/>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Индикатор ожидающего фото -->
+        <ImageView
+            android:id="@+id/photo_awaiting_approval"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_popup_sync"
+            android:tint="@color/memorial_moderation"
+            android:background="@drawable/circle_background"
+            android:backgroundTint="@color/white"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="@id/photo_card"
+            app:layout_constraintEnd_toEndOf="@id/photo_card"
+            android:contentDescription="Фото ожидает подтверждения"/>
+
+        <!-- Имя мемориала -->
+        <TextView
+            android:id="@+id/text_name"
+            style="@style/MemorialNameTextStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintEnd_toStartOf="@id/controls_container"
+            app:layout_constraintStart_toEndOf="@id/photo_card"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Иванов Иван Иванович" />
+
+        <!-- Контейнер для кнопок управления -->
+        <LinearLayout
+            android:id="@+id/controls_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageButton
+                android:id="@+id/button_edit"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Редактировать"
+                android:padding="8dp"
+                android:src="@drawable/ic_edit" />
+
+            <ImageButton
+                android:id="@+id/button_delete"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Удалить"
+                android:padding="8dp"
+                android:src="@drawable/ic_delete" />
+
+        </LinearLayout>
+
+        <!-- Даты жизни -->
+        <TextView
+            android:id="@+id/text_dates"
+            style="@style/MemorialDatesTextStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/memorial_text_spacing"
+            app:layout_constraintEnd_toEndOf="@id/text_name"
+            app:layout_constraintStart_toStartOf="@id/text_name"
+            app:layout_constraintTop_toBottomOf="@id/text_name"
+            tools:text="1950-01-01 - 2020-01-01" />
+
+        <!-- Основное местоположение -->
+        <TextView
+            android:id="@+id/text_main_location"
+            style="@style/MemorialLocationTextStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/memorial_text_spacing"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@id/text_name"
+            app:layout_constraintTop_toBottomOf="@id/text_dates"
+            tools:text="Местоположение: Москва, ул. Ленина, д. 1" />
+
+        <!-- Место захоронения -->
+        <TextView
+            android:id="@+id/text_burial_location"
+            style="@style/MemorialLocationTextStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@id/text_name"
+            app:layout_constraintTop_toBottomOf="@id/text_main_location"
+            tools:text="Место захоронения: Москва, ул. Ленина, д. 1" />
+
+        <!-- Контейнер для индикаторов статуса -->
+        <LinearLayout
+            android:id="@+id/status_indicators_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:gravity="start|center_vertical"
+            app:layout_constraintStart_toStartOf="@id/text_name"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_burial_location">
+
+            <!-- Индикатор статуса приватности/публичности -->
+            <TextView
+                android:id="@+id/text_public_indicator"
+                style="@style/MemorialIndicatorTextStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/memorial_indicator_background"
+                android:visibility="gone"
+                tools:text="Приватный"
+                tools:visibility="visible"/>
+
+            <!-- Индикатор дополнительного статуса (опубликован/отклонён) -->
+            <TextView
+                android:id="@+id/text_status_indicator"
+                style="@style/MemorialIndicatorTextStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/memorial_indicator_margin"
+                android:background="@drawable/memorial_indicator_background"
+                android:visibility="gone"
+                tools:text="Отклонён"
+                tools:visibility="visible"/>
+
+            <!-- Индикатор принадлежности к древу -->
+            <TextView
+                android:id="@+id/text_tree_indicator"
+                style="@style/MemorialIndicatorTextStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/memorial_indicator_margin"
+                android:background="@drawable/memorial_indicator_background"
+                android:visibility="gone"
+                tools:text="🌳 Древо #1"
+                tools:visibility="visible"/>
+
+            <!-- Индикатор совместного владения -->
+            <TextView
+                android:id="@+id/text_editor_indicator"
+                style="@style/MemorialIndicatorTextStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/memorial_indicator_margin"
+                android:background="@drawable/memorial_indicator_collaborative"
+                android:visibility="gone"
+                tools:text="Совместный"
+                tools:visibility="visible"/>
+
+        </LinearLayout>
+
+        <!-- Индикатор ожидающих изменений/модерации -->
+        <TextView
+            android:id="@+id/text_pending_changes"
+            style="@style/MemorialWarningTextStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/memorial_indicator_moderation"
+            android:drawablePadding="4dp"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="@id/text_name"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/status_indicators_container"
+            tools:text="⚠️ На модерации (редактирование недоступно)"
+            tools:visibility="visible"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView> 

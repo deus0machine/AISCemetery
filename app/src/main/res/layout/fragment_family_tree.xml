@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@android:color/white"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Редактирование дерева"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:id="@+id/text_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Название дерева"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:id="@+id/text_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Описание"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Статус публикации -->
+    <TextView
+        android:id="@+id/text_publication_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+                        android:text="Статус: Приватный"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Карточка модерации -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/moderation_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/moderation_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Дерево приватное."
+                android:textSize="14sp"
+                android:layout_marginBottom="16dp"/>
+
+            <Button
+                android:id="@+id/button_send_for_moderation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Отправить на публикацию"
+                android:layout_marginBottom="8dp"/>
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Кнопка снятия с публикации -->
+    <Button
+        android:id="@+id/button_unpublish"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Снять с публикации"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone"
+        style="@style/Widget.AppCompat.Button.Colored"
+        android:backgroundTint="#FFC107" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <Button
+            android:id="@+id/button_view_genealogy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Просмотр" />
+
+        <Button
+            android:id="@+id/button_edit_genealogy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Редактировать" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/button_save"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сохранить изменения"/>
+
+</LinearLayout> 

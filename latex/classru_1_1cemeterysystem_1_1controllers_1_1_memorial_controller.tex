@@ -1,0 +1,195 @@
+\doxysection{ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller Class Reference}
+\hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller}{}\label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a6c8d3e18ce1acb36824dfe157d0840a4}{get\+All\+Memorials}} ()
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a66ff41e1d8b54baa987d38b08bf0c6ba}{get\+My\+Memorials}} ()
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_ac6723dfafe1079ffd9906ce09ac2917c}{get\+Public\+Memorials}} ()
+\item 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a58d3b98a2227dfa31436b79ce03869b5}{get\+Memorial\+By\+Id}} (@Path\+Variable Long id)
+\item 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a161d159c295ab4301fd2378089f7b4f5}{create\+Memorial}} (@Request\+Body \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} dto)
+\item 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_aea77bc82c77112d9d204956aef2225b9}{update\+Memorial}} (@Path\+Variable Long id, @Request\+Body \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} dto)
+\item 
+Response\+Entity$<$ Void $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a6b12cf4c1701707ed124fbadf67782db}{delete\+Memorial}} (@Path\+Variable Long id)
+\item 
+Response\+Entity$<$ Void $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a45648e415fed92f44d8062038aa915d7}{update\+Memorial\+Privacy}} (@Path\+Variable Long id, @Request\+Body boolean is\+Public)
+\item 
+String \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a0065b2364634ede663854004a77a4c83}{upload\+Photo}} (@Path\+Variable Long id, @Request\+Param("{}photo"{}) Multipart\+File file)
+\item 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a3952a8d086cf7612e26bb7e6248f065e}{search\+Memorials}} ( @Request\+Param(required=false) String query, @Request\+Param(required=false) String location, @Request\+Param(required=false) String start\+Date, @Request\+Param(required=false) String end\+Date, @Request\+Param(required=false) Boolean is\+Public)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+REST контроллер для управления памятниками. Обрабатывает запросы к API для получения, создания, обновления и удаления памятников, а также для работы с фотографиями и настройками приватности. 
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a161d159c295ab4301fd2378089f7b4f5}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}!createMemorial@{createMemorial}}
+\index{createMemorial@{createMemorial}!ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection{\texorpdfstring{createMemorial()}{createMemorial()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a161d159c295ab4301fd2378089f7b4f5} 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller.\+create\+Memorial (\begin{DoxyParamCaption}\item[{@Request\+Body \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}}}]{dto}{}\end{DoxyParamCaption})}
+
+Создает новый памятник.
+
+
+\begin{DoxyParams}{Parameters}
+{\em dto} & данные для создания памятника \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+созданный памятник 
+\end{DoxyReturn}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a6b12cf4c1701707ed124fbadf67782db}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}!deleteMemorial@{deleteMemorial}}
+\index{deleteMemorial@{deleteMemorial}!ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection{\texorpdfstring{deleteMemorial()}{deleteMemorial()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a6b12cf4c1701707ed124fbadf67782db} 
+Response\+Entity$<$ Void $>$ ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller.\+delete\+Memorial (\begin{DoxyParamCaption}\item[{@Path\+Variable Long}]{id}{}\end{DoxyParamCaption})}
+
+Удаляет памятник по ID.
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & ID памятника \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+успешный ответ (HTTP 200) 
+\end{DoxyReturn}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a6c8d3e18ce1acb36824dfe157d0840a4}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}!getAllMemorials@{getAllMemorials}}
+\index{getAllMemorials@{getAllMemorials}!ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection{\texorpdfstring{getAllMemorials()}{getAllMemorials()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a6c8d3e18ce1acb36824dfe157d0840a4} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller.\+get\+All\+Memorials (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+Получает список всех памятников.
+
+\begin{DoxyReturn}{Returns}
+список всех памятников 
+\end{DoxyReturn}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a58d3b98a2227dfa31436b79ce03869b5}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}!getMemorialById@{getMemorialById}}
+\index{getMemorialById@{getMemorialById}!ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection{\texorpdfstring{getMemorialById()}{getMemorialById()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a58d3b98a2227dfa31436b79ce03869b5} 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller.\+get\+Memorial\+By\+Id (\begin{DoxyParamCaption}\item[{@Path\+Variable Long}]{id}{}\end{DoxyParamCaption})}
+
+Получает памятник по его ID.
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & ID памятника \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+найденный памятник 
+\end{DoxyReturn}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a66ff41e1d8b54baa987d38b08bf0c6ba}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}!getMyMemorials@{getMyMemorials}}
+\index{getMyMemorials@{getMyMemorials}!ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection{\texorpdfstring{getMyMemorials()}{getMyMemorials()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a66ff41e1d8b54baa987d38b08bf0c6ba} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller.\+get\+My\+Memorials (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+Получает список памятников, принадлежащих текущему пользователю.
+
+\begin{DoxyReturn}{Returns}
+список памятников текущего пользователя 
+\end{DoxyReturn}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_ac6723dfafe1079ffd9906ce09ac2917c}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}!getPublicMemorials@{getPublicMemorials}}
+\index{getPublicMemorials@{getPublicMemorials}!ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection{\texorpdfstring{getPublicMemorials()}{getPublicMemorials()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_ac6723dfafe1079ffd9906ce09ac2917c} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller.\+get\+Public\+Memorials (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+Получает список публичных памятников.
+
+\begin{DoxyReturn}{Returns}
+список публичных памятников 
+\end{DoxyReturn}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a3952a8d086cf7612e26bb7e6248f065e}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}!searchMemorials@{searchMemorials}}
+\index{searchMemorials@{searchMemorials}!ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection{\texorpdfstring{searchMemorials()}{searchMemorials()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a3952a8d086cf7612e26bb7e6248f065e} 
+List$<$ \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} $>$ ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller.\+search\+Memorials (\begin{DoxyParamCaption}\item[{@Request\+Param(required=false) String}]{query}{, }\item[{@Request\+Param(required=false) String}]{location}{, }\item[{@Request\+Param(required=false) String}]{start\+Date}{, }\item[{@Request\+Param(required=false) String}]{end\+Date}{, }\item[{@Request\+Param(required=false) Boolean}]{is\+Public}{}\end{DoxyParamCaption})}
+
+Ищет памятники по различным параметрам.
+
+
+\begin{DoxyParams}{Parameters}
+{\em query} & строка поиска по названию или описанию памятника \\
+\hline
+{\em location} & местоположение памятника \\
+\hline
+{\em start\+Date} & дата начала периода для поиска \\
+\hline
+{\em end\+Date} & дата окончания периода для поиска \\
+\hline
+{\em is\+Public} & фильтр по публичности \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+список найденных памятников 
+\end{DoxyReturn}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_aea77bc82c77112d9d204956aef2225b9}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}!updateMemorial@{updateMemorial}}
+\index{updateMemorial@{updateMemorial}!ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection{\texorpdfstring{updateMemorial()}{updateMemorial()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_aea77bc82c77112d9d204956aef2225b9} 
+\mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}} ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller.\+update\+Memorial (\begin{DoxyParamCaption}\item[{@Path\+Variable Long}]{id}{, }\item[{@Request\+Body \mbox{\hyperlink{classru_1_1cemeterysystem_1_1dto_1_1_memorial_d_t_o}{Memorial\+DTO}}}]{dto}{}\end{DoxyParamCaption})}
+
+Обновляет информацию о памятнике.
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & ID памятника \\
+\hline
+{\em dto} & данные для обновления памятника \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+обновленный памятник 
+\end{DoxyReturn}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a45648e415fed92f44d8062038aa915d7}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}!updateMemorialPrivacy@{updateMemorialPrivacy}}
+\index{updateMemorialPrivacy@{updateMemorialPrivacy}!ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection{\texorpdfstring{updateMemorialPrivacy()}{updateMemorialPrivacy()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a45648e415fed92f44d8062038aa915d7} 
+Response\+Entity$<$ Void $>$ ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller.\+update\+Memorial\+Privacy (\begin{DoxyParamCaption}\item[{@Path\+Variable Long}]{id}{, }\item[{@Request\+Body boolean}]{is\+Public}{}\end{DoxyParamCaption})}
+
+Обновляет приватность памятника (публичный/непубличный).
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & ID памятника \\
+\hline
+{\em is\+Public} & новый статус приватности \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+успешный ответ (HTTP 200) 
+\end{DoxyReturn}
+\Hypertarget{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a0065b2364634ede663854004a77a4c83}\index{ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}!uploadPhoto@{uploadPhoto}}
+\index{uploadPhoto@{uploadPhoto}!ru.cemeterysystem.controllers.MemorialController@{ru.cemeterysystem.controllers.MemorialController}}
+\doxysubsubsection{\texorpdfstring{uploadPhoto()}{uploadPhoto()}}
+{\footnotesize\ttfamily \label{classru_1_1cemeterysystem_1_1controllers_1_1_memorial_controller_a0065b2364634ede663854004a77a4c83} 
+String ru.\+cemeterysystem.\+controllers.\+Memorial\+Controller.\+upload\+Photo (\begin{DoxyParamCaption}\item[{@Path\+Variable Long}]{id}{, }\item[{@Request\+Param("{}photo"{}) Multipart\+File}]{file}{}\end{DoxyParamCaption})}
+
+Загружает фото для памятника.
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & ID памятника \\
+\hline
+{\em file} & файл изображения \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+URL загруженного фото 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Cemetery\+System/src/main/java/ru/cemeterysystem/controllers/\mbox{\hyperlink{_memorial_controller_8java}{Memorial\+Controller.\+java}}\end{DoxyCompactItemize}
