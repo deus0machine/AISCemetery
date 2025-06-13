@@ -23,7 +23,7 @@ import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.activities.EditMemorialActivity
 import ru.sevostyanov.aiscemetery.activities.ViewMemorialActivity
 import ru.sevostyanov.aiscemetery.adapters.MemorialAdapter
-import ru.sevostyanov.aiscemetery.dialogs.MemorialFilterDialog
+import ru.sevostyanov.aiscemetery.dialogs.AdvancedMemorialFilterDialog
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.models.PagedResponse
 import ru.sevostyanov.aiscemetery.models.PublicationStatus
@@ -41,7 +41,7 @@ class MemorialsFragment : Fragment() {
     private lateinit var searchView: SearchView
     private lateinit var tabLayout: TabLayout
     private lateinit var addMemorialButton: FloatingActionButton
-    private lateinit var filterButton: Button
+    private lateinit var advancedFilterButton: Button
     private lateinit var searchModeIndicator: TextView
     private lateinit var emptyMemorialsText: TextView
     private lateinit var adapter: MemorialAdapter
@@ -58,9 +58,10 @@ class MemorialsFragment : Fragment() {
     
     // Переменные для поиска
     private var currentSearchQuery: String? = null
-    private var currentFilterOptions: MemorialFilterDialog.FilterOptions? = null
+    private var currentAdvancedFilterOptions: AdvancedMemorialFilterDialog.AdvancedFilterOptions? = null
     private var searchJob: kotlinx.coroutines.Job? = null
     private var isSearchMode = false
+    private var isAdvancedSearchMode = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -119,7 +120,7 @@ class MemorialsFragment : Fragment() {
         searchView = view.findViewById(R.id.search_view)
         tabLayout = view.findViewById(R.id.tab_layout)
         addMemorialButton = view.findViewById(R.id.fab_add_memorial)
-        filterButton = view.findViewById(R.id.btn_filter)
+        advancedFilterButton = view.findViewById(R.id.btn_advanced_filter)
         searchModeIndicator = view.findViewById(R.id.search_mode_indicator)
         emptyMemorialsText = view.findViewById(R.id.empty_memorials_text)
 
@@ -187,7 +188,8 @@ class MemorialsFragment : Fragment() {
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 query?.let { 
-                    performSearch(it.trim())
+                    // При нажатии кнопки поиска на клавиатуре выполняем быстрый поиск
+                    performQuickSearchWithQuery(it.trim())
                 }
                 searchView.clearFocus()
                 return true
@@ -219,42 +221,155 @@ class MemorialsFragment : Fragment() {
             EditMemorialActivity.start(requireActivity())
         }
 
-        filterButton.setOnClickListener {
-            showFilterDialog()
+        advancedFilterButton.setOnClickListener {
+            showAdvancedFilterDialog()
         }
     }
 
-    private fun showFilterDialog() {
-        val dialog = MemorialFilterDialog.newInstance()
+
+
+    private fun showAdvancedFilterDialog() {
+        val dialog = AdvancedMemorialFilterDialog.newInstance()
         dialog.setOnFilterAppliedListener { filterOptions ->
-            Log.d("MemorialsFragment", "Применены фильтры: $filterOptions")
+            Log.d("MemorialsFragment", "Применены расширенные фильтры: $filterOptions")
             
-            currentFilterOptions = filterOptions
+            currentAdvancedFilterOptions = filterOptions
+            isAdvancedSearchMode = true
             
-            // Если есть активный поиск, перезапускаем поиск с новыми фильтрами
-            if (isSearchMode && currentSearchQuery != null) {
-                performSearch(currentSearchQuery!!)
-            } else if (filterOptions.hasActiveFilters()) {
-                // Если фильтры активны, но поиска нет, запускаем поиск с пустым запросом
-                performSearch("")
-            } else {
-                // Если фильтры сброшены и поиска нет, возвращаемся к обычному режиму
-                exitSearchMode()
-            }
-            
-            // Обновляем индикатор в любом случае
+            performAdvancedSearch(filterOptions)
             updateSearchModeIndicator()
         }
-        dialog.show(parentFragmentManager, "filter_dialog")
+        
+        dialog.setOnQuickSearchListener { query ->
+            performQuickSearchWithQuery(query)
+        }
+        
+        dialog.show(parentFragmentManager, "advanced_filter_dialog")
+    }
+
+
+
+    private fun performQuickSearchWithQuery(query: String) {
+        Log.d("MemorialsFragment", "=== БЫСТРЫЙ ПОИСК ===")
+        Log.d("MemorialsFragment", "Поисковый запрос: '$query'")
+        
+        lifecycleScope.launch {
+            try {
+                val results = repository.quickSearchMemorials(query, 20)
+                Log.d("MemorialsFragment", "Результаты быстрого поиска: ${results.size}")
+                
+                allMemorials.clear()
+                allMemorials.addAll(results)
+                adapter.updateData(allMemorials, forceUpdate = true)
+                
+                isSearchMode = true
+                currentSearchQuery = query
+                hasMoreData = false // Быстрый поиск не поддерживает пагинацию
+                updateSearchModeIndicator()
+                updateLoadMoreVisibility()
+                
+                if (results.isEmpty()) {
+                    showEmptyState("По запросу '$query' ничего не найдено")
+                } else {
+                    hideEmptyState()
+                }
+                
+            } catch (e: Exception) {
+                Log.e("MemorialsFragment", "Ошибка быстрого поиска: ${e.message}", e)
+                showMessage("Ошибка быстрого поиска: ${e.message}")
+            }
+        }
+    }
+
+    private fun performAdvancedSearch(filterOptions: AdvancedMemorialFilterDialog.AdvancedFilterOptions) {
+        Log.d("MemorialsFragment", "=== РАСШИРЕННЫЙ ПОИСК ===")
+        Log.d("MemorialsFragment", "Фильтры: $filterOptions")
+        
+        // Сбрасываем пагинацию для расширенного поиска
+        currentPage = 0
+        hasMoreData = true
+        allMemorials.clear()
+        
+        performAdvancedSearchPage(filterOptions, isFirstPage = true)
     }
     
-    // Расширение для проверки активных фильтров
-    private fun MemorialFilterDialog.FilterOptions.hasActiveFilters(): Boolean {
-        return !location.isNullOrBlank() || 
-               !startDate.isNullOrBlank() || 
-               !endDate.isNullOrBlank() || 
-               isPublic != null
+    private fun performAdvancedSearchPage(
+        filterOptions: AdvancedMemorialFilterDialog.AdvancedFilterOptions, 
+        isFirstPage: Boolean = false
+    ) {
+        if (isLoading) return
+        
+        isLoading = true
+        
+        Log.d("MemorialsFragment", "=== СТРАНИЦА РАСШИРЕННОГО ПОИСКА ===")
+        Log.d("MemorialsFragment", "isFirstPage: $isFirstPage, currentPage: $currentPage")
+        
+        if (!isFirstPage) {
+            adapter.updateLoadMoreState(hasMoreData, isLoading = true)
+        }
+
+        lifecycleScope.launch {
+            try {
+                val pagedResponse = repository.advancedSearchMemorials(
+                    firstName = filterOptions.firstName,
+                    lastName = filterOptions.lastName,
+                    middleName = filterOptions.middleName,
+                    birthDateFrom = filterOptions.birthDateFrom,
+                    birthDateTo = filterOptions.birthDateTo,
+                    deathDateFrom = filterOptions.deathDateFrom,
+                    deathDateTo = filterOptions.deathDateTo,
+                    location = filterOptions.location,
+                    query = filterOptions.generalQuery,
+                    isPublic = when {
+                        tabLayout.selectedTabPosition == 0 -> null // Мои мемориалы
+                        else -> true // Публичные мемориалы
+                    },
+                    sortBy = filterOptions.sortBy,
+                    sortDirection = filterOptions.sortDirection,
+                    page = currentPage,
+                    size = pageSize
+                )
+                
+                Log.d("MemorialsFragment", "Результаты расширенного поиска:")
+                Log.d("MemorialsFragment", "- content.size: ${pagedResponse.content.size}")
+                Log.d("MemorialsFragment", "- totalElements: ${pagedResponse.totalElements}")
+                Log.d("MemorialsFragment", "- hasNext: ${pagedResponse.hasNext}")
+                
+                val newMemorials = pagedResponse.content
+                
+                if (isFirstPage) {
+                    Log.d("MemorialsFragment", "Первая страница расширенного поиска - очищаем и добавляем ${newMemorials.size}")
+                    allMemorials.clear()
+                    allMemorials.addAll(newMemorials)
+                    adapter.updateData(allMemorials, forceUpdate = true)
+                    if (allMemorials.isNotEmpty()) {
+                        hideEmptyState()
+                    }
+                } else {
+                    Log.d("MemorialsFragment", "Дополнительная страница расширенного поиска - добавляем ${newMemorials.size}")
+                    allMemorials.addAll(newMemorials)
+                    adapter.updateData(allMemorials)
+                }
+                
+                hasMoreData = pagedResponse.hasNext
+                currentPage++
+                
+                updateLoadMoreVisibility()
+                
+                if (isFirstPage && allMemorials.isEmpty()) {
+                    showEmptyState("По заданным критериям ничего не найдено")
+                }
+                
+            } catch (e: Exception) {
+                Log.e("MemorialsFragment", "Ошибка расширенного поиска: ${e.message}", e)
+                showMessage("Ошибка расширенного поиска: ${e.message}")
+            } finally {
+                isLoading = false
+                adapter.updateLoadMoreState(hasMoreData && allMemorials.isNotEmpty(), isLoading = false)
+            }
+        }
     }
+    
 
     private fun loadMemorials(showOnlyMine: Boolean) {
         Log.d("MemorialsFragment", "=== НАЧАЛО loadMemorials ===")
@@ -370,12 +485,19 @@ class MemorialsFragment : Fragment() {
     }
     
     private fun loadMoreMemorials() {
-        if (isSearchMode && currentSearchQuery != null) {
-            // В режиме поиска загружаем следующую страницу поиска
-            performSearchPage(currentSearchQuery!!)
-        } else {
-            // В обычном режиме загружаем следующую страницу мемориалов
-            loadMemorialsPage(tabLayout.selectedTabPosition == 0)
+        when {
+            isAdvancedSearchMode && currentAdvancedFilterOptions != null -> {
+                // В режиме расширенного поиска загружаем следующую страницу
+                performAdvancedSearchPage(currentAdvancedFilterOptions!!)
+            }
+            isSearchMode && currentSearchQuery != null -> {
+                // В режиме обычного поиска загружаем следующую страницу поиска
+                performSearchPage(currentSearchQuery!!)
+            }
+            else -> {
+                // В обычном режиме загружаем следующую страницу мемориалов
+                loadMemorialsPage(tabLayout.selectedTabPosition == 0)
+            }
         }
     }
     
@@ -418,9 +540,9 @@ class MemorialsFragment : Fragment() {
             try {
                 val pagedResponse = repository.searchMemorials(
                     query = query,
-                    location = currentFilterOptions?.location,
-                    startDate = currentFilterOptions?.startDate,
-                    endDate = currentFilterOptions?.endDate,
+                    location = null,
+                    startDate = null,
+                    endDate = null,
                     isPublic = when {
                         // В режиме поиска учитываем текущую вкладку
                         tabLayout.selectedTabPosition == 0 -> null // Мои мемориалы - ищем все (публичные и приватные пользователя)
@@ -474,8 +596,9 @@ class MemorialsFragment : Fragment() {
         Log.d("MemorialsFragment", "Выход из режима поиска")
         
         isSearchMode = false
+        isAdvancedSearchMode = false
         currentSearchQuery = null
-        currentFilterOptions = null
+        currentAdvancedFilterOptions = null
         searchJob?.cancel()
         
         // Обновляем индикатор режима поиска
@@ -487,19 +610,15 @@ class MemorialsFragment : Fragment() {
 
     private fun updateSearchModeIndicator() {
         val hasQuery = !currentSearchQuery.isNullOrBlank()
-        val hasFilters = currentFilterOptions?.hasActiveFilters() == true
+        val hasAdvancedFilters = currentAdvancedFilterOptions?.hasActiveFilters() == true
         
         when {
-            hasQuery && hasFilters -> {
-                searchModeIndicator.text = "Поиск: \"$currentSearchQuery\" с фильтрами"
+            hasAdvancedFilters -> {
+                searchModeIndicator.text = "Активен расширенный поиск"
                 searchModeIndicator.visibility = View.VISIBLE
             }
             hasQuery -> {
                 searchModeIndicator.text = "Поиск: \"$currentSearchQuery\""
-                searchModeIndicator.visibility = View.VISIBLE
-            }
-            hasFilters -> {
-                searchModeIndicator.text = "Активны фильтры"
                 searchModeIndicator.visibility = View.VISIBLE
             }
             else -> {
@@ -680,11 +799,15 @@ class MemorialsFragment : Fragment() {
     }
 
     private fun showError(message: String) {
-        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        if (isAdded && context != null) {
+            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun showMessage(message: String) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        if (isAdded && context != null) {
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showEmptyState(message: String) {

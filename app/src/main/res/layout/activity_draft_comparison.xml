@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".activities.DraftComparisonActivity">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <ScrollView
+        android:id="@+id/content_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Информация о статусе -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:background="@color/background_color">
+
+                <TextView
+                    android:id="@+id/text_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textAppearance="?attr/textAppearanceSubtitle1"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary"
+                    tools:text="Статус: Ожидает рассмотрения" />
+
+                <TextView
+                    android:id="@+id/text_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textAppearance="?attr/textAppearanceBody2"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:visibility="gone"
+                    tools:text="Сообщение: Добавил новые мемориалы и связи"
+                    tools:visibility="visible" />
+
+            </LinearLayout>
+
+            <!-- Разделитель -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="?android:attr/listDivider" />
+
+            <!-- Блок оригинального дерева -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:background="@android:color/white">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Оригинальное дерево"
+                    android:textAppearance="?attr/textAppearanceHeadline6"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:id="@+id/text_original_tree_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceSubtitle1"
+                    android:layout_marginBottom="8dp"
+                    tools:text="Семья Ивановых" />
+
+                <TextView
+                    android:id="@+id/text_original_tree_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceBody2"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:layout_marginBottom="12dp"
+                    tools:text="Описание оригинального дерева" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_view_original_connections"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Просмотр связей оригинального дерева"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="24dp"
+                    android:paddingVertical="12dp"
+                    android:drawableStart="@drawable/ic_family_tree"
+                    android:drawablePadding="12dp"
+                    android:backgroundTint="?attr/colorPrimary"
+                    android:textColor="@android:color/white"
+                    android:elevation="4dp"
+                    android:layout_marginTop="8dp"
+                    app:cornerRadius="12dp"
+                    app:strokeWidth="0dp"
+                    app:iconTint="@android:color/white"
+                    style="@style/Widget.Material3.Button" />
+
+            </LinearLayout>
+
+            <!-- Разделитель -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="?android:attr/listDivider" />
+
+            <!-- Блок черновика -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:background="@color/background_color">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Предложенные изменения"
+                    android:textAppearance="?attr/textAppearanceHeadline6"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/holo_orange_dark"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:id="@+id/text_draft_tree_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceSubtitle1"
+                    android:layout_marginBottom="8dp"
+                    tools:text="Семья Ивановых (черновик)" />
+
+                <TextView
+                    android:id="@+id/text_draft_tree_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceBody2"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:layout_marginBottom="12dp"
+                    tools:text="Описание предложенных изменений" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_view_draft_connections"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Просмотр связей предложенных изменений"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="24dp"
+                    android:paddingVertical="12dp"
+                    android:drawableStart="@drawable/ic_family_tree"
+                    android:drawablePadding="12dp"
+                    android:backgroundTint="@android:color/holo_orange_dark"
+                    android:textColor="@android:color/white"
+                    android:elevation="4dp"
+                    android:layout_marginTop="8dp"
+                    app:cornerRadius="12dp"
+                    app:strokeWidth="0dp"
+                    app:iconTint="@android:color/white"
+                    style="@style/Widget.Material3.Button" />
+
+            </LinearLayout>
+
+            <!-- Разделитель -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="?android:attr/listDivider" />
+
+            <!-- Кнопки действий -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:background="@android:color/white">
+
+                <Button
+                    android:id="@+id/button_reject"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="Отклонить"
+                    android:textColor="@android:color/white"
+                    android:backgroundTint="@android:color/holo_red_dark"
+                    style="@style/Widget.AppCompat.Button" />
+
+                <Button
+                    android:id="@+id/button_approve"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="Одобрить"
+                    android:textColor="@android:color/white"
+                    android:backgroundTint="@android:color/holo_green_dark"
+                    style="@style/Widget.AppCompat.Button" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <!-- Прогресс бар -->
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="visible" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout> 

@@ -21,22 +21,21 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import ru.sevostyanov.aiscemetery.models.PublicationStatus
+import ru.sevostyanov.aiscemetery.activities.DraftComparisonActivity
+import android.content.Context
+import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.Navigation
+import androidx.fragment.app.FragmentActivity
 
 @AndroidEntryPoint
 class FamilyTreeFragment : BottomSheetDialogFragment() {
 
-    companion object {
-        fun newInstance(treeId: Long): FamilyTreeFragment {
-            val fragment = FamilyTreeFragment()
-            val args = Bundle()
-            args.putLong("familyTreeId", treeId)
-            fragment.arguments = args
-            return fragment
-        }
-    }
-
     private val viewModel: FamilyTreeDetailViewModel by viewModels()
-    private val treeId: Long by lazy { arguments?.getLong("familyTreeId") ?: -1L }
+    private val treeId: Long by lazy { arguments?.getLong("treeId") ?: -1L }
+    private val isDraftTree: Boolean by lazy { arguments?.getBoolean("isDraft") ?: false }
+
+    // Сохраняем ссылку на Activity для использования в навигации
+    private var savedActivity: FragmentActivity? = null
 
     private lateinit var nameEditText: EditText
     private lateinit var descriptionEditText: EditText
@@ -49,6 +48,31 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
     private lateinit var editGenealogyButton: Button
     private lateinit var saveButton: Button
     private var wasSaved = false
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        Log.d("FamilyTreeFragment", "onAttach вызван, context: $context")
+        Log.d("FamilyTreeFragment", "context is FragmentActivity: ${context is FragmentActivity}")
+        Log.d("FamilyTreeFragment", "context is AppCompatActivity: ${context is AppCompatActivity}")
+        
+        savedActivity = when {
+            context is FragmentActivity -> {
+                Log.d("FamilyTreeFragment", "Сохраняем как FragmentActivity")
+                context
+            }
+            else -> {
+                Log.w("FamilyTreeFragment", "Context не является FragmentActivity: ${context::class.java}")
+                null
+            }
+        }
+        Log.d("FamilyTreeFragment", "onAttach: savedActivity = $savedActivity")
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        Log.d("FamilyTreeFragment", "onDetach: очищаем savedActivity")
+        savedActivity = null
+    }
 
     override fun onStart() {
         super.onStart()
@@ -68,6 +92,15 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        Log.d("FamilyTreeFragment", "onViewCreated: activity = $activity")
+        Log.d("FamilyTreeFragment", "onViewCreated: savedActivity = $savedActivity")
+        
+        // Если savedActivity все еще null, пробуем получить через activity
+        if (savedActivity == null && activity != null) {
+            savedActivity = activity
+            Log.d("FamilyTreeFragment", "Обновили savedActivity в onViewCreated: $savedActivity")
+        }
+        
         initializeViews(view)
         setupObservers()
         setupClickListeners()
@@ -94,12 +127,25 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
                 descriptionEditText.setText(it.description ?: "")
                 updatePublicationStatus(it)
                 
-                // Блокируем редактирование если дерево на модерации
-                val canEdit = viewModel.canEditTree()
-                nameEditText.isEnabled = canEdit
-                descriptionEditText.isEnabled = canEdit
-                saveButton.isEnabled = canEdit
-                editGenealogyButton.isEnabled = canEdit
+                // Специальная логика для черновиков редакторов
+                val isDraftEditor = isDraftTree && !it.isUserOwner
+                
+                if (isDraftEditor) {
+                    // Для редакторов черновиков: только просмотр информации
+                    nameEditText.isEnabled = false
+                    descriptionEditText.isEnabled = false
+                    saveButton.visibility = View.GONE
+                    editGenealogyButton.isEnabled = true // Редактирование генеалогии доступно
+                    viewGenealogyButton.isEnabled = true // Просмотр всегда доступен
+                } else {
+                    // Обычная логика для владельцев и обычных деревьев
+                    val canEdit = viewModel.canEditTree()
+                    nameEditText.isEnabled = canEdit
+                    descriptionEditText.isEnabled = canEdit
+                    saveButton.visibility = if (canEdit) View.VISIBLE else View.GONE
+                    editGenealogyButton.isEnabled = canEdit
+                    viewGenealogyButton.isEnabled = true // Просмотр всегда доступен
+                }
                 
                 // Обновляем доступность кнопки отправки на модерацию
                 sendForModerationButton.isEnabled = viewModel.canSendForModeration()
@@ -123,17 +169,30 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            // Блокируем все кнопки во время загрузки, но учитываем модерацию
+            // Блокируем все кнопки во время загрузки, но учитываем модерацию и черновики
             val tree = viewModel.familyTree.value
-            val canEdit = tree?.let { viewModel.canEditTree() } ?: false
-            val canSendForModeration = tree?.let { viewModel.canSendForModeration() } ?: false
-            val canUnpublish = tree?.let { viewModel.canUnpublishTree() } ?: false
+            val isDraftEditor = isDraftTree && tree?.isUserOwner == false
             
-            saveButton.isEnabled = !isLoading && canEdit
-            editGenealogyButton.isEnabled = !isLoading && canEdit
-            sendForModerationButton.isEnabled = !isLoading && canSendForModeration
-            unpublishButton.isEnabled = !isLoading && canUnpublish
-            viewGenealogyButton.isEnabled = !isLoading // Просмотр всегда доступен
+            if (isDraftEditor) {
+                // Для редакторов черновиков: только кнопки просмотра и редактирования генеалогии
+                saveButton.visibility = View.GONE
+                editGenealogyButton.isEnabled = !isLoading
+                viewGenealogyButton.isEnabled = !isLoading
+                sendForModerationButton.isEnabled = false
+                unpublishButton.visibility = View.GONE
+            } else {
+                // Обычная логика для владельцев и обычных деревьев
+                val canEdit = tree?.let { viewModel.canEditTree() } ?: false
+                val canSendForModeration = tree?.let { viewModel.canSendForModeration() } ?: false
+                val canUnpublish = tree?.let { viewModel.canUnpublishTree() } ?: false
+                
+                saveButton.visibility = if (canEdit) View.VISIBLE else View.GONE
+                saveButton.isEnabled = !isLoading && canEdit
+                editGenealogyButton.isEnabled = !isLoading && canEdit
+                sendForModerationButton.isEnabled = !isLoading && canSendForModeration
+                unpublishButton.isEnabled = !isLoading && canUnpublish
+                viewGenealogyButton.isEnabled = !isLoading // Просмотр всегда доступен
+            }
         }
     }
 
@@ -279,38 +338,75 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
         viewGenealogyButton.setOnClickListener {
             Log.d("FamilyTreeFragment", "Кнопка просмотра генеалогии нажата, treeId: $treeId")
             
-            // Закрываем текущий диалог
-            dismiss()
+            // Проверяем, находимся ли мы в DraftComparisonActivity
+            val isDraftComparison = activity is DraftComparisonActivity
             
-            // Переходим к фрагменту просмотра генеалогии
-            try {
-                val bundle = Bundle().apply {
-                    putLong("treeId", treeId)
+            if (isDraftComparison) {
+                // В режиме сравнения черновиков открываем окно просмотра связей
+                openTreeConnectionsView()
+            } else {
+                // В обычном режиме переходим к фрагменту просмотра генеалогии
+                try {
+                    val bundle = Bundle().apply {
+                        putLong("treeId", treeId)
+                        putBoolean("isDraft", isDraftTree)
+                    }
+                    findNavController().navigate(R.id.action_familyTreesListFragment_to_genealogyTreeFragment, bundle)
+                    dismiss()
+                } catch (e: Exception) {
+                    Log.e("FamilyTreeFragment", "Ошибка навигации: ${e.message}", e)
+                    Toast.makeText(context, "Ошибка навигации", Toast.LENGTH_SHORT).show()
                 }
-                findNavController().navigate(R.id.action_familyTreesListFragment_to_genealogyTreeFragment, bundle)
-            } catch (e: Exception) {
-                Log.e("FamilyTreeFragment", "Ошибка навигации: ${e.message}", e)
-                Toast.makeText(context, "Ошибка при переходе к дереву", Toast.LENGTH_SHORT).show()
             }
         }
 
         editGenealogyButton.setOnClickListener {
             Log.d("FamilyTreeFragment", "Кнопка редактирования генеалогии нажата, treeId: $treeId")
             
-            // Закрываем текущий диалог
-            dismiss()
+            // Проверяем, находимся ли мы в DraftComparisonActivity
+            val isDraftComparison = activity is DraftComparisonActivity
             
-            // Переходим к фрагменту редактирования генеалогии
-            try {
-                val bundle = Bundle().apply {
-                    putLong("treeId", treeId)
+            if (isDraftComparison) {
+                // В режиме сравнения черновиков редактирование недоступно
+                Toast.makeText(context, "Редактирование недоступно в режиме сравнения", Toast.LENGTH_SHORT).show()
+            } else {
+                // В обычном режиме переходим к фрагменту редактирования генеалогии
+                try {
+                    val bundle = Bundle().apply {
+                        putLong("treeId", treeId)
+                    }
+                    findNavController().navigate(R.id.action_familyTreesListFragment_to_editGenealogyTreeFragment, bundle)
+                    dismiss()
+                } catch (e: Exception) {
+                    Log.e("FamilyTreeFragment", "Ошибка навигации: ${e.message}", e)
+                    Toast.makeText(context, "Ошибка навигации", Toast.LENGTH_SHORT).show()
                 }
-                findNavController().navigate(R.id.action_familyTreesListFragment_to_editGenealogyTreeFragment, bundle)
-            } catch (e: Exception) {
-                Log.e("FamilyTreeFragment", "Ошибка навигации: ${e.message}", e)
-                Toast.makeText(context, "Ошибка при переходе к редактору", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
+    private fun openTreeConnectionsView() {
+        // Открываем Activity для просмотра связей дерева
+        val tree = viewModel.familyTree.value
+        val treeName = tree?.name ?: "Дерево"
+        
+        val intent = ru.sevostyanov.aiscemetery.activities.TreeChangesComparisonActivity.newIntent(
+            requireContext(),
+            treeId, // originalTreeId
+            treeId, // draftTreeId (пока одинаковые, потом доработаем)
+            treeName
+        )
+        startActivity(intent)
+    }
+
+    companion object {
+        fun newInstance(treeId: Long, isDraft: Boolean = false): FamilyTreeFragment {
+            val fragment = FamilyTreeFragment()
+            val args = Bundle()
+            args.putLong("treeId", treeId)
+            args.putBoolean("isDraft", isDraft)
+            fragment.arguments = args
+            return fragment
+        }
+    }
 } 

@@ -113,6 +113,8 @@ class EditGenealogyTreeFragment : Fragment() {
     private fun setupObservers() {
         viewModel.familyTree.observe(viewLifecycleOwner) { tree ->
             binding.textTreeName.text = tree.name
+            // Проверяем режим черновика после загрузки дерева
+            viewModel.checkDraftMode()
         }
 
         viewModel.treeMemorials.observe(viewLifecycleOwner) { memorials ->
@@ -147,6 +149,29 @@ class EditGenealogyTreeFragment : Fragment() {
             if (isSuccess) {
                 Toast.makeText(context, "Операция выполнена успешно", Toast.LENGTH_SHORT).show()
                 viewModel.clearSuccess()
+            }
+        }
+        
+        // Новые наблюдатели для черновиков
+        viewModel.isDraftMode.observe(viewLifecycleOwner) { isDraftMode ->
+            binding.fabSubmitDraft.visibility = View.GONE // Убираем кнопку "Отправить владельцу"
+            
+            // Обновляем заголовок тулбара
+            if (isDraftMode) {
+                binding.toolbar.title = "Редактирование дерева (черновик)"
+                binding.toolbar.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.teal_700))
+                binding.textTreeName.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.teal_700))
+            } else {
+                binding.toolbar.title = "Редактирование дерева"
+                binding.toolbar.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.purple_700))
+                binding.textTreeName.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.purple_700))
+            }
+        }
+        
+        viewModel.submitMessage.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                viewModel.clearSubmitMessage()
             }
         }
     }

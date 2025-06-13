@@ -64,27 +64,41 @@
                 android:textSize="14sp"
                 android:layout_marginBottom="16dp"/>
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_send_for_moderation"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:text="Отправить на публикацию"
-                android:layout_marginBottom="8dp"/>
+                android:textStyle="bold"
+                android:drawableStart="@android:drawable/ic_menu_upload"
+                android:drawablePadding="8dp"
+                android:backgroundTint="@color/teal_700"
+                android:textColor="@android:color/white"
+                app:cornerRadius="12dp"
+                app:iconTint="@android:color/white"
+                android:layout_marginBottom="8dp"
+                style="@style/Widget.Material3.Button" />
 
         </LinearLayout>
 
     </androidx.cardview.widget.CardView>
 
     <!-- Кнопка снятия с публикации -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/button_unpublish"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:text="Снять с публикации"
+        android:textStyle="bold"
+        android:drawableStart="@android:drawable/ic_menu_close_clear_cancel"
+        android:drawablePadding="8dp"
+        android:backgroundTint="#FFC107"
+        android:textColor="@android:color/black"
+        app:cornerRadius="12dp"
+        app:iconTint="@android:color/black"
         android:layout_marginBottom="16dp"
         android:visibility="gone"
-        style="@style/Widget.AppCompat.Button.Colored"
-        android:backgroundTint="#FFC107" />
+        style="@style/Widget.Material3.Button" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -92,27 +106,52 @@
         android:orientation="horizontal"
         android:layout_marginBottom="16dp">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/button_view_genealogy"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="Просмотр" />
+            android:text="Просмотр связей"
+            android:textStyle="bold"
+            android:drawableStart="@drawable/ic_family_tree"
+            android:drawablePadding="8dp"
+            android:backgroundTint="?attr/colorPrimary"
+            android:textColor="@android:color/white"
+            app:cornerRadius="12dp"
+            app:iconTint="@android:color/white"
+            style="@style/Widget.Material3.Button" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/button_edit_genealogy"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="Редактировать" />
+            android:text="Редактировать"
+            android:textStyle="bold"
+            android:drawableStart="@android:drawable/ic_menu_edit"
+            android:drawablePadding="8dp"
+            android:backgroundTint="@android:color/holo_orange_dark"
+            android:textColor="@android:color/white"
+            app:cornerRadius="12dp"
+            app:iconTint="@android:color/white"
+            style="@style/Widget.Material3.Button" />
     </LinearLayout>
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/button_save"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Сохранить изменения"/>
+        android:layout_height="56dp"
+        android:text="Сохранить изменения"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:drawableStart="@android:drawable/ic_menu_save"
+        android:drawablePadding="8dp"
+        android:backgroundTint="@android:color/holo_green_dark"
+        android:textColor="@android:color/white"
+        app:cornerRadius="12dp"
+        app:iconTint="@android:color/white"
+        style="@style/Widget.Material3.Button" />
 
 </LinearLayout> 

@@ -66,7 +66,42 @@ class FamilyTreeViewModel @Inject constructor(
             try {
                 _isLoading.value = true
                 _error.value = null
-                _familyTrees.value = repository.getMyFamilyTrees()
+                
+                // Загружаем собственные деревья
+                val myTrees = repository.getMyFamilyTrees()
+                
+                // Загружаем черновики редактора (они должны создаваться на сервере при предоставлении доступа)
+                val myDrafts = try {
+                    repository.getMyDrafts()
+                } catch (e: Exception) {
+                    // Если endpoint недоступен, возвращаем пустой список
+                    emptyList()
+                }
+                
+                // Преобразуем черновики в FamilyTree для отображения
+                val draftTrees = myDrafts.map { draft -> 
+                    draft.toFamilyTree().copy(
+                        // Добавляем индикатор что это черновик
+                        name = "${draft.draftName} (черновик)"
+                    )
+                }
+                
+                // Загружаем деревья с совместным доступом (только если нет черновика)
+                val sharedTrees = try {
+                    repository.getSharedFamilyTrees()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                
+                // Фильтруем shared деревья - исключаем те, для которых есть черновики
+                val filteredSharedTrees = sharedTrees.filter { sharedTree ->
+                    !myDrafts.any { draft -> draft.familyTree?.id == sharedTree.id }
+                }
+                
+                // Объединяем: собственные деревья + черновики + оставшиеся shared деревья
+                val allTrees = myTrees + draftTrees + filteredSharedTrees
+                _familyTrees.value = allTrees
+                
             } catch (e: Exception) {
                 handleError(e)
             } finally {
@@ -90,19 +125,8 @@ class FamilyTreeViewModel @Inject constructor(
     }
 
     fun loadAccessibleFamilyTrees() {
-        viewModelScope.launch {
-            try {
-                _isLoading.value = true
-                _error.value = null
-                val response = repository.getAccessibleFamilyTrees()
-                _familyTrees.value = response
-                _isAuthorized.value = true
-            } catch (e: Exception) {
-                handleError(e)
-            } finally {
-                _isLoading.value = false
-            }
-        }
+        // Этот метод теперь вызывается внутри loadMyFamilyTrees()
+        // Оставляем его для совместимости, но он ничего не делает
     }
 
     fun createFamilyTree(familyTree: FamilyTree) {

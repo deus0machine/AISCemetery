@@ -25,7 +25,7 @@ import retrofit2.HttpException
 import android.util.Log
 
 class MemorialRepository {
-    private val apiService = RetrofitClient.getApiService()
+    private val apiService by lazy { RetrofitClient.getApiService() }
 
     suspend fun getAllMemorials(): List<Memorial> = withContext(Dispatchers.IO) {
         apiService.getAllMemorials()
@@ -422,6 +422,61 @@ class MemorialRepository {
         size: Int
     ): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
         apiService.searchMemorials(query, location, startDate, endDate, isPublic, page, size)
+    }
+
+    // Расширенный поиск мемориалов
+    suspend fun advancedSearchMemorials(
+        firstName: String? = null,
+        lastName: String? = null,
+        middleName: String? = null,
+        birthDateFrom: String? = null,
+        birthDateTo: String? = null,
+        deathDateFrom: String? = null,
+        deathDateTo: String? = null,
+        location: String? = null,
+        query: String? = null,
+        isPublic: Boolean? = null,
+        sortBy: String? = null,
+        sortDirection: String? = null,
+        page: Int = 0,
+        size: Int = 10
+    ): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        apiService.advancedSearchMemorials(
+            firstName, lastName, middleName,
+            birthDateFrom, birthDateTo, deathDateFrom, deathDateTo,
+            location, query, isPublic, sortBy, sortDirection, page, size
+        )
+    }
+
+    // Быстрый поиск для автодополнения
+    suspend fun quickSearchMemorials(
+        query: String,
+        limit: Int = 10
+    ): List<Memorial> = withContext(Dispatchers.IO) {
+        apiService.quickSearchMemorials(query, limit)
+    }
+
+    // Поиск по годовщинам
+    suspend fun searchAnniversaries(
+        month: Int? = null,
+        day: Int? = null,
+        type: String? = null,
+        page: Int = 0,
+        size: Int = 10
+    ): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        apiService.searchAnniversaries(month, day, type, page, size)
+    }
+
+    // Поиск с фильтрами через POST
+    suspend fun searchMemorialsWithFilter(
+        searchRequest: ru.sevostyanov.aiscemetery.models.MemorialSearchRequest
+    ): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        apiService.searchMemorialsWithFilter(searchRequest)
+    }
+
+    // Статистика поиска
+    suspend fun getSearchStats(): ru.sevostyanov.aiscemetery.models.MemorialSearchStats = withContext(Dispatchers.IO) {
+        apiService.getSearchStats()
     }
 
     // Получить подробности ожидающих изменений мемориала для предпросмотра

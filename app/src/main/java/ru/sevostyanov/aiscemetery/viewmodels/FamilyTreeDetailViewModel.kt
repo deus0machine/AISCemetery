@@ -123,6 +123,46 @@ class FamilyTreeDetailViewModel @Inject constructor(
         }
     }
 
+    fun loadDraftGenealogyData(treeId: Long) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _error.value = null
+                
+                // Загружаем данные черновика
+                try {
+                    Log.d("FamilyTreeDetailVM", "Loading draft data for tree ID: $treeId")
+                    Log.d("FamilyTreeDetailVM", "Current user ID: ${RetrofitClient.getCurrentUserId()}")
+                    
+                    val draftMemorials = RetrofitClient.getApiService().getDraftMemorials(treeId)
+                    val draftRelations = RetrofitClient.getApiService().getDraftRelations(treeId)
+                    val familyTree = repository.getFamilyTreeById(treeId)
+                    
+                    Log.d("FamilyTreeDetailVM", "Draft data loaded:")
+                    Log.d("FamilyTreeDetailVM", "  Draft memorials count: ${draftMemorials.size}")
+                    Log.d("FamilyTreeDetailVM", "  Draft relations count: ${draftRelations.size}")
+                    Log.d("FamilyTreeDetailVM", "  Original tree memorial count: ${familyTree.memorialCount}")
+                    
+                    _familyTree.value = familyTree
+                    _memorialRelations.value = draftRelations
+                    
+                    // Используем мемориалы черновика напрямую
+                    _availableMemorials.value = draftMemorials
+                    
+                } catch (e: Exception) {
+                    Log.e("FamilyTreeDetailVM", "Error loading draft data: ${e.message}")
+                    handleError(e)
+                }
+                
+                _isAuthorized.value = true
+            } catch (e: Exception) {
+                handleError(e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     private fun loadMemorialRelations(familyTreeId: Long) {
         viewModelScope.launch {
             try {
@@ -192,7 +232,18 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 _memorialRelations.value = currentList
                 _isAuthorized.value = true
             } catch (e: Exception) {
-                handleError(e)
+                // Специальная обработка для редакторов
+                when {
+                    e.message?.contains("Editors must use draft system") == true -> {
+                        _error.value = "Редакторы должны использовать систему черновиков для внесения изменений. Нажмите кнопку 'Создать черновик изменений' для работы с деревом."
+                    }
+                    e.message?.contains("Insufficient permissions") == true -> {
+                        _error.value = "Недостаточно прав для выполнения этого действия. Если вы редактор, используйте систему черновиков."
+                    }
+                    else -> {
+                        handleError(e)
+                    }
+                }
             } finally {
                 _isLoading.value = false
             }
@@ -215,7 +266,18 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 }
                 _isAuthorized.value = true
             } catch (e: Exception) {
-                handleError(e)
+                // Специальная обработка для редакторов
+                when {
+                    e.message?.contains("Editors must use draft system") == true -> {
+                        _error.value = "Редакторы должны использовать систему черновиков для внесения изменений. Нажмите кнопку 'Создать черновик изменений' для работы с деревом."
+                    }
+                    e.message?.contains("Insufficient permissions") == true -> {
+                        _error.value = "Недостаточно прав для выполнения этого действия. Если вы редактор, используйте систему черновиков."
+                    }
+                    else -> {
+                        handleError(e)
+                    }
+                }
             } finally {
                 _isLoading.value = false
             }
@@ -235,7 +297,18 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 _memorialRelations.value = currentList
                 _isAuthorized.value = true
             } catch (e: Exception) {
-                handleError(e)
+                // Специальная обработка для редакторов
+                when {
+                    e.message?.contains("Editors must use draft system") == true -> {
+                        _error.value = "Редакторы должны использовать систему черновиков для внесения изменений. Нажмите кнопку 'Создать черновик изменений' для работы с деревом."
+                    }
+                    e.message?.contains("Insufficient permissions") == true -> {
+                        _error.value = "Недостаточно прав для выполнения этого действия. Если вы редактор, используйте систему черновиков."
+                    }
+                    else -> {
+                        handleError(e)
+                    }
+                }
             } finally {
                 _isLoading.value = false
             }
@@ -272,7 +345,18 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 )
                 _familyTree.value = repository.updateFamilyTree(id, updatedTree)
             } catch (e: Exception) {
-                handleError(e)
+                // Специальная обработка для редакторов
+                when {
+                    e.message?.contains("Editors must use draft system") == true -> {
+                        _error.value = "Редакторы должны использовать систему черновиков для внесения изменений. Нажмите кнопку 'Создать черновик изменений' для работы с деревом."
+                    }
+                    e.message?.contains("Insufficient permissions") == true -> {
+                        _error.value = "Недостаточно прав для редактирования дерева. Если вы редактор, используйте систему черновиков."
+                    }
+                    else -> {
+                        handleError(e)
+                    }
+                }
             } finally {
                 _isLoading.value = false
             }

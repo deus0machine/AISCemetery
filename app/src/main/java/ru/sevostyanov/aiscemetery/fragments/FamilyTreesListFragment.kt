@@ -33,6 +33,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.sevostyanov.aiscemetery.dialogs.FamilyTreeFilterDialog
+import android.app.AlertDialog
+import android.text.InputType
+import android.widget.EditText
 
 @AndroidEntryPoint
 class FamilyTreesListFragment : Fragment() {
@@ -114,19 +117,56 @@ class FamilyTreesListFragment : Fragment() {
     private fun setupAdapter() {
         adapter = FamilyTreeAdapter(
             onItemClick = { tree ->
-                // При клике на дерево открываем диалог редактирования дерева
-                if (tree.userId == viewModel.getCurrentUserId()) {
-                    tree.id?.let { id ->
-                        val dialog = FamilyTreeFragment.newInstance(id)
-                        dialog.show(parentFragmentManager, "edit_tree")
+                tree.id?.let { id ->
+                    // Добавляем логирование для отладки
+                    android.util.Log.d("FamilyTreesList", "=== Tree Click Debug ===")
+                    android.util.Log.d("FamilyTreesList", "Tree ID: $id")
+                    android.util.Log.d("FamilyTreesList", "Tree name: ${tree.name}")
+                    android.util.Log.d("FamilyTreesList", "Tree userId: ${tree.userId}")
+                    android.util.Log.d("FamilyTreesList", "Current user ID: ${ru.sevostyanov.aiscemetery.user.UserManager.getCurrentUser()?.id}")
+                    android.util.Log.d("FamilyTreesList", "isUserOwner: ${tree.isUserOwner}")
+                    android.util.Log.d("FamilyTreesList", "canUserEdit: ${tree.canUserEdit()}")
+                    android.util.Log.d("FamilyTreesList", "hasUserAccess: ${tree.hasUserAccess()}")
+                    android.util.Log.d("FamilyTreesList", "getUserAccessLevel: ${tree.getUserAccessLevel()}")
+                    android.util.Log.d("FamilyTreesList", "accessList: ${tree.accessList}")
+                    
+                    // Проверяем уровень доступа пользователя
+                    when {
+                        // Для черновиков всегда открываем диалог редактирования
+                        tree.name.contains("(черновик)") -> {
+                            android.util.Log.d("FamilyTreesList", "Opening edit dialog for draft")
+                            val dialog = FamilyTreeFragment.newInstance(id, isDraft = true)
+                            dialog.show(parentFragmentManager, "edit_tree")
+                        }
+                        // Для владельцев всегда открываем диалог редактирования
+                        tree.isUserOwner -> {
+                            android.util.Log.d("FamilyTreesList", "Opening edit dialog for owner")
+                            val dialog = FamilyTreeFragment.newInstance(id)
+                            dialog.show(parentFragmentManager, "edit_tree")
+                        }
+                        // Для редакторов в "Мои деревья" открываем диалог редактирования
+                        tree.canUserEdit() && tabLayout.selectedTabPosition == 0 -> {
+                            android.util.Log.d("FamilyTreesList", "Opening edit dialog for editor in My Trees")
+                            val dialog = FamilyTreeFragment.newInstance(id)
+                            dialog.show(parentFragmentManager, "edit_tree")
+                        }
+                        // Для всех остальных случаев (включая редакторов в публичных деревьях) - просмотр
+                        else -> {
+                            android.util.Log.d("FamilyTreesList", "Opening view for user")
+                            val bundle = Bundle().apply {
+                                putLong("treeId", id)
+                                putBoolean("isDraft", false)
+                                // Передаем информацию о том, есть ли у пользователя доступ
+                                putBoolean("hasAccess", tree.hasUserAccess())
+                            }
+                            findNavController().navigate(R.id.action_familyTreesListFragment_to_genealogyTreeFragment, bundle)
+                        }
                     }
-                } else {
-                    Toast.makeText(context, "У вас нет прав на редактирование этого дерева", Toast.LENGTH_SHORT).show()
                 }
             },
             onEditClick = { tree ->
                 // При клике на карандаш открываем экран редактирования связей дерева
-                if (tree.userId == viewModel.getCurrentUserId()) {
+                if (tree.canUserEdit()) {
                     tree.id?.let { id ->
                         val bundle = Bundle().apply {
                             putLong("treeId", id)
@@ -138,12 +178,17 @@ class FamilyTreesListFragment : Fragment() {
                 }
             },
             onDeleteClick = { tree ->
-                if (tree.userId == viewModel.getCurrentUserId()) {
+                if (tree.isUserOwner) {
                     showDeleteConfirmationDialog(tree)
                 } else {
                     Toast.makeText(context, "У вас нет прав на удаление этого дерева", Toast.LENGTH_SHORT).show()
                 }
-            }
+            },
+            onSubmitDraftClick = { tree ->
+                // Обработка отправки черновика на рассмотрение
+                showSubmitDraftDialog(tree)
+            },
+            isMyTreesTab = true // По умолчанию "Мои деревья"
         )
         recyclerView.adapter = adapter
     }
@@ -202,6 +247,8 @@ class FamilyTreesListFragment : Fragment() {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 tab?.position?.let { position ->
                     viewModel.setCurrentTabPosition(position)
+                    // Обновляем состояние адаптера
+                    adapter.updateTabState(isMyTreesTab = position == 0)
                     when (position) {
                         0 -> loadTrees(showOnlyMine = true)
                         1 -> loadTrees(showOnlyMine = false)
@@ -256,6 +303,7 @@ class FamilyTreesListFragment : Fragment() {
 
     private fun loadTrees(showOnlyMine: Boolean) {
         if (showOnlyMine) {
+            // Загружаем как собственные деревья, так и деревья с совместным доступом
             viewModel.loadMyFamilyTrees()
         } else {
             viewModel.loadPublicFamilyTrees()
@@ -365,6 +413,49 @@ class FamilyTreesListFragment : Fragment() {
             endDate = filterOptions.endDate,
             myOnly = tabLayout.selectedTabPosition == 0
         )
+    }
+
+    private fun showSubmitDraftDialog(tree: FamilyTree) {
+        val builder = AlertDialog.Builder(requireContext())
+        val input = EditText(requireContext())
+        input.hint = "Сообщение владельцу (необязательно)"
+        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        input.maxLines = 3
+        
+        builder.setTitle("Отправить черновик на рассмотрение")
+            .setMessage("Отправить изменения владельцу дерева для рассмотрения?")
+            .setView(input)
+            .setPositiveButton("Отправить") { _, _ ->
+                val message = input.text.toString().trim()
+                submitDraftToOwner(tree, message)
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+    
+    private fun submitDraftToOwner(tree: FamilyTree, message: String) {
+        lifecycleScope.launch {
+            try {
+                // Нужно найти ID черновика по ID дерева
+                // Для этого загружаем черновики и ищем соответствующий
+                val drafts = RetrofitClient.getApiService().getMyDrafts()
+                val draft = drafts.find { it.familyTree?.id == tree.id }
+                
+                if (draft != null) {
+                    val request = mapOf("message" to message)
+                    RetrofitClient.getApiService().submitDraft(draft.id, request)
+                    
+                    Toast.makeText(context, "Черновик отправлен на рассмотрение владельцу", Toast.LENGTH_LONG).show()
+                    
+                    // НЕ перезагружаем список - черновик должен остаться как есть
+                    // Уведомление появится в разделе "Исходящие"
+                } else {
+                    Toast.makeText(context, "Черновик не найден", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Ошибка отправки черновика: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onDestroyView() {

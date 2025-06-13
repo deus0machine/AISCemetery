@@ -1,0 +1,23 @@
+РУКОВОДСТВО ПО МИГРАЦИИ С H2 НА POSTGRESQL
+
+1. УСТАНОВКА POSTGRESQL:
+   - Windows: Скачать с postgresql.org и установить
+   - Linux: sudo apt install postgresql postgresql-contrib
+
+2. СОЗДАНИЕ БАЗЫ ДАННЫХ:
+   psql -U postgres
+   CREATE DATABASE cemetery_db;
+   CREATE USER cemetery_user WITH PASSWORD 'cemetery_password';
+   GRANT ALL PRIVILEGES ON DATABASE cemetery_db TO cemetery_user;
+
+3. ВЫПОЛНЕНИЕ МИГРАЦИИ:
+   psql -U cemetery_user -d cemetery_db -f postgresql_migration.sql
+
+4. ЗАПУСК ПРИЛОЖЕНИЯ:
+   mvn spring-boot:run -Dspring.profiles.active=postgresql
+
+5. ТЕСТОВЫЕ ПОЛЬЗОВАТЕЛИ:
+   admin / password
+   testuser / password
+
+ГОТОВО! Приложение работает с PostgreSQL. 

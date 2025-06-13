@@ -44,6 +44,15 @@ class FamilyTreeRepository @Inject constructor() {
         }
     }
 
+    suspend fun getSharedFamilyTrees(): List<FamilyTree> = withContext(Dispatchers.IO) {
+        try {
+            apiService.getSharedFamilyTrees()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Ошибка при получении деревьев с совместным доступом: ${e.message}")
+        }
+    }
+
     suspend fun getFamilyTreeById(id: Long): FamilyTree = withContext(Dispatchers.IO) {
         try {
             apiService.getFamilyTreeById(id)
@@ -171,6 +180,15 @@ class FamilyTreeRepository @Inject constructor() {
         } catch (e: Exception) {
             e.printStackTrace()
             throw Exception("Ошибка при поиске деревьев: ${e.message}")
+        }
+    }
+
+    suspend fun getMyDrafts(): List<ru.sevostyanov.aiscemetery.models.FamilyTreeDraft> = withContext(Dispatchers.IO) {
+        try {
+            apiService.getMyDrafts()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Ошибка при получении черновиков: ${e.message}")
         }
     }
 

@@ -81,6 +81,18 @@
                 android:textColor="?android:attr/textColorTertiary"
                 tools:text="Мемориалов: 10" />
 
+            <Button
+                android:id="@+id/button_submit_draft"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Отправить"
+                android:textSize="14sp"
+                android:visibility="gone"
+                android:backgroundTint="@color/teal_700"
+                android:textColor="@color/white"
+                style="@style/Widget.Material3.Button" />
+
             <ImageButton
                 android:id="@+id/button_edit"
                 android:layout_width="wrap_content"

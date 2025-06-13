@@ -12,7 +12,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import ru.sevostyanov.aiscemetery.R
-import ru.sevostyanov.aiscemetery.adapters.NotificationsAdapter
+import ru.sevostyanov.aiscemetery.adapters.UnifiedNotificationAdapter
 import ru.sevostyanov.aiscemetery.models.Notification
 import ru.sevostyanov.aiscemetery.models.NotificationType
 import ru.sevostyanov.aiscemetery.viewmodels.NotificationsViewModel
@@ -24,9 +24,13 @@ class NotificationPageFragment : Fragment() {
     private val viewModel: NotificationsViewModel by activityViewModels()
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyTextView: TextView
-    private lateinit var adapter: NotificationsAdapter
+    private lateinit var adapter: ru.sevostyanov.aiscemetery.adapters.UnifiedNotificationAdapter
     
     private var isIncoming: Boolean = true
+    
+    // Храним списки уведомлений
+    private var regularNotifications: List<Notification> = emptyList()
+    private var draftSubmissions: List<ru.sevostyanov.aiscemetery.models.DraftSubmission> = emptyList()
 
     companion object {
         private const val ARG_IS_INCOMING = "is_incoming"
@@ -70,8 +74,10 @@ class NotificationPageFragment : Fragment() {
         // Load notifications
         if (isIncoming) {
             viewModel.loadIncomingNotifications()
+            viewModel.loadIncomingDraftSubmissions()
         } else {
             viewModel.loadSentNotifications()
+            viewModel.loadOutgoingDraftSubmissions()
         }
     }
 
@@ -84,41 +90,39 @@ class NotificationPageFragment : Fragment() {
         // чтобы правильно отображался статус после подтверждения/отклонения изменений
         if (isIncoming) {
             viewModel.loadIncomingNotifications()
+            viewModel.loadIncomingDraftSubmissions()
         } else {
             viewModel.loadSentNotifications()
+            viewModel.loadOutgoingDraftSubmissions()
         }
     }
 
     private fun setupRecyclerView() {
-        // Добавляем обработчики принятия/отклонения только для входящих
-        adapter = if (isIncoming) {
-            NotificationsAdapter(
-                isIncoming = true,
-                onAcceptClick = { notification ->
-                    handleAcceptClick(notification)
-                },
-                onRejectClick = { notification ->
-                    handleRejectClick(notification)
-                },
-                onItemClick = { notification ->
-                    handleItemClick(notification)
-                },
-                onDeleteClick = { notification ->
-                    handleDeleteClick(notification, true)
-                }
-            )
-        } else {
-            NotificationsAdapter(
-                isIncoming = false,
-                onItemClick = { notification ->
-                    // Для исходящих просто логируем клик
-                    handleOutgoingItemClick(notification)
-                },
-                onDeleteClick = { notification ->
-                    handleDeleteClick(notification, false)
-                }
-            )
-        }
+        // Создаем объединенный адаптер для обычных уведомлений и уведомлений о черновиках
+        adapter = ru.sevostyanov.aiscemetery.adapters.UnifiedNotificationAdapter(
+            isIncoming = isIncoming,
+            onRegularNotificationClick = { notification ->
+                handleItemClick(notification)
+            },
+            onRegularAcceptClick = { notification ->
+                handleAcceptClick(notification)
+            },
+            onRegularRejectClick = { notification ->
+                handleRejectClick(notification)
+            },
+            onRegularDeleteClick = { notification ->
+                handleDeleteClick(notification, isIncoming)
+            },
+            onDraftNotificationClick = { draftSubmission ->
+                handleDraftItemClick(draftSubmission)
+            },
+            onDraftApproveClick = { draftSubmission ->
+                handleDraftApproveClick(draftSubmission)
+            },
+            onDraftRejectClick = { draftSubmission ->
+                handleDraftRejectClick(draftSubmission)
+            }
+        )
         
         recyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -147,6 +151,7 @@ class NotificationPageFragment : Fragment() {
             NotificationType.MEMORIAL_OWNERSHIP -> showMemorialOwnershipDetails(notification)
             NotificationType.MEMORIAL_CHANGES -> showMemorialChangesDetails(notification)
             NotificationType.MEMORIAL_EDIT -> showMemorialEditDetails(notification)
+            NotificationType.FAMILY_TREE_ACCESS_REQUEST -> showFamilyTreeAccessRequestDetails(notification)
             else -> showGenericNotificationDetails(notification)
         }
     }
@@ -165,6 +170,17 @@ class NotificationPageFragment : Fragment() {
                     .setPositiveButton("Да") { _, _ ->
                         viewModel.respondToNotification(notification.id, true)
                         Toast.makeText(context, "Запрос на совместное владение принят", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Отмена", null)
+                    .show()
+            }
+            NotificationType.FAMILY_TREE_ACCESS_REQUEST -> {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Подтверждение доступа к дереву")
+                    .setMessage("Вы действительно хотите предоставить доступ к генеалогическому дереву \"${notification.relatedEntityName ?: ""}\"?")
+                    .setPositiveButton("Да") { _, _ ->
+                        viewModel.respondToFamilyTreeAccessRequest(notification.id, true)
+                        Toast.makeText(context, "Доступ к дереву предоставлен", Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton("Отмена", null)
                     .show()
@@ -206,7 +222,18 @@ class NotificationPageFragment : Fragment() {
                     .setMessage("Вы действительно хотите отклонить запрос на совместное владение мемориалом ${notification.relatedEntityName ?: ""}?")
                     .setPositiveButton("Да") { _, _ ->
                         viewModel.respondToNotification(notification.id, false)
-                        Toast.makeText(context, "Запрос на совместное владение отклонен", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Запрос на совместное владение отклонён", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Отмена", null)
+                    .show()
+            }
+            NotificationType.FAMILY_TREE_ACCESS_REQUEST -> {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Отклонение доступа к дереву")
+                    .setMessage("Вы действительно хотите отклонить запрос на доступ к генеалогическому дереву \"${notification.relatedEntityName ?: ""}\"?")
+                    .setPositiveButton("Да") { _, _ ->
+                        viewModel.respondToFamilyTreeAccessRequest(notification.id, false)
+                        Toast.makeText(context, "Запрос на доступ к дереву отклонён", Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton("Отмена", null)
                     .show()
@@ -294,11 +321,28 @@ class NotificationPageFragment : Fragment() {
                 NotificationStatus.PENDING -> append("Ожидает ответа")
                 NotificationStatus.ACCEPTED -> append("Принято")
                 NotificationStatus.REJECTED -> append("Отклонено")
-                else -> append("Обработано")
+                NotificationStatus.PROCESSED -> append("Обработано")
+                null -> append("Неизвестно")
             }
             if (notification.senderName != null) {
                 append("\nОтправитель: ${notification.senderName}")
             }
+            append("\nДата: ${notification.createdAt}")
+        }
+        
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("Закрыть", null)
+            .show()
+    }
+    
+    private fun showFamilyTreeAccessRequestDetails(notification: Notification) {
+        val title = "Запрос на доступ к дереву"
+        val message = buildString {
+            append(notification.message)
+            append("\n\nМемориал: ${notification.relatedEntityName ?: "Неизвестно"}")
+            append("\nОтправитель: ${notification.senderName ?: "Неизвестно"}")
             append("\nДата: ${notification.createdAt}")
         }
         
@@ -334,6 +378,7 @@ class NotificationPageFragment : Fragment() {
             NotificationType.MEMORIAL_OWNERSHIP -> "Запрос на совместное владение"
             NotificationType.MEMORIAL_CHANGES -> "Запрос на изменение мемориала"
             NotificationType.MEMORIAL_EDIT -> "Изменения в мемориале"
+            NotificationType.FAMILY_TREE_ACCESS_REQUEST -> "Запрос на доступ к дереву"
             else -> "Уведомление"
         }
         
@@ -345,6 +390,7 @@ class NotificationPageFragment : Fragment() {
                 NotificationStatus.ACCEPTED -> append("Принято")
                 NotificationStatus.REJECTED -> append("Отклонено")
                 NotificationStatus.PROCESSED -> append("Обработано")
+                null -> append("Неизвестно")
             }
             if (notification.relatedEntityName != null) {
                 append("\nМемориал: ${notification.relatedEntityName}")
@@ -363,49 +409,110 @@ class NotificationPageFragment : Fragment() {
     private fun setupObservers() {
         if (isIncoming) {
             viewModel.incomingNotifications.observe(viewLifecycleOwner) { notifications ->
-                Log.d("NotificationPage", "Получены входящие уведомления: ${notifications.size}")
-                if (notifications.isNotEmpty()) {
-                    Log.d("NotificationPage", "Первое уведомление: ID=${notifications[0].id}, тип=${notifications[0].type}")
-                } else {
-                    Log.d("NotificationPage", "Список входящих уведомлений пуст")
-                }
-                adapter.submitList(notifications)
-                updateEmptyView(notifications.isEmpty())
+                regularNotifications = notifications
+                updateCombinedNotificationsList()
+            }
+            
+            // Добавляем наблюдение за уведомлениями о черновиках
+            viewModel.incomingDraftSubmissions.observe(viewLifecycleOwner) { draftSubmissions ->
+                this.draftSubmissions = draftSubmissions
+                updateCombinedNotificationsList()
             }
         } else {
             viewModel.sentNotifications.observe(viewLifecycleOwner) { notifications ->
-                Log.d("NotificationPage", "Получены исходящие уведомления: ${notifications.size}")
-                if (notifications.isNotEmpty()) {
-                    Log.d("NotificationPage", "Первое уведомление: ID=${notifications[0].id}, тип=${notifications[0].type}")
-                } else {
-                    Log.d("NotificationPage", "Список исходящих уведомлений пуст")
-                }
-                adapter.submitList(notifications)
-                updateEmptyView(notifications.isEmpty())
+                regularNotifications = notifications
+                updateCombinedNotificationsList()
+            }
+            
+            // Добавляем наблюдение за уведомлениями о черновиках
+            viewModel.outgoingDraftSubmissions.observe(viewLifecycleOwner) { draftSubmissions ->
+                this.draftSubmissions = draftSubmissions
+                updateCombinedNotificationsList()
             }
         }
-        
-        // Наблюдаем за состоянием загрузки
-        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            Log.d("NotificationPage", "Состояние загрузки: $isLoading")
-            view?.findViewById<View>(R.id.progress_bar)?.visibility = 
-                if (isLoading) View.VISIBLE else View.GONE
-        }
-        
-        viewModel.error.observe(viewLifecycleOwner) { errorMessage ->
-            if (!errorMessage.isNullOrEmpty() && errorMessage.isNotBlank()) {
-                Log.e("NotificationPage", "Ошибка: $errorMessage")
-                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+
+        viewModel.error.observe(viewLifecycleOwner) { error ->
+            if (!error.isNullOrEmpty()) {
+                Log.e("NotificationPageFragment", "Error: $error")
+                // Показываем ошибку пользователю
+                android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }
     
-    private fun updateEmptyView(isEmpty: Boolean) {
-        emptyTextView.visibility = if (isEmpty) View.VISIBLE else View.GONE
+    private fun updateCombinedNotificationsList() {
+        val combinedList = mutableListOf<ru.sevostyanov.aiscemetery.models.NotificationItem>()
+        
+        Log.d("NotificationPageFragment", "=== Обновление списка уведомлений ===")
+        Log.d("NotificationPageFragment", "Обычных уведомлений: ${regularNotifications.size}")
+        Log.d("NotificationPageFragment", "Уведомлений о черновиках: ${draftSubmissions.size}")
+        
+        // Добавляем обычные уведомления
+        regularNotifications.forEachIndexed { index, notification ->
+            Log.d("NotificationPageFragment", "Обычное уведомление #$index: id=${notification.id}, status=${notification.status}, title=${notification.title}")
+            combinedList.add(ru.sevostyanov.aiscemetery.models.RegularNotificationItem(notification))
+        }
+        
+        // Добавляем уведомления о черновиках
+        draftSubmissions.forEachIndexed { index, draftSubmission ->
+            Log.d("NotificationPageFragment", "Уведомление о черновике #$index: id=${draftSubmission.id}, status=${draftSubmission.reviewStatus}")
+            combinedList.add(ru.sevostyanov.aiscemetery.models.DraftNotificationItem(draftSubmission, isIncoming))
+        }
+        
+        // Сортируем по дате (новые сверху)
+        combinedList.sortByDescending { it.createdAt }
+        
+        Log.d("NotificationPageFragment", "Объединенный список: ${combinedList.size} уведомлений (${regularNotifications.size} обычных + ${draftSubmissions.size} черновиков)")
+        
+        if (combinedList.isEmpty()) {
+            showEmptyState()
+        } else {
+            hideEmptyState()
+            adapter.submitList(combinedList)
+        }
+    }
+    
+    private fun showEmptyState() {
+        emptyTextView.visibility = View.VISIBLE
         emptyTextView.text = if (isIncoming) {
             "У вас нет входящих уведомлений"
         } else {
             "У вас нет исходящих уведомлений"
         }
+    }
+    
+    private fun hideEmptyState() {
+        emptyTextView.visibility = View.GONE
+    }
+
+    // Обработчики для уведомлений о черновиках
+    private fun handleDraftItemClick(draftSubmission: ru.sevostyanov.aiscemetery.models.DraftSubmission) {
+        // Открываем экран сравнения изменений
+        Log.d("NotificationPageFragment", "Клик по уведомлению о черновике: ${draftSubmission.id}")
+        ru.sevostyanov.aiscemetery.activities.DraftComparisonActivity.start(requireContext(), draftSubmission.id)
+    }
+    
+    private fun handleDraftApproveClick(draftSubmission: ru.sevostyanov.aiscemetery.models.DraftSubmission) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Одобрение изменений")
+            .setMessage("Вы действительно хотите одобрить изменения в дереве \"${draftSubmission.draft.familyTree?.name ?: "Неизвестно"}\"?")
+            .setPositiveButton("Одобрить") { _, _ ->
+                viewModel.respondToDraftSubmission(draftSubmission.id, true, null)
+                android.widget.Toast.makeText(context, "Изменения одобрены", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+    
+    private fun handleDraftRejectClick(draftSubmission: ru.sevostyanov.aiscemetery.models.DraftSubmission) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Отклонение изменений")
+            .setMessage("Вы действительно хотите отклонить изменения в дереве \"${draftSubmission.draft.familyTree?.name ?: "Неизвестно"}\"?")
+            .setPositiveButton("Отклонить") { _, _ ->
+                viewModel.respondToDraftSubmission(draftSubmission.id, false, "Изменения отклонены")
+                android.widget.Toast.makeText(context, "Изменения отклонены", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
     }
 } 

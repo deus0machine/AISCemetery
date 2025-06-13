@@ -46,6 +46,12 @@ class EditGenealogyTreeViewModel @Inject constructor(
     private val _isSuccess = MutableLiveData<Boolean>()
     val isSuccess: LiveData<Boolean> = _isSuccess
 
+    private val _isDraftMode = MutableLiveData<Boolean>()
+    val isDraftMode: LiveData<Boolean> = _isDraftMode
+
+    private val _submitMessage = MutableLiveData<String?>()
+    val submitMessage: LiveData<String?> = _submitMessage
+
     fun loadFamilyTree(treeId: Long) {
         viewModelScope.launch {
             try {
@@ -75,7 +81,27 @@ class EditGenealogyTreeViewModel @Inject constructor(
     private suspend fun loadTreeMemorials(treeId: Long) {
         try {
             Log.d("EditGenealogyTreeVM", "=== loadTreeMemorials trying API call ===")
-            val apiMemorials = RetrofitClient.getApiService().getFamilyTreeMemorials(treeId)
+            
+            // Проверяем, является ли пользователь владельцем дерева
+            val currentUserId = RetrofitClient.getCurrentUserId()
+            val isOwner = _familyTree.value?.userId == currentUserId
+            
+            val apiMemorials = if (isOwner) {
+                // Владелец видит основное дерево
+                Log.d("EditGenealogyTreeVM", "Loading memorials from main tree (owner)")
+                RetrofitClient.getApiService().getFamilyTreeMemorials(treeId)
+            } else {
+                // Редактор видит черновик
+                Log.d("EditGenealogyTreeVM", "Loading memorials from draft (editor)")
+                try {
+                    // Используем API черновиков для получения мемориалов
+                    RetrofitClient.getApiService().getDraftMemorials(treeId)
+                } catch (e: Exception) {
+                    Log.e("EditGenealogyTreeVM", "Error loading draft memorials, falling back to main tree: ${e.message}")
+                    RetrofitClient.getApiService().getFamilyTreeMemorials(treeId)
+                }
+            }
+            
             Log.d("EditGenealogyTreeVM", "API call successful, got ${apiMemorials.size} memorials:")
             apiMemorials.forEachIndexed { index, memorial ->
                 Log.d("EditGenealogyTreeVM", "API memorial $index: ${memorial.fio} (ID: ${memorial.id})")
@@ -110,7 +136,28 @@ class EditGenealogyTreeViewModel @Inject constructor(
     }
 
     private suspend fun loadMemorialRelations(treeId: Long) {
-        _memorialRelations.value = RetrofitClient.getApiService().getMemorialRelations(treeId)
+        // Проверяем, является ли пользователь владельцем дерева
+        val currentUserId = RetrofitClient.getCurrentUserId()
+        val isOwner = _familyTree.value?.userId == currentUserId
+        
+        val relations = if (isOwner) {
+            // Владелец видит основное дерево
+            Log.d("EditGenealogyTreeVM", "Loading relations from main tree (owner)")
+            RetrofitClient.getApiService().getMemorialRelations(treeId)
+        } else {
+            // Редактор видит черновик
+            Log.d("EditGenealogyTreeVM", "Loading relations from draft (editor)")
+            try {
+                // Используем API черновиков для получения связей
+                RetrofitClient.getApiService().getDraftRelations(treeId)
+            } catch (e: Exception) {
+                Log.e("EditGenealogyTreeVM", "Error loading draft relations, falling back to main tree: ${e.message}")
+                RetrofitClient.getApiService().getMemorialRelations(treeId)
+            }
+        }
+        
+        _memorialRelations.value = relations
+        Log.d("EditGenealogyTreeVM", "Relations loaded: ${relations.size} relations")
     }
 
     private suspend fun loadAvailableMemorials() {
@@ -125,8 +172,19 @@ class EditGenealogyTreeViewModel @Inject constructor(
                 
                 val treeId = _familyTree.value?.id ?: return@launch
                 
-                // Добавляем мемориал в дерево
-                RetrofitClient.getApiService().addMemorialToTree(treeId, memorialId)
+                // Проверяем, является ли пользователь владельцем дерева
+                val currentUserId = RetrofitClient.getCurrentUserId()
+                val isOwner = _familyTree.value?.userId == currentUserId
+                
+                if (isOwner) {
+                    // Владелец может добавлять мемориалы напрямую
+                    RetrofitClient.getApiService().addMemorialToTree(treeId, memorialId)
+                } else {
+                    // Редактор должен использовать черновики
+                    val responseBody = RetrofitClient.getApiService().addMemorialToDraft(treeId, memorialId)
+                    val message = responseBody.string()
+                    Log.d("EditGenealogyTreeVM", "Memorial added to draft: $message")
+                }
                 
                 // Обновляем список мемориалов дерева
                 loadTreeMemorials(treeId)
@@ -149,8 +207,19 @@ class EditGenealogyTreeViewModel @Inject constructor(
                 
                 val treeId = _familyTree.value?.id ?: return@launch
                 
-                // Удаляем мемориал из дерева
-                RetrofitClient.getApiService().removeMemorialFromTree(treeId, memorialId)
+                // Проверяем, является ли пользователь владельцем дерева
+                val currentUserId = RetrofitClient.getCurrentUserId()
+                val isOwner = _familyTree.value?.userId == currentUserId
+                
+                if (isOwner) {
+                    // Владелец может удалять мемориалы напрямую
+                    RetrofitClient.getApiService().removeMemorialFromTree(treeId, memorialId)
+                } else {
+                    // Редактор должен использовать черновики
+                    val responseBody = RetrofitClient.getApiService().removeMemorialFromDraft(treeId, memorialId)
+                    val message = responseBody.string()
+                    Log.d("EditGenealogyTreeVM", "Memorial removed from draft: $message")
+                }
                 
                 // Обновляем список мемориалов дерева
                 loadTreeMemorials(treeId)
@@ -197,8 +266,20 @@ class EditGenealogyTreeViewModel @Inject constructor(
                 Log.d("EditGenealogyTreeVM", "Created relation object: $relation")
                 Log.d("EditGenealogyTreeVM", "Calling API...")
                 
-                val response = RetrofitClient.getApiService().createMemorialRelation(treeId, relation)
-                Log.d("EditGenealogyTreeVM", "API call successful, response: $response")
+                // Проверяем, является ли пользователь владельцем дерева
+                val currentUserId = RetrofitClient.getCurrentUserId()
+                val isOwner = _familyTree.value?.userId == currentUserId
+                
+                if (isOwner) {
+                    // Владелец может создавать связи напрямую
+                    val response = RetrofitClient.getApiService().createMemorialRelation(treeId, relation)
+                    Log.d("EditGenealogyTreeVM", "API call successful, response: $response")
+                } else {
+                    // Редактор должен использовать черновики
+                    val responseBody = RetrofitClient.getApiService().addRelationToDraft(treeId, relation)
+                    val message = responseBody.string()
+                    Log.d("EditGenealogyTreeVM", "Relation added to draft: $message")
+                }
                 
                 // Обновляем связи
                 Log.d("EditGenealogyTreeVM", "Reloading memorial relations...")
@@ -270,7 +351,19 @@ class EditGenealogyTreeViewModel @Inject constructor(
                 
                 val treeId = _familyTree.value?.id ?: return@launch
                 
-                RetrofitClient.getApiService().deleteMemorialRelation(treeId, relationId)
+                // Проверяем, является ли пользователь владельцем дерева
+                val currentUserId = RetrofitClient.getCurrentUserId()
+                val isOwner = _familyTree.value?.userId == currentUserId
+                
+                if (isOwner) {
+                    // Владелец может удалять связи напрямую
+                    RetrofitClient.getApiService().deleteMemorialRelation(treeId, relationId)
+                } else {
+                    // Редактор должен использовать черновики
+                    val responseBody = RetrofitClient.getApiService().removeRelationFromDraft(treeId, relationId)
+                    val message = responseBody.string()
+                    Log.d("EditGenealogyTreeVM", "Relation removed from draft: $message")
+                }
                 
                 // Обновляем связи
                 loadMemorialRelations(treeId)
@@ -297,6 +390,58 @@ class EditGenealogyTreeViewModel @Inject constructor(
 
     fun clearError() {
         _error.value = null
+    }
+
+    /**
+     * Проверяет, работает ли пользователь в режиме черновика
+     */
+    fun checkDraftMode() {
+        val currentUserId = RetrofitClient.getCurrentUserId()
+        val isOwner = _familyTree.value?.userId == currentUserId
+        _isDraftMode.value = !isOwner
+    }
+
+    /**
+     * Отправить черновик владельцу на рассмотрение
+     */
+    fun submitDraftToOwner(message: String) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _error.value = null
+                
+                val treeId = _familyTree.value?.id ?: return@launch
+                val currentUserId = RetrofitClient.getCurrentUserId()
+                
+                // Получаем или создаем активный черновик
+                val draft = RetrofitClient.getApiService().getOrCreateActiveDraft(treeId, currentUserId)
+                
+                // Отправляем черновик на рассмотрение
+                val request = mapOf("message" to message)
+                RetrofitClient.getApiService().submitDraft(draft.id, request)
+                
+                _submitMessage.value = "Изменения отправлены владельцу на рассмотрение"
+                _isSuccess.value = true
+                
+            } catch (e: Exception) {
+                handleError(e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Проверяет, есть ли несохраненные изменения в черновике
+     */
+    fun hasDraftChanges(): Boolean {
+        val currentUserId = RetrofitClient.getCurrentUserId()
+        val isOwner = _familyTree.value?.userId == currentUserId
+        return !isOwner // Если не владелец, то работает с черновиком
+    }
+
+    fun clearSubmitMessage() {
+        _submitMessage.value = null
     }
 
     private fun handleError(e: Exception) {

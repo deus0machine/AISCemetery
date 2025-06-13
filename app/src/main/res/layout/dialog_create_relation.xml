@@ -23,7 +23,7 @@
             app:tint="?attr/colorPrimary" />
 
         <TextView
-            android:id="@+id/text_dialog_title"
+            android:id="@+id/textDialogTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -48,10 +48,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 
         <AutoCompleteTextView
-            android:id="@+id/autocomplete_source_memorial"
+            android:id="@+id/autocompleteSourceMemorial"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Выберите первого человека"
@@ -63,20 +63,18 @@
 
     <!-- Тип связи -->
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/layout_relation_type"
+        android:id="@+id/relationTypeInputLayout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        android:layout_marginTop="16dp"
+        android:hint="Тип связи">
 
         <AutoCompleteTextView
-            android:id="@+id/autocomplete_relation_type"
+            android:id="@+id/autocompleteRelationType"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Тип связи"
-            android:inputType="none"
-            android:drawableStart="@drawable/ic_relation"
-            android:drawablePadding="12dp" />
+            android:inputType="none" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -86,10 +84,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 
         <AutoCompleteTextView
-            android:id="@+id/autocomplete_target_memorial"
+            android:id="@+id/autocompleteTargetMemorial"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Выберите второго человека"
@@ -101,7 +99,7 @@
 
     <!-- Предварительный просмотр связи -->
     <com.google.android.material.card.MaterialCardView
-        android:id="@+id/card_preview"
+        android:id="@+id/cardPreview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
@@ -125,7 +123,7 @@
                 android:layout_marginBottom="8dp" />
 
             <TextView
-                android:id="@+id/text_preview"
+                android:id="@+id/textPreview"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAppearance="@style/TextAppearance.AppCompat.Body1"
@@ -145,20 +143,20 @@
         android:gravity="end">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_cancel"
+            android:id="@+id/buttonCancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Отмена"
             android:layout_marginEnd="8dp"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+            style="@style/Widget.Material3.Button.TextButton" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_save"
+            android:id="@+id/buttonSave"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Создать связь"
             android:enabled="false"
-            style="@style/Widget.MaterialComponents.Button" />
+            style="@style/Widget.Material3.Button" />
 
     </LinearLayout>
 
