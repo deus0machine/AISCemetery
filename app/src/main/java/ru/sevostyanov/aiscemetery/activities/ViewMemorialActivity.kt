@@ -30,6 +30,7 @@ import ru.sevostyanov.aiscemetery.activities.PendingChangesActivity
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.models.PublicationStatus
 import ru.sevostyanov.aiscemetery.util.GlideHelper
+import ru.sevostyanov.aiscemetery.util.SubscriptionUtils
 import ru.sevostyanov.aiscemetery.user.UserManager
 import ru.sevostyanov.aiscemetery.viewmodels.NotificationsViewModel
 import java.text.SimpleDateFormat
@@ -824,10 +825,9 @@ class ViewMemorialActivity : AppCompatActivity() {
                 AlertDialog.Builder(this)
                     .setTitle("Требуется подписка")
                     .setMessage("Для публикации мемориала необходима подписка.\n\nБез подписки ваш мемориал останется приватным и будет доступен только вам.")
-                    .setPositiveButton("Информация о подписке") { _, _ ->
-                        // Здесь можно добавить переход к экрану покупки подписки
-                        Toast.makeText(this, "Функция покупки подписки будет добавлена позже", Toast.LENGTH_SHORT).show()
-                    }
+                                    .setPositiveButton("Информация о подписке") { _, _ ->
+                    SubscriptionUtils.showSubscriptionInfoDialog(this)
+                }
                     .setNegativeButton("Понятно", null)
                     .show()
                 return@setOnClickListener
@@ -866,17 +866,7 @@ class ViewMemorialActivity : AppCompatActivity() {
     // Настройка кнопки информации о подписке
     private fun setupSubscriptionInfoButton() {
         subscriptionInfoButton.setOnClickListener {
-            // Показываем информацию о подписке
-            AlertDialog.Builder(this)
-                .setTitle("Информация о подписке")
-                .setMessage("С подпиской вы сможете:\n\n" +
-                        "• Публиковать мемориалы для всех пользователей\n" +
-                        "• Создавать генеалогические деревья\n" +
-                        "• Получать приоритетную поддержку\n" +
-                        "• Использовать расширенные функции поиска\n\n" +
-                        "Функция покупки подписки будет добавлена в ближайшее время.")
-                .setPositiveButton("Понятно", null)
-                .show()
+            SubscriptionUtils.showSubscriptionInfoDialog(this)
         }
     }
     

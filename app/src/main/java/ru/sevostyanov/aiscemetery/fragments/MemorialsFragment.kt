@@ -29,6 +29,7 @@ import ru.sevostyanov.aiscemetery.models.PagedResponse
 import ru.sevostyanov.aiscemetery.models.PublicationStatus
 import ru.sevostyanov.aiscemetery.repository.MemorialRepository
 import ru.sevostyanov.aiscemetery.user.UserManager
+import ru.sevostyanov.aiscemetery.util.SubscriptionUtils
 import android.app.AlertDialog
 import retrofit2.HttpException
 import com.google.gson.Gson
@@ -724,8 +725,7 @@ class MemorialsFragment : Fragment() {
                 .setTitle("Требуется подписка")
                 .setMessage("Купите подписку, чтобы сделать ваш мемориал публичным")
                 .setPositiveButton("Информация о подписке") { _, _ ->
-                    // Здесь можно открыть экран с информацией о подписке
-                    Toast.makeText(requireContext(), "Информация о подписке", Toast.LENGTH_SHORT).show()
+                    SubscriptionUtils.showSubscriptionInfoDialog(requireContext())
                 }
                 .setNegativeButton("Отмена", null)
                 .show()

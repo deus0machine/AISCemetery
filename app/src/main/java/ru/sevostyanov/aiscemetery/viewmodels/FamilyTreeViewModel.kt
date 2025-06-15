@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import ru.sevostyanov.aiscemetery.RetrofitClient
 import ru.sevostyanov.aiscemetery.models.FamilyTree
+import ru.sevostyanov.aiscemetery.models.FamilyTreeDraft
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.models.MemorialRelation
 import ru.sevostyanov.aiscemetery.models.RelationType
@@ -67,10 +68,14 @@ class FamilyTreeViewModel @Inject constructor(
                 _isLoading.value = true
                 _error.value = null
                 
+                // Получаем текущего пользователя
+                val currentUser = UserManager.getCurrentUser() ?: UserManager.loadUserFromPreferences(context)
+                val currentUserId = currentUser?.id
+                
                 // Загружаем собственные деревья
                 val myTrees = repository.getMyFamilyTrees()
                 
-                // Загружаем черновики редактора (они должны создаваться на сервере при предоставлении доступа)
+                // Загружаем черновики редактора (только для деревьев, которыми пользователь НЕ владеет)
                 val myDrafts = try {
                     repository.getMyDrafts()
                 } catch (e: Exception) {
@@ -78,27 +83,33 @@ class FamilyTreeViewModel @Inject constructor(
                     emptyList()
                 }
                 
-                // Преобразуем черновики в FamilyTree для отображения
-                val draftTrees = myDrafts.map { draft -> 
+                // Фильтруем черновики - показываем только те, где пользователь НЕ является владельцем основного дерева
+                val relevantDrafts = myDrafts.filter { draft ->
+                    draft.familyTree?.userId != currentUserId
+                }
+                
+                // Преобразуем отфильтрованные черновики в FamilyTree для отображения
+                val draftTrees = relevantDrafts.map { draft -> 
                     draft.toFamilyTree().copy(
                         // Добавляем индикатор что это черновик
                         name = "${draft.draftName} (черновик)"
                     )
                 }
                 
-                // Загружаем деревья с совместным доступом (только если нет черновика)
+                // Загружаем деревья с совместным доступом (только если нет черновика и пользователь не владелец)
                 val sharedTrees = try {
                     repository.getSharedFamilyTrees()
                 } catch (e: Exception) {
                     emptyList()
                 }
                 
-                // Фильтруем shared деревья - исключаем те, для которых есть черновики
+                // Фильтруем shared деревья - исключаем те, для которых есть черновики или где пользователь владелец
                 val filteredSharedTrees = sharedTrees.filter { sharedTree ->
-                    !myDrafts.any { draft -> draft.familyTree?.id == sharedTree.id }
+                    sharedTree.userId != currentUserId && // Не показываем свои деревья в shared
+                    !relevantDrafts.any { draft -> draft.familyTree?.id == sharedTree.id } // Не показываем если есть черновик
                 }
                 
-                // Объединяем: собственные деревья + черновики + оставшиеся shared деревья
+                // Объединяем: собственные деревья + черновики для чужих деревьев + оставшиеся shared деревья
                 val allTrees = myTrees + draftTrees + filteredSharedTrees
                 _familyTrees.value = allTrees
                 

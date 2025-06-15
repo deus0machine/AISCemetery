@@ -48,6 +48,7 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
     private lateinit var editGenealogyButton: Button
     private lateinit var saveButton: Button
     private var wasSaved = false
+    private var loadingDialog: androidx.appcompat.app.AlertDialog? = null
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -152,6 +153,9 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
                 
                 // Обновляем видимость кнопки снятия с публикации
                 unpublishButton.visibility = if (viewModel.canUnpublishTree()) View.VISIBLE else View.GONE
+                
+                // Проверяем, была ли успешно выполнена операция модерации
+                checkForModerationSuccess(it)
             }
             // dismiss только если было сохранение
             if (wasSaved && tree != null && tree.id == treeId) {
@@ -162,13 +166,22 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
 
         viewModel.error.observe(viewLifecycleOwner) { error ->
             error?.let {
-                // Для длинных сообщений об ошибках используем LONG
-                val duration = if (it.length > 50) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
-                Toast.makeText(context, it, duration).show()
+                // Скрываем индикатор загрузки при ошибке
+                hideLoadingDialog()
+                
+                // Показываем диалог ошибки вместо Toast для лучшего UX
+                showErrorDialog("Ошибка", it)
             }
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            // Показываем/скрываем индикатор загрузки
+            if (isLoading) {
+                showLoadingDialog("Выполняется операция...")
+            } else {
+                hideLoadingDialog()
+            }
+            
             // Блокируем все кнопки во время загрузки, но учитываем модерацию и черновики
             val tree = viewModel.familyTree.value
             val isDraftEditor = isDraftTree && tree?.isUserOwner == false
@@ -266,39 +279,13 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
     }
 
     private fun sendTreeForModeration() {
-        lifecycleScope.launch {
-            try {
-                viewModel.sendFamilyTreeForModeration(treeId)
-                Toast.makeText(requireContext(), "Дерево отправлено на публикацию", Toast.LENGTH_SHORT).show()
-                
-                // Сначала уведомляем о необходимости обновления
-                setFragmentResult("family_tree_updated", Bundle())
-                
-                // Закрываем диалог после успешной отправки
-                dismiss()
-            } catch (e: Exception) {
-                Log.e("FamilyTreeFragment", "Ошибка при отправке дерева на модерацию: ${e.message}", e)
-                Toast.makeText(requireContext(), "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
+        // Запускаем операцию через ViewModel
+        viewModel.sendFamilyTreeForModeration(treeId)
     }
 
     private fun unpublishTree() {
-        lifecycleScope.launch {
-            try {
-                viewModel.unpublishFamilyTree(treeId)
-                Toast.makeText(requireContext(), "Дерево снято с публикации", Toast.LENGTH_SHORT).show()
-                
-                // Сначала уведомляем о необходимости обновления
-                setFragmentResult("family_tree_updated", Bundle())
-                
-                // Закрываем диалог после успешного снятия
-                dismiss()
-            } catch (e: Exception) {
-                Log.e("FamilyTreeFragment", "Ошибка при снятии дерева с публикации: ${e.message}", e)
-                Toast.makeText(requireContext(), "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
+        // Запускаем операцию через ViewModel
+        viewModel.unpublishFamilyTree(treeId)
     }
 
     private fun setupClickListeners() {
@@ -397,6 +384,86 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
             treeName
         )
         startActivity(intent)
+    }
+
+    private fun showLoadingDialog(message: String) {
+        hideLoadingDialog() // Скрываем предыдущий диалог, если есть
+        
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_loading, null)
+        val messageTextView = dialogView.findViewById<TextView>(R.id.loading_message)
+        messageTextView.text = message
+        
+        loadingDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+        
+        loadingDialog?.show()
+    }
+    
+    private fun hideLoadingDialog() {
+        loadingDialog?.dismiss()
+        loadingDialog = null
+    }
+    
+    private fun showErrorDialog(title: String, message: String) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
+    }
+    
+    private fun restoreButtonStates() {
+        val tree = viewModel.familyTree.value
+        if (tree != null) {
+            val canEdit = viewModel.canEditTree()
+            val canSendForModeration = viewModel.canSendForModeration()
+            val canUnpublish = viewModel.canUnpublishTree()
+            
+            saveButton.isEnabled = canEdit
+            sendForModerationButton.isEnabled = canSendForModeration
+            unpublishButton.isEnabled = canUnpublish
+        }
+    }
+    
+    private var lastTreeStatus: ru.sevostyanov.aiscemetery.models.PublicationStatus? = null
+    
+    private fun checkForModerationSuccess(tree: ru.sevostyanov.aiscemetery.models.FamilyTree) {
+        val currentStatus = tree.publicationStatus
+        
+        // Инициализируем при первой загрузке
+        if (lastTreeStatus == null) {
+            lastTreeStatus = currentStatus
+            return
+        }
+        
+        // Проверяем, изменился ли статус дерева
+        if (lastTreeStatus != currentStatus) {
+            when (currentStatus) {
+                ru.sevostyanov.aiscemetery.models.PublicationStatus.PENDING_MODERATION -> {
+                    Toast.makeText(requireContext(), "Дерево отправлено на публикацию", Toast.LENGTH_SHORT).show()
+                    setFragmentResult("family_tree_updated", Bundle())
+                    dismiss()
+                }
+                ru.sevostyanov.aiscemetery.models.PublicationStatus.DRAFT -> {
+                    if (lastTreeStatus == ru.sevostyanov.aiscemetery.models.PublicationStatus.PUBLISHED) {
+                        Toast.makeText(requireContext(), "Дерево снято с публикации", Toast.LENGTH_SHORT).show()
+                        setFragmentResult("family_tree_updated", Bundle())
+                        dismiss()
+                    }
+                }
+                else -> {
+                    // Другие изменения статуса
+                }
+            }
+            lastTreeStatus = currentStatus
+        }
+    }
+    
+    override fun onDestroyView() {
+        super.onDestroyView()
+        hideLoadingDialog()
     }
 
     companion object {

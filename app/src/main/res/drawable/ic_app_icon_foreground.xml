@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Simplified tree icon for app icon -->
+    <group android:scaleX="0.6" android:scaleY="0.6" android:pivotX="54" android:pivotY="54">
+        <!-- Heart in the center -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,60L42,48c-3,-3 -3,-8 0,-11c3,-3 8,-3 11,0c3,-3 8,-3 11,0c3,3 3,8 0,11L54,60z"/>
+        
+        <!-- Main trunk -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M52,60L52,85Q52,88 56,88Q60,88 60,85L60,60"/>
+        
+        <!-- Left main branch -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:pathData="M47,55Q30,45 15,32"/>
+        
+        <!-- Right main branch -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:pathData="M61,55Q78,45 93,32"/>
+        
+        <!-- Left upper branch -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:pathData="M47,50Q35,38 25,22"/>
+        
+        <!-- Right upper branch -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:pathData="M61,50Q73,38 83,22"/>
+        
+        <!-- Small leaves -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M12,28c-1,0 -2,-1 -2,-2s1,-2 2,-2s2,1 2,2S13,28 12,28z"/>
+        
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M96,28c-1,0 -2,-1 -2,-2s1,-2 2,-2s2,1 2,2S97,28 96,28z"/>
+        
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M22,18c-1,0 -2,-1 -2,-2s1,-2 2,-2s2,1 2,2S23,18 22,18z"/>
+        
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M86,18c-1,0 -2,-1 -2,-2s1,-2 2,-2s2,1 2,2S87,18 86,18z"/>
+    </group>
+</vector> 

@@ -402,6 +402,18 @@ class MemorialRepository {
         }
     }
 
+    suspend fun deleteDocument(id: Long) = withContext(Dispatchers.IO) {
+        try {
+            println("DEBUG: MemorialRepository.deleteDocument вызван для ID: $id")
+            apiService.deleteMemorialDocument(id)
+            println("DEBUG: MemorialRepository.deleteDocument успешно выполнен")
+        } catch (e: Exception) {
+            println("DEBUG: MemorialRepository.deleteDocument ошибка: ${e.message}")
+            e.printStackTrace()
+            throw Exception("Не удалось удалить документ мемориала: ${e.message}")
+        }
+    }
+
     suspend fun searchMemorials(
         query: String = "",
         location: String? = null,
@@ -484,6 +496,45 @@ class MemorialRepository {
         val result = apiService.getMemorialPendingChanges(id)
         println("DEBUG - Received pending changes for memorial ID $id")
         result
+    }
+    
+    // Географический поиск мемориалов в заданных границах для оптимизации карты
+    suspend fun getMemorialsInBounds(
+        minLat: Double, 
+        maxLat: Double, 
+        minLng: Double, 
+        maxLng: Double, 
+        page: Int = 0, 
+        size: Int = 100
+    ): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        Log.d("MemorialRepository", "=== ЗАПРОС getMemorialsInBounds() ===")
+        Log.d("MemorialRepository", "Границы: minLat=$minLat, maxLat=$maxLat, minLng=$minLng, maxLng=$maxLng")
+        Log.d("MemorialRepository", "Пагинация: page=$page, size=$size")
+        
+        try {
+            val result = apiService.getMemorialsInBounds(minLat, maxLat, minLng, maxLng, page, size)
+            Log.d("MemorialRepository", "Получен PagedResponse для мемориалов в границах:")
+            Log.d("MemorialRepository", "- content.size: ${result.content.size}")
+            Log.d("MemorialRepository", "- page: ${result.page}")
+            Log.d("MemorialRepository", "- totalElements: ${result.totalElements}")
+            Log.d("MemorialRepository", "- totalPages: ${result.totalPages}")
+            Log.d("MemorialRepository", "- hasNext: ${result.hasNext}")
+            
+            result.content.forEachIndexed { index, memorial ->
+                Log.d("MemorialRepository", "[$index] Мемориал в границах: id=${memorial.id}, fio=${memorial.fio}")
+                memorial.mainLocation?.let { loc ->
+                    Log.d("MemorialRepository", "  mainLocation: lat=${loc.latitude}, lng=${loc.longitude}")
+                }
+                memorial.burialLocation?.let { loc ->
+                    Log.d("MemorialRepository", "  burialLocation: lat=${loc.latitude}, lng=${loc.longitude}")
+                }
+            }
+            
+            result
+        } catch (e: Exception) {
+            Log.e("MemorialRepository", "Ошибка в getMemorialsInBounds(): ${e.message}", e)
+            throw e
+        }
     }
 
     // Отправить мемориал на модерацию

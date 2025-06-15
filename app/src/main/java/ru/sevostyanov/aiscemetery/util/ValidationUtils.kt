@@ -3,6 +3,7 @@ package ru.sevostyanov.aiscemetery.util
 import java.time.LocalDate
 import java.time.Period
 import java.time.format.DateTimeParseException
+import android.util.Patterns
 
 /**
  * Утилитный класс для валидации данных согласно серверным ограничениям
@@ -10,15 +11,65 @@ import java.time.format.DateTimeParseException
 object ValidationUtils {
     
     /**
+     * Валидация логина
+     */
+    fun validateLogin(login: String): String? {
+        return when {
+            login.isBlank() -> "Введите логин"
+            login.length < 3 -> "Логин должен содержать минимум 3 символа"
+            login.length > 50 -> "Логин не должен превышать 50 символов"
+            !login.matches(Regex("^[a-zA-Z0-9._-]+$")) -> "Логин может содержать только буквы, цифры, точки, дефисы и подчеркивания"
+            else -> null
+        }
+    }
+    
+    /**
+     * Валидация пароля
+     */
+    fun validatePassword(password: String): String? {
+        return when {
+            password.isBlank() -> "Введите пароль"
+            password.length < 4 -> "Пароль должен содержать минимум 4 символа"
+            password.length > 100 -> "Пароль не должен превышать 100 символов"
+            else -> null
+        }
+    }
+    
+    /**
+     * Проверка надежности пароля (для регистрации)
+     */
+    fun validatePasswordStrength(password: String): String? {
+        if (password.length < 6) {
+            return "Для надежности используйте пароль длиной минимум 6 символов"
+        }
+        return null
+    }
+    
+    /**
+     * Валидация email адреса (если используется как логин)
+     */
+    fun validateEmail(email: String): String? {
+        return when {
+            email.isBlank() -> "Введите email"
+            !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Введите корректный email адрес"
+            else -> null
+        }
+    }
+    
+    /**
      * Валидация ФИО
      */
-    fun validateFio(fio: String): String? {
-        val trimmed = fio.trim()
+    fun validateFio(fio: String?): String? {
+        val trimmedFio = fio?.trim() ?: ""
+        
         return when {
-            trimmed.isEmpty() -> "ФИО не может быть пустым"
-            trimmed.length < 2 -> "ФИО должно содержать не менее 2 символов"
-            trimmed.length > 255 -> "ФИО не должно превышать 255 символов"
-            !trimmed.matches(Regex("^[a-zA-Zа-яА-ЯёЁ\\s\\-\\.]+$")) -> "ФИО может содержать только буквы, пробелы, дефисы и точки"
+            trimmedFio.isEmpty() -> "ФИО не может быть пустым"
+            trimmedFio.length < 2 -> "ФИО должно содержать минимум 2 символа"
+            trimmedFio.length > 255 -> "ФИО не должно превышать 255 символов"
+            trimmedFio.split(" ").filter { it.isNotBlank() }.size < 2 -> 
+                "Введите полное ФИО (минимум имя и фамилия)"
+            !trimmedFio.matches(Regex("^[а-яёА-ЯЁa-zA-Z\\s-]+$")) -> 
+                "ФИО может содержать только буквы, пробелы и дефисы"
             else -> null
         }
     }
@@ -187,15 +238,13 @@ object ValidationUtils {
      * Валидация имени (первое имя)
      */
     fun validateFirstName(firstName: String?): String? {
-        if (firstName.isNullOrBlank()) {
-            return "Имя не может быть пустым"
-        }
-        
-        val trimmed = firstName.trim()
+        val trimmed = firstName?.trim() ?: ""
         return when {
-            trimmed.length < 2 -> "Имя должно содержать не менее 2 символов"
+            trimmed.isEmpty() -> "Имя не может быть пустым"
+            trimmed.length < 2 -> "Имя должно содержать минимум 2 символа"
             trimmed.length > 50 -> "Имя не должно превышать 50 символов"
-            !trimmed.matches(Regex("^[a-zA-Zа-яА-ЯёЁ\\-]+$")) -> "Имя может содержать только буквы и дефисы"
+            !trimmed.matches(Regex("^[а-яёА-ЯЁa-zA-Z-]+$")) -> 
+                "Имя может содержать только буквы и дефисы"
             else -> null
         }
     }
@@ -204,15 +253,13 @@ object ValidationUtils {
      * Валидация фамилии
      */
     fun validateLastName(lastName: String?): String? {
-        if (lastName.isNullOrBlank()) {
-            return "Фамилия не может быть пустой"
-        }
-        
-        val trimmed = lastName.trim()
+        val trimmed = lastName?.trim() ?: ""
         return when {
-            trimmed.length < 2 -> "Фамилия должна содержать не менее 2 символов"
+            trimmed.isEmpty() -> "Фамилия не может быть пустой"
+            trimmed.length < 2 -> "Фамилия должна содержать минимум 2 символа"
             trimmed.length > 50 -> "Фамилия не должна превышать 50 символов"
-            !trimmed.matches(Regex("^[a-zA-Zа-яА-ЯёЁ\\-]+$")) -> "Фамилия может содержать только буквы и дефисы"
+            !trimmed.matches(Regex("^[а-яёА-ЯЁa-zA-Z-]+$")) -> 
+                "Фамилия может содержать только буквы и дефисы"
             else -> null
         }
     }
@@ -221,15 +268,14 @@ object ValidationUtils {
      * Валидация отчества (может быть пустым)
      */
     fun validateMiddleName(middleName: String?): String? {
-        if (middleName.isNullOrBlank()) {
-            return null // Отчество необязательно
-        }
+        val trimmed = middleName?.trim() ?: ""
+        if (trimmed.isEmpty()) return null // Отчество опциональное
         
-        val trimmed = middleName.trim()
         return when {
-            trimmed.length < 2 -> "Отчество должно содержать не менее 2 символов"
+            trimmed.length < 2 -> "Отчество должно содержать минимум 2 символа"
             trimmed.length > 50 -> "Отчество не должно превышать 50 символов"
-            !trimmed.matches(Regex("^[a-zA-Zа-яА-ЯёЁ\\-]+$")) -> "Отчество может содержать только буквы и дефисы"
+            !trimmed.matches(Regex("^[а-яёА-ЯЁa-zA-Z-]+$")) -> 
+                "Отчество может содержать только буквы и дефисы"
             else -> null
         }
     }
@@ -242,5 +288,54 @@ object ValidationUtils {
         validateLastName(lastName)?.let { return it }
         validateMiddleName(middleName)?.let { return it }
         return null
+    }
+
+    /**
+     * Валидация контактов (email или телефон)
+     */
+    fun validateContacts(contacts: String?): String? {
+        val trimmedContacts = contacts?.trim() ?: ""
+        
+        return when {
+            trimmedContacts.isEmpty() -> "Контакты не могут быть пустыми"
+            trimmedContacts.length < 5 -> "Контакты должны содержать минимум 5 символов"
+            trimmedContacts.length > 255 -> "Контакты не должны превышать 255 символов"
+            !isValidEmailOrPhone(trimmedContacts) -> 
+                "Введите корректный email или номер телефона"
+            else -> null
+        }
+    }
+
+    /**
+     * Проверка email или телефона
+     */
+    private fun isValidEmailOrPhone(contact: String): Boolean {
+        // Проверка email
+        if (Patterns.EMAIL_ADDRESS.matcher(contact).matches()) {
+            return true
+        }
+        
+        // Проверка телефона (российские номера)
+        val phonePattern = Regex("^(\\+7|8)?[\\s\\-]?\\(?\\d{3}\\)?[\\s\\-]?\\d{3}[\\s\\-]?\\d{2}[\\s\\-]?\\d{2}$")
+        if (phonePattern.matches(contact)) {
+            return true
+        }
+        
+        return false
+    }
+
+    /**
+     * Проверка email
+     */
+    fun isValidEmail(email: String): Boolean {
+        return Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()
+    }
+
+    /**
+     * Проверка телефона
+     */
+    fun isValidPhone(phone: String): Boolean {
+        val phonePattern = Regex("^(\\+7|8)?[\\s\\-]?\\(?\\d{3}\\)?[\\s\\-]?\\d{3}[\\s\\-]?\\d{2}[\\s\\-]?\\d{2}$")
+        return phonePattern.matches(phone.trim())
     }
 } 

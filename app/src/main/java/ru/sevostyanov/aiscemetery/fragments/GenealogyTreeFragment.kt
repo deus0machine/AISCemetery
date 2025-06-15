@@ -139,7 +139,8 @@ class GenealogyTreeFragment : Fragment() {
                 when {
                     // Пользователи без доступа видят кнопку запроса доступа
                     // НО НЕ для черновиков - если пользователь видит черновик, значит у него уже есть доступ
-                    !hasAccess && !isDraft -> {
+                    // И НЕ для владельцев - владелец не может запросить доступ к своему дереву
+                    !hasAccess && !isDraft && !isOwner -> {
                         Button(
                             onClick = { 
                                 showAccessRequestDialog = true

@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private const val TAG = "RetrofitClient"
-    private const val BASE_URL = "http://192.168.0.100:8080/"
+    private const val BASE_URL = "https://5baf-195-54-33-12.ngrok-free.app/"
     private const val TOKEN_KEY = "auth_token"
     private const val USER_ID_KEY = "user_id"
     private const val PREF_NAME = "app_prefs"
@@ -284,6 +284,9 @@ object RetrofitClient {
         @Multipart
         @POST("/api/memorials/{id}/document")
         suspend fun uploadMemorialDocument(@Path("id") id: Long, @Part document: MultipartBody.Part): ResponseBody
+
+        @DELETE("/api/memorials/{id}/document")
+        suspend fun deleteMemorialDocument(@Path("id") id: Long)
 
         @GET("/api/memorials/search")
         suspend fun searchMemorials(
@@ -648,5 +651,16 @@ object RetrofitClient {
             @Path("submissionId") submissionId: Long,
             @Body request: ru.sevostyanov.aiscemetery.models.RespondToSubmissionRequest
         ): ResponseBody
+        
+        // Метод для географического поиска мемориалов в заданных границах
+        @GET("/api/memorials/search/bounds")
+        suspend fun getMemorialsInBounds(
+            @Query("minLat") minLat: Double,
+            @Query("maxLat") maxLat: Double,
+            @Query("minLng") minLng: Double,
+            @Query("maxLng") maxLng: Double,
+            @Query("page") page: Int = 0,
+            @Query("size") size: Int = 100
+        ): PagedResponse<Memorial>
     }
 }

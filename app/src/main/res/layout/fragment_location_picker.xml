@@ -24,13 +24,15 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Поиск места"
+                android:hint="Поиск места (например: Москва, Красная площадь)"
                 android:inputType="text"
                 android:padding="12dp"
                 android:background="@drawable/edit_text_background"
                 android:layout_marginEnd="8dp"
                 android:drawableStart="@android:drawable/ic_menu_search"
-                android:drawablePadding="8dp"/>
+                android:drawablePadding="8dp"
+                android:imeOptions="actionSearch"
+                android:singleLine="true"/>
 
             <Button
                 android:id="@+id/searchButton"
