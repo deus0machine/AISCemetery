@@ -36,7 +36,7 @@ data class DraftNotificationItem(
     val isIncoming: Boolean
 ) : NotificationItem {
     override val id: Long get() = draftSubmission.id
-    override val createdAt: String get() = draftSubmission.submittedAt
+    override val createdAt: String get() = draftSubmission.submittedAt ?: draftSubmission.draft.createdAt
     override val isRead: Boolean get() = draftSubmission.isReviewed
     
     override fun getDisplayTitle(): String = if (isIncoming) {
@@ -46,5 +46,5 @@ data class DraftNotificationItem(
     }
     
     override fun getDisplayMessage(): String = draftSubmission.message ?: "Без сообщения"
-    override fun getDisplayDate(): String = draftSubmission.submittedAt
+    override fun getDisplayDate(): String = draftSubmission.submittedAt ?: draftSubmission.draft.createdAt
 } 

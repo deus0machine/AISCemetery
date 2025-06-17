@@ -212,6 +212,22 @@ class MemorialRepository {
             throw Exception("Не удалось получить список редакторов: ${e.message}")
         }
     }
+
+    // Получение доступных мемориалов для добавления в дерево
+    suspend fun getAvailableMemorialsForTree(familyTreeId: Long): List<Memorial> = withContext(Dispatchers.IO) {
+        try {
+            Log.d("MemorialRepository", "Получение доступных мемориалов для дерева ID=$familyTreeId")
+            val result = apiService.getAvailableMemorialsForTree(familyTreeId)
+            Log.d("MemorialRepository", "Получено ${result.size} доступных мемориалов для дерева")
+            result.forEachIndexed { index, memorial ->
+                Log.d("MemorialRepository", "[$index] Доступный мемориал: id=${memorial.id}, fio=${memorial.fio}")
+            }
+            result
+        } catch (e: Exception) {
+            Log.e("MemorialRepository", "Ошибка при получении доступных мемориалов: ${e.message}", e)
+            throw Exception("Не удалось получить доступные мемориалы: ${e.message}")
+        }
+    }
     
     // Добавление или удаление редактора
     suspend fun manageEditor(memorialId: Long, userId: Long, addEditor: Boolean): Memorial = withContext(Dispatchers.IO) {

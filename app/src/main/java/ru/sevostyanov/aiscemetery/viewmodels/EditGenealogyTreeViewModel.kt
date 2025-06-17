@@ -161,7 +161,14 @@ class EditGenealogyTreeViewModel @Inject constructor(
     }
 
     private suspend fun loadAvailableMemorials() {
-        _availableMemorials.value = memorialRepository.getMyMemorials()
+        val familyTreeId = _familyTree.value?.id
+        if (familyTreeId != null) {
+            // Используем новый метод для получения доступных мемориалов
+            _availableMemorials.value = memorialRepository.getAvailableMemorialsForTree(familyTreeId)
+        } else {
+            // Fallback на старый метод, если ID дерева недоступен
+            _availableMemorials.value = memorialRepository.getMyMemorials()
+        }
     }
 
     fun addMemorialToTree(memorialId: Long) {

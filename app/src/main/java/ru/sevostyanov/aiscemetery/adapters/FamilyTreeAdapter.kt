@@ -163,7 +163,9 @@ class FamilyTreeAdapter(
             // Показываем кнопки в зависимости от прав доступа
             // В разделе "Публичные" редакторы не должны видеть кнопку редактирования
             val canShowEditButton = when {
-                tree.isUserOwner -> true // Владельцы всегда могут редактировать
+                // Если дерево на модерации, кнопка редактирования недоступна
+                tree.publicationStatus == PublicationStatus.PENDING_MODERATION -> false
+                tree.isUserOwner -> true // Владельцы всегда могут редактировать (кроме модерации)
                 tree.name.contains("(черновик)") -> true // Черновики всегда можно редактировать
                 isMyTreesTab && tree.canUserEdit() -> true // В "Мои деревья" редакторы могут редактировать
                 else -> false // В "Публичные" редакторы не могут редактировать

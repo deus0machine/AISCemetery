@@ -47,7 +47,12 @@ class ViewMemorialActivity : AppCompatActivity() {
     private lateinit var mainLocationTextView: TextView
     private lateinit var burialLocationTextView: TextView
     private lateinit var treeInfoTextView: TextView
+    private lateinit var viewFamilyTreeButton: Button
     private lateinit var createdByTextView: TextView
+    private lateinit var editorsTextView: TextView
+    private lateinit var editorsManagementLayout: LinearLayout
+    private lateinit var showEditorsButton: Button
+    private lateinit var resignFromEditingButton: Button
     private lateinit var requestAccessButton: Button
     private lateinit var editButton: Button
     private lateinit var ownershipRequestButton: Button
@@ -71,6 +76,7 @@ class ViewMemorialActivity : AppCompatActivity() {
     private lateinit var repository: ru.sevostyanov.aiscemetery.repository.MemorialRepository
 
     private var memorial: Memorial? = null
+    private var editorsInfo: List<ru.sevostyanov.aiscemetery.user.Guest> = emptyList()
     private var isLoadingMemorial = false
     private var isPreviewPendingChanges = false // Флаг режима предпросмотра изменений
 
@@ -86,6 +92,8 @@ class ViewMemorialActivity : AppCompatActivity() {
         isPreviewPendingChanges = intent.getBooleanExtra(EXTRA_PREVIEW_PENDING_CHANGES, false)
         if (isPreviewPendingChanges) {
             supportActionBar?.title = "Предпросмотр изменений"
+        } else {
+            supportActionBar?.title = getString(R.string.app_name)
         }
         
         // Инициализация ViewModel и репозитория
@@ -100,7 +108,12 @@ class ViewMemorialActivity : AppCompatActivity() {
         mainLocationTextView = findViewById(R.id.mainLocationTextView)
         burialLocationTextView = findViewById(R.id.burialLocationTextView)
         treeInfoTextView = findViewById(R.id.treeInfoTextView)
+        viewFamilyTreeButton = findViewById(R.id.viewFamilyTreeButton)
         createdByTextView = findViewById(R.id.createdByTextView)
+        editorsTextView = findViewById(R.id.editorsTextView)
+        editorsManagementLayout = findViewById(R.id.editorsManagementLayout)
+        showEditorsButton = findViewById(R.id.showEditorsButton)
+        resignFromEditingButton = findViewById(R.id.resignFromEditingButton)
         requestAccessButton = findViewById(R.id.requestAccessButton)
         editButton = findViewById(R.id.editButton)
         ownershipRequestButton = findViewById(R.id.ownershipRequestButton)
@@ -144,6 +157,8 @@ class ViewMemorialActivity : AppCompatActivity() {
         setupEditButton()
         setupOwnershipRequestButton()
         setupPendingChangesButton()
+        setupEditorsManagementButtons()
+        setupViewFamilyTreeButton()
         setupPhotoClickListener()
     }
 
@@ -453,6 +468,12 @@ class ViewMemorialActivity : AppCompatActivity() {
         // Обновляем информацию о статусе публикации
         updatePublicationStatus(memorial)
         
+        // Обновляем информацию о редакторах
+        updateEditorsInfo(memorial)
+        
+        // Обновляем информацию о дереве
+        updateFamilyTreeInfo(memorial)
+        
         // Обновляем видимость элементов меню
         invalidateOptionsMenu()
     }
@@ -486,6 +507,38 @@ class ViewMemorialActivity : AppCompatActivity() {
                 // Открываем активность для просмотра ожидающих изменений с ID мемориала
                 PendingChangesActivity.startWithMemorialId(this, memorial.id ?: 0)
             }
+        }
+    }
+    
+    private fun setupViewFamilyTreeButton() {
+        viewFamilyTreeButton.setOnClickListener {
+            Log.d(TAG, "setupViewFamilyTreeButton: нажата кнопка просмотра дерева")
+            Log.d(TAG, "setupViewFamilyTreeButton: memorial?.familyTreeId = ${memorial?.familyTreeId}")
+            Log.d(TAG, "setupViewFamilyTreeButton: memorial?.familyTreeName = '${memorial?.familyTreeName}'")
+            
+            memorial?.familyTreeId?.let { treeId ->
+                Log.d(TAG, "setupViewFamilyTreeButton: переходим к дереву с ID = $treeId")
+                // Открываем экран просмотра дерева
+                openFamilyTreeView(treeId)
+            } ?: run {
+                Log.e(TAG, "setupViewFamilyTreeButton: familyTreeId равен null!")
+            }
+        }
+    }
+    
+    private fun openFamilyTreeView(treeId: Long) {
+        try {
+            // Создаем Intent для открытия GenealogyTreeFragment через MainActivity
+            val intent = Intent(this, MainActivity::class.java).apply {
+                putExtra("open_family_tree", true)
+                putExtra("family_tree_id", treeId)
+                // Добавляем флаги для очистки стека активностей
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Ошибка при открытии дерева: ${e.message}", e)
+            Toast.makeText(this, "Ошибка при открытии дерева", Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -1065,6 +1118,32 @@ class ViewMemorialActivity : AppCompatActivity() {
         // Сохраняем мемориал и обновляем статус публикации
         this.memorial = memorial
         updatePublicationStatus(memorial)
+        updateEditorsInfo(memorial)
+    }
+
+    // Обновление видимости кнопок в зависимости от роли пользователя
+    private fun updateButtonsVisibility(memorial: Memorial) {
+        val currentUser = UserManager.getCurrentUser()
+        val isOwner = memorial.isUserOwner
+        val isEditor = memorial.isUserEditor
+        val isAdmin = currentUser?.role == "ADMIN" || currentUser?.role == "ROLE_ADMIN"
+        
+        // Обновляем видимость кнопки редактирования
+        editButton.visibility = if (memorial.canEdit() && !isPreviewPendingChanges) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
+        
+        // Обновляем видимость кнопки запроса совместного владения
+        ownershipRequestButton.visibility = if (!isOwner && !isEditor && !isAdmin && !isPreviewPendingChanges) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
+        
+        // Обновляем информацию о редакторах
+        updateEditorsInfo(memorial)
     }
 
     // Настройка клика по фотографии для просмотра в полном размере
@@ -1205,6 +1284,262 @@ class ViewMemorialActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
             }
+        }
+    }
+
+    // Настройка кнопок управления редакторами
+    private fun setupEditorsManagementButtons() {
+        showEditorsButton.setOnClickListener {
+            showEditorsListDialog()
+        }
+        
+        resignFromEditingButton.setOnClickListener {
+            showResignFromEditingDialog()
+        }
+    }
+
+    // Обновление информации о редакторах
+    private fun updateEditorsInfo(memorial: Memorial) {
+        val currentUser = UserManager.getCurrentUser()
+        val isOwner = memorial.isUserOwner
+        val isEditor = memorial.isUserEditor
+        
+        // Загружаем информацию о редакторах, если есть их ID
+        if (!memorial.editors.isNullOrEmpty()) {
+            loadEditorsInfo(memorial.id!!)
+        } else {
+            editorsInfo = emptyList()
+            editorsTextView.visibility = View.GONE
+            updateEditorsButtons(isOwner, isEditor, editorsInfo.isNotEmpty())
+        }
+    }
+
+    // Загрузка полной информации о редакторах
+    private fun loadEditorsInfo(memorialId: Long) {
+        lifecycleScope.launch {
+            try {
+                val apiService = RetrofitClient.getApiService()
+                val editors = withContext(Dispatchers.IO) {
+                    apiService.getMemorialEditors(memorialId)
+                }
+                
+                editorsInfo = editors
+                
+                // Обновляем UI с полученной информацией
+                if (editors.isNotEmpty()) {
+                    val editorsNames = editors.map { it.fio }
+                    editorsTextView.text = "Редакторы: ${editorsNames.joinToString(", ")}"
+                    editorsTextView.visibility = View.VISIBLE
+                } else {
+                    editorsTextView.visibility = View.GONE
+                }
+                
+                val memorial = this@ViewMemorialActivity.memorial
+                if (memorial != null) {
+                    updateEditorsButtons(memorial.isUserOwner, memorial.isUserEditor, editors.isNotEmpty())
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при загрузке информации о редакторах: ${e.message}", e)
+                editorsInfo = emptyList()
+                editorsTextView.visibility = View.GONE
+            }
+        }
+    }
+
+    // Обновление видимости кнопок управления редакторами
+    private fun updateEditorsButtons(isOwner: Boolean, isEditor: Boolean, hasEditors: Boolean) {
+        when {
+            isOwner -> {
+                // Владелец видит кнопку "Показать список редакторов" только если есть редакторы
+                if (hasEditors) {
+                    editorsManagementLayout.visibility = View.VISIBLE
+                    showEditorsButton.visibility = View.VISIBLE
+                    resignFromEditingButton.visibility = View.GONE
+                } else {
+                    editorsManagementLayout.visibility = View.GONE
+                }
+            }
+            isEditor -> {
+                // Редактор видит кнопку "Отказаться от права редактирования"
+                editorsManagementLayout.visibility = View.VISIBLE
+                showEditorsButton.visibility = View.GONE
+                resignFromEditingButton.visibility = View.VISIBLE
+            }
+            else -> {
+                // Обычные пользователи не видят кнопки управления редакторами
+                editorsManagementLayout.visibility = View.GONE
+            }
+        }
+    }
+
+    // Показ диалога со списком редакторов (для владельца)
+    private fun showEditorsListDialog() {
+        if (editorsInfo.isEmpty()) {
+            Toast.makeText(this, "Нет редакторов для отображения", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Редакторы мемориала")
+            .create()
+        
+        // Создаем кастомный layout для диалога
+        val dialogView = layoutInflater.inflate(R.layout.dialog_editors_list, null)
+        dialog.setView(dialogView)
+        
+        val editorsContainer = dialogView.findViewById<LinearLayout>(R.id.editorsContainer)
+        val closeButton = dialogView.findViewById<Button>(R.id.closeButton)
+        
+        // Добавляем каждого редактора в список
+        editorsInfo.forEach { editor ->
+            val editorView = layoutInflater.inflate(R.layout.item_editor, editorsContainer, false)
+            val editorNameTextView = editorView.findViewById<TextView>(R.id.editorNameTextView)
+            val removeEditorButton = editorView.findViewById<Button>(R.id.removeEditorButton)
+            
+            editorNameTextView.text = editor.fio
+            
+            removeEditorButton.setOnClickListener {
+                showRemoveEditorConfirmationDialog(editor.id, editor.fio) {
+                    dialog.dismiss()
+                }
+            }
+            
+            editorsContainer.addView(editorView)
+        }
+        
+        closeButton.setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        dialog.show()
+    }
+
+    // Показ диалога подтверждения удаления редактора
+    private fun showRemoveEditorConfirmationDialog(editorId: Long, editorName: String, onSuccess: () -> Unit) {
+        AlertDialog.Builder(this)
+            .setTitle("Удалить редактора")
+            .setMessage("Вы уверены, что хотите удалить $editorName из списка редакторов?")
+            .setPositiveButton("Удалить") { _, _ ->
+                removeEditor(editorId, onSuccess)
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    // Удаление редактора
+    private fun removeEditor(editorId: Long, onSuccess: () -> Unit) {
+        val currentMemorial = memorial ?: return
+        
+        val progressDialog = android.app.ProgressDialog(this).apply {
+            setMessage("Удаление редактора...")
+            setCancelable(false)
+            show()
+        }
+
+        lifecycleScope.launch {
+            try {
+                val apiService = RetrofitClient.getApiService()
+                val updatedMemorial = withContext(Dispatchers.IO) {
+                    apiService.removeEditor(currentMemorial.id!!, editorId)
+                }
+                
+                progressDialog.dismiss()
+                
+                Toast.makeText(
+                    this@ViewMemorialActivity,
+                    "Редактор удален",
+                    Toast.LENGTH_SHORT
+                ).show()
+                
+                // Обновляем мемориал
+                memorial = updatedMemorial
+                updateEditorsInfo(updatedMemorial)
+                onSuccess()
+                
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                Log.e(TAG, "Ошибка при удалении редактора: ${e.message}", e)
+                Toast.makeText(
+                    this@ViewMemorialActivity,
+                    "Ошибка при удалении редактора: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    // Показ диалога подтверждения отказа от редактирования
+    private fun showResignFromEditingDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Отказаться от редактирования")
+            .setMessage("Вы уверены, что хотите отказаться от права редактирования этого мемориала?")
+            .setPositiveButton("Отказаться") { _, _ ->
+                resignFromEditing()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    // Отказ от права редактирования
+    private fun resignFromEditing() {
+        val currentMemorial = memorial ?: return
+        
+        val progressDialog = android.app.ProgressDialog(this).apply {
+            setMessage("Отказ от редактирования...")
+            setCancelable(false)
+            show()
+        }
+
+        lifecycleScope.launch {
+            try {
+                val apiService = RetrofitClient.getApiService()
+                val updatedMemorial = withContext(Dispatchers.IO) {
+                    apiService.resignFromEditing(currentMemorial.id!!)
+                }
+                
+                progressDialog.dismiss()
+                
+                Toast.makeText(
+                    this@ViewMemorialActivity,
+                    "Вы отказались от права редактирования",
+                    Toast.LENGTH_SHORT
+                ).show()
+                
+                // Обновляем мемориал
+                memorial = updatedMemorial
+                updateEditorsInfo(updatedMemorial)
+                
+                // Обновляем видимость кнопок
+                updateButtonsVisibility(updatedMemorial)
+                
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                Log.e(TAG, "Ошибка при отказе от редактирования: ${e.message}", e)
+                Toast.makeText(
+                    this@ViewMemorialActivity,
+                    "Ошибка при отказе от редактирования: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+    
+    // Обновление информации о дереве
+    private fun updateFamilyTreeInfo(memorial: Memorial) {
+        Log.d(TAG, "updateFamilyTreeInfo: memorial.familyTreeId = ${memorial.familyTreeId}")
+        Log.d(TAG, "updateFamilyTreeInfo: memorial.familyTreeName = '${memorial.familyTreeName}'")
+        
+        if (memorial.familyTreeId != null && memorial.familyTreeName != null) {
+            // Мемориал принадлежит дереву
+            Log.d(TAG, "updateFamilyTreeInfo: показываем информацию о дереве")
+            treeInfoTextView.text = "Генеалогическое дерево: ${memorial.familyTreeName}"
+            viewFamilyTreeButton.visibility = View.VISIBLE
+        } else {
+            // Мемориал не принадлежит дереву
+            Log.d(TAG, "updateFamilyTreeInfo: мемориал не принадлежит дереву")
+            treeInfoTextView.text = "Генеалогическое дерево: Нет"
+            viewFamilyTreeButton.visibility = View.GONE
         }
     }
 } 

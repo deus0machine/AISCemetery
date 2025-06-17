@@ -37,7 +37,9 @@ class GenealogyTreeFragment : Fragment() {
 
     private val viewModel: FamilyTreeDetailViewModel by viewModels()
     private val treeId: Long by lazy { 
-        arguments?.getLong("treeId") ?: -1L
+        val id = arguments?.getLong("familyTreeId") ?: arguments?.getLong("treeId") ?: -1L
+        android.util.Log.d("GenealogyTreeFragment", "Получен treeId из аргументов: $id")
+        id
     }
     private val isDraft: Boolean by lazy {
         arguments?.getBoolean("isDraft", false) ?: false
@@ -45,17 +47,32 @@ class GenealogyTreeFragment : Fragment() {
     private val hasAccess: Boolean by lazy {
         arguments?.getBoolean("hasAccess", false) ?: false
     }
+    private val refreshData: Boolean by lazy {
+        arguments?.getBoolean("refreshData", false) ?: false
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        if (isDraft) {
-            viewModel.loadDraftGenealogyData(treeId)
-        } else {
-            viewModel.loadGenealogyData(treeId)
-        }
+        loadTreeData()
         return ComposeView(requireContext()).apply {
             setContent {
                 GenealogyTreeWithToolbar()
             }
+        }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Если установлен флаг refreshData, принудительно обновляем данные
+        if (refreshData) {
+            loadTreeData()
+        }
+    }
+    
+    private fun loadTreeData() {
+        if (isDraft) {
+            viewModel.loadDraftGenealogyData(treeId)
+        } else {
+            viewModel.loadGenealogyData(treeId)
         }
     }
 

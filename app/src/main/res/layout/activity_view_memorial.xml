@@ -208,6 +208,16 @@
                         android:text="Генеалогическое дерево: Нет"
                         android:textSize="16sp" />
 
+                    <Button
+                        android:id="@+id/viewFamilyTreeButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Просмотр дерева"
+                        android:textAllCaps="false"
+                        android:visibility="gone"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
                     <TextView
                         android:id="@+id/createdByTextView"
                         android:layout_width="match_parent"
@@ -215,6 +225,45 @@
                         android:layout_marginTop="8dp"
                         android:text="Создатель: Неизвестно"
                         android:textSize="16sp" />
+
+                    <!-- Добавляем TextView для отображения редакторов -->
+                    <TextView
+                        android:id="@+id/editorsTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Редакторы: Нет"
+                        android:textSize="16sp"
+                        android:visibility="gone" />
+
+                    <!-- Кнопки для управления редакторами -->
+                    <LinearLayout
+                        android:id="@+id/editorsManagementLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="8dp"
+                        android:visibility="gone">
+
+                        <Button
+                            android:id="@+id/showEditorsButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Показать список редакторов"
+                            android:textAllCaps="false"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+                        <Button
+                            android:id="@+id/resignFromEditingButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Отказаться от права редактирования"
+                            android:textAllCaps="false"
+                            android:layout_marginTop="4dp"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:backgroundTint="#FF9800" />
+
+                    </LinearLayout>
 
                     <!-- Добавляем новый TextView для статуса публикации -->
                     <TextView

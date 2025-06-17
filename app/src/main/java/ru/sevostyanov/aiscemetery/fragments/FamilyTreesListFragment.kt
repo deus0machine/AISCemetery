@@ -87,6 +87,15 @@ class FamilyTreesListFragment : Fragment() {
             }
         }
         
+        // Слушаем результат обновления статуса дерева из уведомлений
+        parentFragmentManager.setFragmentResultListener("family_tree_status_updated", this) { _, _ ->
+            // Обновляем список деревьев при изменении статуса
+            lifecycleScope.launch {
+                kotlinx.coroutines.delay(300) // Небольшая задержка
+                loadTrees(tabLayout.selectedTabPosition == 0)
+            }
+        }
+        
         // Загружаем данные только при первом создании фрагмента
         if (isFirstLoad) {
             loadTrees(showOnlyMine = true)
@@ -153,8 +162,9 @@ class FamilyTreesListFragment : Fragment() {
                         // Для всех остальных случаев (включая редакторов в публичных деревьях) - просмотр
                         else -> {
                             android.util.Log.d("FamilyTreesList", "Opening view for user")
+                            android.util.Log.d("FamilyTreesList", "Передаем familyTreeId: $id")
                             val bundle = Bundle().apply {
-                                putLong("treeId", id)
+                                putLong("familyTreeId", id)  // Изменено с "treeId" на "familyTreeId"
                                 putBoolean("isDraft", false)
                                 // Передаем информацию о том, есть ли у пользователя доступ
                                 putBoolean("hasAccess", tree.hasUserAccess())

@@ -181,6 +181,7 @@ class EditMemorialActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
+        supportActionBar?.title = getString(R.string.app_name)
 
         // Инициализация репозитория
         repository = MemorialRepository()

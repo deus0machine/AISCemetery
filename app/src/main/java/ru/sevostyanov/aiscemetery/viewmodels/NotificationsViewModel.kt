@@ -196,11 +196,14 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
                 val requestData = mapOf("accept" to accept)
                 val response = apiService.respondToNotification(notificationId, requestData)
                 
-                if (response.status == "SUCCESS") {
+                Log.d(TAG, "Получен ответ от сервера: status='${response.status}', message='${response.message}'")
+                
+                if (response.status.equals("success", ignoreCase = true)) {
                     Log.d(TAG, "Ответ на уведомление отправлен успешно")
-                    // Перезагружаем уведомления
-                    loadIncomingNotifications()
+                    // Перезагружаем уведомления без показа ошибок пользователю
+                    loadIncomingNotificationsSilently()
                 } else {
+                    Log.e(TAG, "Сервер вернул неуспешный статус: '${response.status}'")
                     _error.value = "Ошибка при ответе на уведомление: ${response.message}"
                 }
             } catch (e: Exception) {
@@ -208,6 +211,23 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
                 _error.value = "Ошибка при ответе на уведомление: ${e.message}"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    // Загрузка входящих уведомлений без показа ошибок пользователю (для внутреннего использования)
+    private fun loadIncomingNotificationsSilently() {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Тихая загрузка входящих уведомлений")
+                val notifications = apiService.getMyNotifications()
+                Log.d(TAG, "Получены входящие уведомления (тихо): ${notifications.size}")
+                
+                _incomingNotifications.value = notifications
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при тихой загрузке входящих уведомлений: ${e.message}", e)
+                // НЕ устанавливаем _error.value, чтобы не показывать ошибку пользователю
+                // В случае ошибки оставляем текущий список без изменений
             }
         }
     }
@@ -220,13 +240,13 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
                 val response = apiService.respondToFamilyTreeAccessRequest(notificationId, approve, null)
                 
                 Log.d(TAG, "Ответ на запрос доступа к дереву отправлен успешно: $response")
-                // Перезагружаем уведомления
-                loadIncomingNotifications()
+                // Перезагружаем уведомления без показа ошибок пользователю
+                loadIncomingNotificationsSilently()
             } catch (e: retrofit2.HttpException) {
                 if (e.code() == 200) {
                     // Успешный ответ, но проблема с десериализацией
                     Log.d(TAG, "Ответ на запрос доступа к дереву отправлен успешно (HTTP 200)")
-                    loadIncomingNotifications()
+                    loadIncomingNotificationsSilently()
                 } else {
                     Log.e(TAG, "HTTP ошибка при ответе на запрос доступа к дереву: ${e.code()}", e)
                     _error.value = "Ошибка при ответе на запрос доступа к дереву: ${e.message()}"
@@ -235,7 +255,7 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
                 val errorMessage = when {
                     e.message?.contains("JSON") == true -> {
                         Log.d(TAG, "JSON ошибка, но запрос успешен")
-                        loadIncomingNotifications()
+                        loadIncomingNotificationsSilently()
                         return@launch
                     }
                     else -> "Ошибка при ответе на запрос доступа к дереву: ${e.message}"
@@ -412,6 +432,34 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
         } catch (e: Exception) {
             Log.e(TAG, "Ошибка при получении уведомления о черновике: ${e.message}", e)
             null
+        }
+    }
+    
+    // Удалить уведомление о черновике
+    fun deleteDraftSubmission(submissionId: Long) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Удаляем уведомление о черновике: submissionId=$submissionId")
+                _isLoading.value = true
+                
+                val response = apiService.deleteDraftSubmission(submissionId)
+                if (response.isSuccessful) {
+                    Log.d(TAG, "Уведомление о черновике успешно удалено")
+                    
+                    // Перезагружаем списки уведомлений о черновиках
+                    loadIncomingDraftSubmissions()
+                    loadOutgoingDraftSubmissions()
+                } else {
+                    Log.e(TAG, "Ошибка при удалении уведомления о черновике: ${response.code()}")
+                    _error.value = "Ошибка при удалении уведомления: ${response.code()}"
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при удалении уведомления о черновике: ${e.message}", e)
+                _error.value = "Ошибка при удалении уведомления: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 } 

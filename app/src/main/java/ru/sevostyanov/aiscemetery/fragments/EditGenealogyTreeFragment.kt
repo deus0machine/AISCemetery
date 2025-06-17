@@ -193,9 +193,11 @@ class EditGenealogyTreeFragment : Fragment() {
 
     private fun showCreateRelationDialog(preselectedMemorial: Memorial? = null) {
         val treeMemorials = viewModel.treeMemorials.value ?: return
+        val existingRelations = viewModel.memorialRelations.value ?: emptyList()
         
         CreateRelationDialogFragment.newInstance(
             memorials = treeMemorials,
+            existingRelations = existingRelations,
             preselectedMemorial = preselectedMemorial,
             onRelationCreated = { source, target, type ->
                 viewModel.createMemorialRelation(source, target, type)
@@ -205,9 +207,11 @@ class EditGenealogyTreeFragment : Fragment() {
 
     private fun showEditRelationDialog(relation: MemorialRelation) {
         val treeMemorials = viewModel.treeMemorials.value ?: return
+        val existingRelations = viewModel.memorialRelations.value ?: emptyList()
         
         CreateRelationDialogFragment.newInstance(
             memorials = treeMemorials,
+            existingRelations = existingRelations,
             existingRelation = relation,
             onRelationCreated = { _, _, _ -> 
                 // Не используется при редактировании

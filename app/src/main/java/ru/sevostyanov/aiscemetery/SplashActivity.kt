@@ -12,12 +12,16 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 class SplashActivity : AppCompatActivity() {
     
     private val SPLASH_DELAY = 3000L // 3 секунды для показа анимации
     
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Устанавливаем splash screen перед super.onCreate()
+        val splashScreen = installSplashScreen()
+        
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
         

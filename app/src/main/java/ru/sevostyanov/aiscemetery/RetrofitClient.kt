@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private const val TAG = "RetrofitClient"
-    private const val BASE_URL = "https://5baf-195-54-33-12.ngrok-free.app/"
+    private const val BASE_URL = "https://32c6-195-54-33-12.ngrok-free.app/"
     private const val TOKEN_KEY = "auth_token"
     private const val USER_ID_KEY = "user_id"
     private const val PREF_NAME = "app_prefs"
@@ -262,8 +262,17 @@ object RetrofitClient {
         @GET("/api/memorials/{id}/editors")
         suspend fun getMemorialEditors(@Path("id") id: Long): List<ru.sevostyanov.aiscemetery.user.Guest>
 
+        @GET("/api/memorials/available-for-tree/{familyTreeId}")
+        suspend fun getAvailableMemorialsForTree(@Path("familyTreeId") familyTreeId: Long): List<Memorial>
+
         @POST("/api/memorials/{id}/editors")
         suspend fun manageEditor(@Path("id") id: Long, @Body request: EditorRequest): Memorial
+
+        @DELETE("/api/memorials/{id}/editors/{editorId}")
+        suspend fun removeEditor(@Path("id") id: Long, @Path("editorId") editorId: Long): Memorial
+
+        @POST("/api/memorials/{id}/editors/resign")
+        suspend fun resignFromEditing(@Path("id") id: Long): Memorial
 
         @POST("/api/memorials/{id}/approve-changes")
         suspend fun approveChanges(@Path("id") id: Long, @Body request: ApproveChangesRequest): Memorial
@@ -516,6 +525,14 @@ object RetrofitClient {
         @POST("api/family-trees/{id}/reject")
         suspend fun rejectFamilyTree(@Path("id") id: Long, @Body reason: String): FamilyTree
 
+        @POST("api/family-trees/{id}/submit-changes-for-moderation")
+        suspend fun submitTreeChangesForModeration(
+            @Path("id") id: Long,
+            @Query("name") name: String,
+            @Query("description") description: String,
+            @Query("message") message: String
+        ): Response<Unit>
+
         // Методы для запросов доступа к семейным деревьям
         @POST("api/family-trees/{familyTreeId}/access/request")
         suspend fun requestFamilyTreeAccess(
@@ -651,6 +668,9 @@ object RetrofitClient {
             @Path("submissionId") submissionId: Long,
             @Body request: ru.sevostyanov.aiscemetery.models.RespondToSubmissionRequest
         ): ResponseBody
+        
+        @DELETE("api/draft-submissions/{submissionId}")
+        suspend fun deleteDraftSubmission(@Path("submissionId") submissionId: Long): Response<Unit>
         
         // Метод для географического поиска мемориалов в заданных границах
         @GET("/api/memorials/search/bounds")

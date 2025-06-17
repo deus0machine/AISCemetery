@@ -265,6 +265,15 @@ class FamilyTreeRepository @Inject constructor() {
         }
     }
 
+    suspend fun submitTreeChangesForModeration(id: Long, name: String, description: String, message: String) = withContext(Dispatchers.IO) {
+        try {
+            apiService.submitTreeChangesForModeration(id, name, description, message)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Ошибка при отправке изменений на модерацию: ${e.message}")
+        }
+    }
+
     // Метод для проверки публичности мемориалов в дереве
     suspend fun checkTreeMemorialsPublicity(treeId: Long): Boolean = withContext(Dispatchers.IO) {
         try {

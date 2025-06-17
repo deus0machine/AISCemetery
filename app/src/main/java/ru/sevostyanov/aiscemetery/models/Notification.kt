@@ -177,6 +177,12 @@ enum class NotificationType {
     @SerializedName("FAMILY_TREE_ACCESS_REVOKED")
     FAMILY_TREE_ACCESS_REVOKED,
     
+    @SerializedName("MEMORIAL_EDITOR_REMOVED")
+    MEMORIAL_EDITOR_REMOVED,
+    
+    @SerializedName("MEMORIAL_EDITOR_RESIGNED")
+    MEMORIAL_EDITOR_RESIGNED,
+    
     // Типы уведомлений для черновиков семейных деревьев
     @SerializedName("DRAFT_SUBMITTED")
     DRAFT_SUBMITTED,

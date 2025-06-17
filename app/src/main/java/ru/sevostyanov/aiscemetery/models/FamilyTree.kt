@@ -61,7 +61,17 @@ data class FamilyTree(
     val memorialCount: Int? = null,
     
     @SerializedName("accessList")
-    val accessList: List<FamilyTreeAccess>? = null
+    val accessList: List<FamilyTreeAccess>? = null,
+    
+    // Поля для отслеживания изменений на модерации
+    @SerializedName("pendingChanges")
+    val pendingChanges: Boolean = false,
+    
+    @SerializedName("pendingName")
+    val pendingName: String? = null,
+    
+    @SerializedName("pendingDescription")
+    val pendingDescription: String? = null
 ) {
     fun toUpdateDTO() = FamilyTreeUpdateDTO(
         id = id,
@@ -220,11 +230,11 @@ class MemorialInRelationDeserializer : JsonDeserializer<Memorial?> {
                     // Если стандартная десериализация не удалась, создаем минимальный Memorial
                     val jsonObj = json.asJsonObject
                     Memorial(
-                        id = jsonObj.get("id")?.asLong,
-                        fio = jsonObj.get("fio")?.asString ?: "Неизвестно",
-                        birthDate = jsonObj.get("birthDate")?.asString,
-                        deathDate = jsonObj.get("deathDate")?.asString,
-                        biography = jsonObj.get("biography")?.asString,
+                        id = jsonObj.get("id")?.takeIf { !it.isJsonNull }?.asLong,
+                        fio = jsonObj.get("fio")?.takeIf { !it.isJsonNull }?.asString ?: "Неизвестно",
+                        birthDate = jsonObj.get("birthDate")?.takeIf { !it.isJsonNull }?.asString,
+                        deathDate = jsonObj.get("deathDate")?.takeIf { !it.isJsonNull }?.asString,
+                        biography = jsonObj.get("biography")?.takeIf { !it.isJsonNull }?.asString,
                         mainLocation = null,
                         burialLocation = null
                     )

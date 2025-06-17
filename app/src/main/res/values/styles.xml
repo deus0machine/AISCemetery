@@ -134,9 +134,9 @@
         <item name="android:fontFamily">sans-serif</item>
     </style>
 
-    <!-- Splash Screen Theme - белый фон -->
+    <!-- Splash Screen Theme - белый фон с маленьким логотипом -->
     <style name="SplashTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowBackground">@drawable/splash_background_small</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowFullscreen">true</item>

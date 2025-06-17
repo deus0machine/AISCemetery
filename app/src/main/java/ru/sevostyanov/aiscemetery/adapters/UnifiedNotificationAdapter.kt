@@ -26,7 +26,8 @@ class UnifiedNotificationAdapter(
     private val onRegularDeleteClick: (Notification) -> Unit = {},
     private val onDraftNotificationClick: (DraftSubmission) -> Unit = {},
     private val onDraftApproveClick: (DraftSubmission) -> Unit = {},
-    private val onDraftRejectClick: (DraftSubmission) -> Unit = {}
+    private val onDraftRejectClick: (DraftSubmission) -> Unit = {},
+    private val onDraftDeleteClick: (DraftSubmission) -> Unit = {}
 ) : ListAdapter<NotificationItem, RecyclerView.ViewHolder>(NotificationItemDiffCallback()) {
 
     companion object {
@@ -52,7 +53,7 @@ class UnifiedNotificationAdapter(
             TYPE_DRAFT -> {
                 val view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.item_draft_submission, parent, false)
-                DraftNotificationViewHolder(view, isIncoming, onDraftNotificationClick, onDraftApproveClick, onDraftRejectClick)
+                DraftNotificationViewHolder(view, isIncoming, onDraftNotificationClick, onDraftApproveClick, onDraftRejectClick, onDraftDeleteClick)
             }
             else -> throw IllegalArgumentException("Unknown view type: $viewType")
         }
@@ -83,8 +84,12 @@ class UnifiedNotificationAdapter(
         private val userInfoTextView: TextView? = itemView.findViewById(R.id.text_user_info)
         private val memorialInfoTextView: TextView? = itemView.findViewById(R.id.text_memorial_info)
         private val typeBadgeTextView: TextView? = itemView.findViewById(R.id.text_type_badge)
+        private val iconView: android.widget.ImageView? = itemView.findViewById(R.id.icon_notification)
+        private val unreadIndicator: View? = itemView.findViewById(R.id.view_unread)
+        private val urgentIndicator: View? = itemView.findViewById(R.id.view_urgent)
         private val acceptButton: Button? = itemView.findViewById(R.id.btn_accept)
         private val rejectButton: Button? = itemView.findViewById(R.id.btn_reject)
+        private val deleteButton: android.widget.ImageView? = itemView.findViewById(R.id.btn_delete)
         
         fun bind(notification: Notification) {
             android.util.Log.d("UnifiedAdapter", "Binding regular notification: id=${notification.id}, status=${notification.status}, type=${notification.type}")
@@ -109,14 +114,14 @@ class UnifiedNotificationAdapter(
             // Информация о пользователе
             configureUserInfo(notification)
             
-            // Информация о мемориале
-            memorialInfoTextView?.text = if (notification.relatedEntityName != null) {
-                "Мемориал: ${notification.relatedEntityName}"
-            } else null
-            memorialInfoTextView?.visibility = if (notification.relatedEntityName != null) View.VISIBLE else View.GONE
+            // Информация о связанном объекте (мемориал или семейное дерево)
+            configureRelatedEntityInfo(notification)
             
             // Тип уведомления (бейдж)
             configureTypeBadge(notification)
+            
+            // Иконка уведомления
+            configureNotificationIcon(notification)
             
             // Статус
             configureStatus(notification)
@@ -127,8 +132,18 @@ class UnifiedNotificationAdapter(
             // Кнопки действий
             configureActionButtons(notification)
             
+            // Индикаторы
+            configureIndicators(notification)
+            
             // Обработчики кликов
-            itemView.setOnClickListener { onItemClick(notification) }
+            itemView.setOnClickListener { 
+                android.util.Log.d("UnifiedAdapter", "Клик на уведомление: ${notification.id}")
+                onItemClick(notification) 
+            }
+            deleteButton?.setOnClickListener { 
+                android.util.Log.d("UnifiedAdapter", "Клик на кнопку удаления уведомления: ${notification.id}")
+                onDeleteClick(notification)
+            }
         }
         
         private fun getDefaultTitle(notification: Notification): String {
@@ -139,6 +154,8 @@ class UnifiedNotificationAdapter(
                 NotificationType.FAMILY_TREE_ACCESS_REQUEST -> "Запрос на доступ к дереву"
                 NotificationType.FAMILY_TREE_ACCESS_GRANTED -> "Доступ к дереву предоставлен"
                 NotificationType.FAMILY_TREE_ACCESS_REVOKED -> "Доступ к дереву отозван"
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> "Исключение из редакторов"
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> "Отказ от редактирования"
                 NotificationType.SYSTEM -> "Системное уведомление"
                 NotificationType.INFO -> "Информационное уведомление"
                 NotificationType.MODERATION -> "Уведомление о модерации"
@@ -171,20 +188,114 @@ class UnifiedNotificationAdapter(
             }
         }
         
-        private fun configureTypeBadge(notification: Notification) {
-            val badgeText = when (notification.type) {
-                NotificationType.MEMORIAL_OWNERSHIP -> "СОВМЕСТНОЕ ВЛАДЕНИЕ"
-                NotificationType.MEMORIAL_CHANGES -> "ИЗМЕНЕНИЕ МЕМОРИАЛА"
-                NotificationType.MEMORIAL_EDIT -> "РЕДАКТИРОВАНИЕ"
-                NotificationType.FAMILY_TREE_ACCESS_REQUEST -> "ЗАПРОС НА ДОСТУП"
-                NotificationType.FAMILY_TREE_ACCESS_GRANTED -> "ДОСТУП ПРЕДОСТАВЛЕН"
-                NotificationType.FAMILY_TREE_ACCESS_REVOKED -> "ДОСТУП ОТОЗВАН"
-                NotificationType.SYSTEM -> "СИСТЕМА"
-                NotificationType.INFO -> "ИНФОРМАЦИЯ"
-                NotificationType.MODERATION -> "МОДЕРАЦИЯ"
-                else -> "УВЕДОМЛЕНИЕ"
+        private fun configureRelatedEntityInfo(notification: Notification) {
+            if (notification.relatedEntityName != null && 
+                notification.relatedEntityName != "Техническая поддержка") {
+                
+                val entityType = when (notification.type) {
+                    NotificationType.FAMILY_TREE_MODERATION,
+                    NotificationType.FAMILY_TREE_ACCESS_REQUEST,
+                    NotificationType.FAMILY_TREE_ACCESS_GRANTED,
+                    NotificationType.FAMILY_TREE_ACCESS_REVOKED,
+                    NotificationType.FAMILY_TREE_APPROVED,
+                    NotificationType.FAMILY_TREE_REJECTED -> "🌳 Семейное дерево"
+                    
+                    NotificationType.DRAFT_SUBMITTED,
+                    NotificationType.DRAFT_APPROVED,
+                    NotificationType.DRAFT_REJECTED -> "📝 Черновик"
+                    
+                    NotificationType.MEMORIAL_OWNERSHIP,
+                    NotificationType.MEMORIAL_CHANGES,
+                    NotificationType.MEMORIAL_EDIT,
+                    NotificationType.MEMORIAL_MODERATION,
+                    NotificationType.MEMORIAL_APPROVED,
+                    NotificationType.MEMORIAL_REJECTED,
+                    NotificationType.MEMORIAL_EDITOR_REMOVED,
+                    NotificationType.MEMORIAL_EDITOR_RESIGNED,
+                    NotificationType.MEMORIAL_REPORT -> "🪦 Мемориал"
+                    
+                    else -> "📄 Объект"
+                }
+                
+                memorialInfoTextView?.text = "$entityType: ${notification.relatedEntityName}"
+                memorialInfoTextView?.visibility = View.VISIBLE
+            } else {
+                memorialInfoTextView?.visibility = View.GONE
             }
+        }
+        
+        private fun configureTypeBadge(notification: Notification) {
+            val (badgeText, badgeColorRes) = when (notification.type) {
+                NotificationType.MEMORIAL_OWNERSHIP -> Pair("СОВМЕСТНОЕ ВЛАДЕНИЕ", R.color.gold)
+                NotificationType.MEMORIAL_CHANGES -> Pair("ИЗМЕНЕНИЕ МЕМОРИАЛА", R.color.green)
+                NotificationType.MEMORIAL_EDIT -> Pair("РЕДАКТИРОВАНИЕ", R.color.orange)
+                NotificationType.FAMILY_TREE_ACCESS_REQUEST -> Pair("ЗАПРОС НА ДОСТУП", R.color.gold)
+                NotificationType.FAMILY_TREE_ACCESS_GRANTED -> Pair("ДОСТУП ПРЕДОСТАВЛЕН", android.R.color.holo_green_dark)
+                NotificationType.FAMILY_TREE_ACCESS_REVOKED -> Pair("ДОСТУП ОТОЗВАН", android.R.color.holo_red_dark)
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> Pair("ИСКЛЮЧЕН ИЗ РЕДАКТОРОВ", android.R.color.holo_red_dark)
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> Pair("РЕДАКТОР ОТКАЗАЛСЯ", android.R.color.holo_orange_dark)
+                NotificationType.FAMILY_TREE_MODERATION -> Pair("МОДЕРАЦИЯ ДЕРЕВА", R.color.purple_500)
+                NotificationType.FAMILY_TREE_APPROVED -> Pair("ДЕРЕВО ОДОБРЕНО", android.R.color.holo_green_dark)
+                NotificationType.FAMILY_TREE_REJECTED -> Pair("ДЕРЕВО ОТКЛОНЕНО", android.R.color.holo_red_dark)
+                NotificationType.MEMORIAL_MODERATION -> Pair("МОДЕРАЦИЯ МЕМОРИАЛА", R.color.purple_500)
+                NotificationType.MEMORIAL_APPROVED -> Pair("МЕМОРИАЛ ОДОБРЕН", android.R.color.holo_green_dark)
+                NotificationType.MEMORIAL_REJECTED -> Pair("МЕМОРИАЛ ОТКЛОНЕН", android.R.color.holo_red_dark)
+                NotificationType.TECHNICAL -> Pair("ТЕХПОДДЕРЖКА", R.color.teal_700)
+                NotificationType.ADMIN_INFO -> Pair("АДМИН ИНФО", R.color.purple_500)
+                NotificationType.ADMIN_WARNING -> Pair("ПРЕДУПРЕЖДЕНИЕ", android.R.color.holo_orange_dark)
+                NotificationType.ADMIN_SYSTEM -> Pair("СИСТЕМА", R.color.teal_700)
+                NotificationType.MASS_ANNOUNCEMENT -> Pair("ОБЪЯВЛЕНИЕ", R.color.purple_500)
+                NotificationType.MEMORIAL_REPORT -> Pair("ЖАЛОБА", android.R.color.holo_red_dark)
+                NotificationType.DRAFT_SUBMITTED -> Pair("ЧЕРНОВИК ОТПРАВЛЕН", R.color.orange)
+                NotificationType.DRAFT_APPROVED -> Pair("ЧЕРНОВИК ОДОБРЕН", android.R.color.holo_green_dark)
+                NotificationType.DRAFT_REJECTED -> Pair("ЧЕРНОВИК ОТКЛОНЕН", android.R.color.holo_red_dark)
+                NotificationType.SYSTEM -> Pair("СИСТЕМА", R.color.teal_700)
+                NotificationType.INFO -> Pair("ИНФОРМАЦИЯ", R.color.teal_700)
+                NotificationType.MODERATION -> Pair("МОДЕРАЦИЯ", R.color.purple_500)
+                else -> Pair("УВЕДОМЛЕНИЕ", android.R.color.darker_gray)
+            }
+            
             typeBadgeTextView?.text = badgeText
+            
+            // Устанавливаем цвет бейджа
+            val badgeDrawable = ContextCompat.getDrawable(itemView.context, R.drawable.badge_background)?.mutate()
+            badgeDrawable?.setTint(ContextCompat.getColor(itemView.context, badgeColorRes))
+            typeBadgeTextView?.background = badgeDrawable
+        }
+        
+        private fun configureNotificationIcon(notification: Notification) {
+            val (iconRes, iconColorRes) = when (notification.type) {
+                NotificationType.MEMORIAL_OWNERSHIP -> Pair(android.R.drawable.ic_menu_share, R.color.gold)
+                NotificationType.MEMORIAL_CHANGES -> Pair(android.R.drawable.ic_menu_edit, R.color.green)
+                NotificationType.MEMORIAL_EDIT -> Pair(android.R.drawable.ic_menu_edit, R.color.orange)
+                NotificationType.FAMILY_TREE_ACCESS_REQUEST -> Pair(android.R.drawable.ic_menu_agenda, R.color.gold)
+                NotificationType.FAMILY_TREE_ACCESS_GRANTED -> Pair(android.R.drawable.ic_menu_agenda, android.R.color.holo_green_dark)
+                NotificationType.FAMILY_TREE_ACCESS_REVOKED -> Pair(android.R.drawable.ic_menu_close_clear_cancel, android.R.color.holo_red_dark)
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> Pair(android.R.drawable.ic_menu_close_clear_cancel, android.R.color.holo_red_dark)
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> Pair(android.R.drawable.ic_menu_revert, android.R.color.holo_orange_dark)
+                NotificationType.FAMILY_TREE_MODERATION -> Pair(android.R.drawable.ic_menu_view, R.color.purple_500)
+                NotificationType.FAMILY_TREE_APPROVED -> Pair(android.R.drawable.ic_menu_agenda, android.R.color.holo_green_dark)
+                NotificationType.FAMILY_TREE_REJECTED -> Pair(android.R.drawable.ic_menu_agenda, android.R.color.holo_red_dark)
+                NotificationType.MEMORIAL_MODERATION -> Pair(android.R.drawable.ic_menu_view, R.color.purple_500)
+                NotificationType.MEMORIAL_APPROVED -> Pair(android.R.drawable.ic_menu_compass, android.R.color.holo_green_dark)
+                NotificationType.MEMORIAL_REJECTED -> Pair(android.R.drawable.ic_menu_compass, android.R.color.holo_red_dark)
+                NotificationType.TECHNICAL -> Pair(android.R.drawable.ic_menu_help, R.color.teal_700)
+                NotificationType.ADMIN_INFO -> Pair(android.R.drawable.ic_dialog_info, R.color.purple_500)
+                NotificationType.ADMIN_WARNING -> Pair(android.R.drawable.ic_dialog_alert, android.R.color.holo_orange_dark)
+                NotificationType.ADMIN_SYSTEM -> Pair(android.R.drawable.ic_menu_preferences, R.color.teal_700)
+                NotificationType.MASS_ANNOUNCEMENT -> Pair(android.R.drawable.ic_dialog_info, R.color.purple_500)
+                NotificationType.MEMORIAL_REPORT -> Pair(android.R.drawable.ic_menu_report_image, android.R.color.holo_red_dark)
+                NotificationType.DRAFT_SUBMITTED -> Pair(android.R.drawable.ic_menu_upload, R.color.orange)
+                NotificationType.DRAFT_APPROVED -> Pair(android.R.drawable.ic_menu_upload, android.R.color.holo_green_dark)
+                NotificationType.DRAFT_REJECTED -> Pair(android.R.drawable.ic_menu_upload, android.R.color.holo_red_dark)
+                NotificationType.SYSTEM -> Pair(android.R.drawable.ic_menu_preferences, R.color.teal_700)
+                NotificationType.INFO -> Pair(android.R.drawable.ic_dialog_info, R.color.teal_700)
+                NotificationType.MODERATION -> Pair(android.R.drawable.ic_menu_view, R.color.purple_500)
+                else -> Pair(android.R.drawable.ic_dialog_info, android.R.color.darker_gray)
+            }
+            
+            iconView?.setImageResource(iconRes)
+            iconView?.setColorFilter(ContextCompat.getColor(itemView.context, iconColorRes))
         }
         
         private fun configureStatus(notification: Notification) {
@@ -211,53 +322,141 @@ class UnifiedNotificationAdapter(
         private fun styleNotificationByType(notification: Notification) {
             var backgroundColorHex: String
             var borderColor: Int
+            var strokeWidth = 2 // По умолчанию тонкая граница
             
             when (notification.type) {
-                NotificationType.MEMORIAL_OWNERSHIP -> {
-                    backgroundColorHex = "#FFF8E1" // Light amber
-                    borderColor = ContextCompat.getColor(itemView.context, R.color.gold)
-                }
+                // Запросы - золотистый цвет
+                NotificationType.MEMORIAL_OWNERSHIP, 
                 NotificationType.FAMILY_TREE_ACCESS_REQUEST -> {
                     backgroundColorHex = "#FFF8E1" // Light amber
                     borderColor = ContextCompat.getColor(itemView.context, R.color.gold)
+                    strokeWidth = 3
                 }
-                NotificationType.FAMILY_TREE_ACCESS_GRANTED -> {
-                    backgroundColorHex = "#E8F5E9" // Light green
-                    borderColor = ContextCompat.getColor(itemView.context, android.R.color.holo_green_dark)
-                }
-                NotificationType.FAMILY_TREE_ACCESS_REVOKED -> {
-                    backgroundColorHex = "#FFEBEE" // Light red
-                    borderColor = ContextCompat.getColor(itemView.context, android.R.color.holo_red_dark)
-                }
+                
+                // Одобрения - зеленый цвет
+                NotificationType.FAMILY_TREE_ACCESS_GRANTED,
+                NotificationType.FAMILY_TREE_APPROVED,
+                NotificationType.MEMORIAL_APPROVED,
+                NotificationType.DRAFT_APPROVED,
                 NotificationType.MEMORIAL_CHANGES -> {
                     backgroundColorHex = "#E8F5E9" // Light green
                     borderColor = ContextCompat.getColor(itemView.context, android.R.color.holo_green_dark)
+                    strokeWidth = 3
                 }
-                NotificationType.MEMORIAL_EDIT -> {
-                    backgroundColorHex = "#FFECB3" // Light orange
+                
+                // Отклонения и удаления - красный цвет
+                NotificationType.FAMILY_TREE_ACCESS_REVOKED,
+                NotificationType.FAMILY_TREE_REJECTED,
+                NotificationType.MEMORIAL_REJECTED,
+                NotificationType.DRAFT_REJECTED,
+                NotificationType.MEMORIAL_EDITOR_REMOVED,
+                NotificationType.MEMORIAL_REPORT -> {
+                    backgroundColorHex = "#FFEBEE" // Light red
+                    borderColor = ContextCompat.getColor(itemView.context, android.R.color.holo_red_dark)
+                    strokeWidth = 3
+                }
+                
+                // Предупреждения и отказы - оранжевый цвет
+                NotificationType.MEMORIAL_EDITOR_RESIGNED,
+                NotificationType.MEMORIAL_EDIT,
+                NotificationType.DRAFT_SUBMITTED,
+                NotificationType.ADMIN_WARNING -> {
+                    backgroundColorHex = "#FFF3E0" // Light orange
                     borderColor = ContextCompat.getColor(itemView.context, android.R.color.holo_orange_dark)
+                    strokeWidth = 3
                 }
-                NotificationType.INFO -> {
-                    backgroundColorHex = "#E8F5E9" // Light green
+                
+                // Модерация - фиолетовый цвет
+                NotificationType.FAMILY_TREE_MODERATION,
+                NotificationType.MEMORIAL_MODERATION,
+                NotificationType.MODERATION,
+                NotificationType.ADMIN_INFO,
+                NotificationType.MASS_ANNOUNCEMENT -> {
+                    backgroundColorHex = "#F3E5F5" // Light purple
+                    borderColor = ContextCompat.getColor(itemView.context, R.color.purple_500)
+                    strokeWidth = 3
+                }
+                
+                // Системные и информационные - голубой цвет
+                NotificationType.SYSTEM,
+                NotificationType.ADMIN_SYSTEM,
+                NotificationType.INFO,
+                NotificationType.TECHNICAL -> {
+                    backgroundColorHex = "#E0F2F1" // Light teal
                     borderColor = ContextCompat.getColor(itemView.context, R.color.teal_700)
+                    strokeWidth = 2
                 }
-                NotificationType.SYSTEM -> {
-                    backgroundColorHex = "#E3F2FD" // Light blue
-                    borderColor = ContextCompat.getColor(itemView.context, R.color.teal_700)
-                }
-                NotificationType.MODERATION -> {
-                    backgroundColorHex = "#FFF3E0" // Light orange 
-                    borderColor = ContextCompat.getColor(itemView.context, android.R.color.holo_orange_dark)
-                }
+                
                 else -> {
                     backgroundColorHex = "#F5F5F5" // Light grey
                     borderColor = ContextCompat.getColor(itemView.context, android.R.color.darker_gray)
+                    strokeWidth = 1
                 }
             }
             
             cardView.setCardBackgroundColor(Color.parseColor(backgroundColorHex))
             cardView.strokeColor = borderColor
-            cardView.strokeWidth = 4
+            cardView.strokeWidth = strokeWidth
+            
+            // Добавляем небольшую тень для важных уведомлений
+            if (notification.urgent || notification.type in listOf(
+                NotificationType.ADMIN_WARNING,
+                NotificationType.MEMORIAL_REPORT,
+                NotificationType.MASS_ANNOUNCEMENT
+            )) {
+                cardView.cardElevation = 6f
+            } else {
+                cardView.cardElevation = 2f
+            }
+        }
+        
+        private fun configureIndicators(notification: Notification) {
+            // Индикатор непрочитанности
+            if (!notification.isRead) {
+                unreadIndicator?.visibility = View.VISIBLE
+                
+                // Устанавливаем цвет индикатора в зависимости от типа уведомления
+                val indicatorColor = when (notification.type) {
+                    NotificationType.MEMORIAL_OWNERSHIP,
+                    NotificationType.FAMILY_TREE_ACCESS_REQUEST -> R.color.gold
+                    
+                    NotificationType.FAMILY_TREE_ACCESS_GRANTED,
+                    NotificationType.FAMILY_TREE_APPROVED,
+                    NotificationType.MEMORIAL_APPROVED,
+                    NotificationType.DRAFT_APPROVED,
+                    NotificationType.MEMORIAL_CHANGES -> android.R.color.holo_green_dark
+                    
+                    NotificationType.FAMILY_TREE_ACCESS_REVOKED,
+                    NotificationType.FAMILY_TREE_REJECTED,
+                    NotificationType.MEMORIAL_REJECTED,
+                    NotificationType.DRAFT_REJECTED,
+                    NotificationType.MEMORIAL_EDITOR_REMOVED,
+                    NotificationType.MEMORIAL_REPORT -> android.R.color.holo_red_dark
+                    
+                    NotificationType.MEMORIAL_EDITOR_RESIGNED,
+                    NotificationType.MEMORIAL_EDIT,
+                    NotificationType.DRAFT_SUBMITTED,
+                    NotificationType.ADMIN_WARNING -> android.R.color.holo_orange_dark
+                    
+                    NotificationType.FAMILY_TREE_MODERATION,
+                    NotificationType.MEMORIAL_MODERATION,
+                    NotificationType.MODERATION,
+                    NotificationType.ADMIN_INFO,
+                    NotificationType.MASS_ANNOUNCEMENT -> R.color.purple_500
+                    
+                    else -> R.color.purple_500
+                }
+                
+                // Создаем градиентный drawable с нужным цветом
+                val drawable = ContextCompat.getDrawable(itemView.context, R.drawable.unread_indicator)?.mutate()
+                drawable?.setTint(ContextCompat.getColor(itemView.context, indicatorColor))
+                unreadIndicator?.background = drawable
+            } else {
+                unreadIndicator?.visibility = View.GONE
+            }
+            
+            // Индикатор срочности
+            urgentIndicator?.visibility = if (notification.urgent) View.VISIBLE else View.GONE
         }
         
         private fun configureActionButtons(notification: Notification) {
@@ -317,7 +516,8 @@ class UnifiedNotificationAdapter(
         private val isIncoming: Boolean,
         private val onItemClick: (DraftSubmission) -> Unit,
         private val onApproveClick: (DraftSubmission) -> Unit,
-        private val onRejectClick: (DraftSubmission) -> Unit
+        private val onRejectClick: (DraftSubmission) -> Unit,
+        private val onDeleteClick: (DraftSubmission) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
         
         private val cardView: MaterialCardView = itemView as MaterialCardView
@@ -331,6 +531,7 @@ class UnifiedNotificationAdapter(
         private val relationsCountTextView: TextView = itemView.findViewById(R.id.text_relations_count)
         private val approveButton: Button = itemView.findViewById(R.id.button_approve)
         private val rejectButton: Button = itemView.findViewById(R.id.button_reject)
+        private val deleteButton: android.widget.ImageButton = itemView.findViewById(R.id.button_delete)
 
         fun bind(submission: DraftSubmission) {
             val context = itemView.context
@@ -440,6 +641,7 @@ class UnifiedNotificationAdapter(
             
             // Кнопки действий (только для входящих и не рассмотренных)
             val showActionButtons = isIncoming && !submission.isReviewed
+            android.util.Log.d("UnifiedAdapter", "Кнопки действий: isIncoming=$isIncoming, isReviewed=${submission.isReviewed}, showActionButtons=$showActionButtons")
             approveButton.visibility = if (showActionButtons) View.VISIBLE else View.GONE
             rejectButton.visibility = if (showActionButtons) View.VISIBLE else View.GONE
             
@@ -447,6 +649,7 @@ class UnifiedNotificationAdapter(
             itemView.setOnClickListener { onItemClick(submission) }
             approveButton.setOnClickListener { onApproveClick(submission) }
             rejectButton.setOnClickListener { onRejectClick(submission) }
+            deleteButton.setOnClickListener { onDeleteClick(submission) }
         }
     }
 
@@ -456,7 +659,22 @@ class UnifiedNotificationAdapter(
         }
 
         override fun areContentsTheSame(oldItem: NotificationItem, newItem: NotificationItem): Boolean {
-            return oldItem == newItem
+            // Для разных типов уведомлений используем разную логику сравнения
+            return when {
+                oldItem is RegularNotificationItem && newItem is RegularNotificationItem -> {
+                    oldItem.notification.status == newItem.notification.status &&
+                    oldItem.notification.isRead == newItem.notification.isRead &&
+                    oldItem.notification.title == newItem.notification.title &&
+                    oldItem.notification.message == newItem.notification.message
+                }
+                oldItem is DraftNotificationItem && newItem is DraftNotificationItem -> {
+                    oldItem.draftSubmission.reviewStatus == newItem.draftSubmission.reviewStatus &&
+                    oldItem.draftSubmission.isReviewed == newItem.draftSubmission.isReviewed &&
+                    oldItem.draftSubmission.reviewMessage == newItem.draftSubmission.reviewMessage &&
+                    oldItem.isIncoming == newItem.isIncoming
+                }
+                else -> oldItem == newItem
+            }
         }
     }
 } 

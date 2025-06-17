@@ -40,6 +40,8 @@ class NotificationsAdapter(
                 NotificationType.FAMILY_TREE_ACCESS_REQUEST -> Pair("ЗАПРОС НА ДЕРЕВО", R.color.gold)
                 NotificationType.MEMORIAL_CHANGES -> Pair("ИЗМЕНЕНИЯ МЕМОРИАЛА", R.color.green)
                 NotificationType.MEMORIAL_EDIT -> Pair("РЕДАКТИРОВАНИЕ", R.color.orange)
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> Pair("ИСКЛЮЧЕН ИЗ РЕДАКТОРОВ", R.color.red)
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> Pair("РЕДАКТОР ОТКАЗАЛСЯ", R.color.orange)
                 NotificationType.INFO -> Pair("ИНФОРМАЦИЯ", R.color.teal_700)
                 NotificationType.SYSTEM -> {
                     // Проверяем, является ли это ответом на техническое обращение
@@ -185,6 +187,8 @@ class NotificationsAdapter(
                         else -> "Изменения в мемориале"
                     }
                 }
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> notification.title ?: "Исключение из редакторов"
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> notification.title ?: "Отказ от редактирования"
                 NotificationType.INFO -> notification.title ?: "Информация"
                 NotificationType.SYSTEM -> {
                     // Проверяем, является ли это ответом на техническое обращение
@@ -267,6 +271,8 @@ class NotificationsAdapter(
                 NotificationType.FAMILY_TREE_ACCESS_REQUEST -> Pair(android.R.drawable.ic_menu_share, R.color.gold)
                 NotificationType.MEMORIAL_CHANGES -> Pair(android.R.drawable.ic_menu_edit, R.color.green)
                 NotificationType.MEMORIAL_EDIT -> Pair(android.R.drawable.ic_menu_edit, R.color.orange)
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> Pair(android.R.drawable.ic_menu_delete, R.color.red)
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> Pair(android.R.drawable.ic_menu_close_clear_cancel, R.color.orange)
                 NotificationType.SYSTEM -> {
                     // Проверяем, является ли это ответом на техническое обращение
                     if (notification.title?.contains("Ответ на техническое обращение") == true ||
@@ -332,6 +338,14 @@ class NotificationsAdapter(
                 }
                 NotificationType.MEMORIAL_EDIT -> {
                     backgroundColorHex = "#FFECB3" // Light orange
+                    borderColor = ContextCompat.getColor(context, R.color.orange)
+                }
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> {
+                    backgroundColorHex = "#FFEBEE" // Light red
+                    borderColor = ContextCompat.getColor(context, R.color.red)
+                }
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> {
+                    backgroundColorHex = "#FFF3E0" // Light orange
                     borderColor = ContextCompat.getColor(context, R.color.orange)
                 }
                 NotificationType.SYSTEM -> {
@@ -490,6 +504,8 @@ class NotificationsAdapter(
                         else -> "Изменения в мемориале"
                     }
                 }
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> notification.title ?: "Исключение из редакторов"
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> notification.title ?: "Отказ от редактирования"
                 NotificationType.INFO -> notification.title ?: "Информация"
                 NotificationType.SYSTEM -> {
                     // Проверяем, является ли это ответом на техническое обращение

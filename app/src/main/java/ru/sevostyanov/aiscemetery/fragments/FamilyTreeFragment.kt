@@ -26,6 +26,7 @@ import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.Navigation
 import androidx.fragment.app.FragmentActivity
+import androidx.core.content.ContextCompat
 
 @AndroidEntryPoint
 class FamilyTreeFragment : BottomSheetDialogFragment() {
@@ -124,8 +125,42 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
     private fun setupObservers() {
         viewModel.familyTree.observe(viewLifecycleOwner) { tree ->
             tree?.let {
-                nameEditText.setText(it.name)
-                descriptionEditText.setText(it.description ?: "")
+                // Проверяем, есть ли изменения на модерации
+                if (it.pendingChanges) {
+                    // Показываем данные на модерации и блокируем поля
+                    nameEditText.setText(it.pendingName ?: it.name)
+                    descriptionEditText.setText(it.pendingDescription ?: it.description ?: "")
+                    nameEditText.isEnabled = false
+                    descriptionEditText.isEnabled = false
+                    saveButton.visibility = View.GONE
+                    saveButton.isEnabled = false
+                    
+                    // Визуально показываем, что поля заблокированы
+                    nameEditText.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
+                    descriptionEditText.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
+                    nameEditText.alpha = 0.6f
+                    descriptionEditText.alpha = 0.6f
+                    
+                    // Обновляем статус для отображения информации о модерации
+                    publicationStatusTextView.text = "Статус: ${it.getPublicationStatusText()}\nИзменения отправлены на модерацию, ожидайте решения администратора"
+                    publicationStatusTextView.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_orange_dark))
+                } else {
+                    // Обычное отображение данных
+                    nameEditText.setText(it.name)
+                    descriptionEditText.setText(it.description ?: "")
+                    
+                    // Восстанавливаем доступность полей если нет модерации
+                    nameEditText.isEnabled = true
+                    descriptionEditText.isEnabled = true
+                    saveButton.visibility = View.VISIBLE
+                    saveButton.isEnabled = true
+                    
+                    // Восстанавливаем обычный вид полей
+                    nameEditText.setBackgroundResource(android.R.drawable.edit_text)
+                    descriptionEditText.setBackgroundResource(android.R.drawable.edit_text)
+                    nameEditText.alpha = 1.0f
+                    descriptionEditText.alpha = 1.0f
+                }
                 updatePublicationStatus(it)
                 
                 // Специальная логика для черновиков редакторов
@@ -140,7 +175,7 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
                     viewGenealogyButton.isEnabled = true // Просмотр всегда доступен
                 } else {
                     // Обычная логика для владельцев и обычных деревьев
-                    val canEdit = viewModel.canEditTree()
+                    val canEdit = viewModel.canEditTree() && !it.pendingChanges // Нельзя редактировать если изменения на модерации
                     nameEditText.isEnabled = canEdit
                     descriptionEditText.isEnabled = canEdit
                     saveButton.visibility = if (canEdit) View.VISIBLE else View.GONE
@@ -174,6 +209,21 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
             }
         }
 
+        viewModel.successMessage.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                // Скрываем индикатор загрузки при успехе
+                hideLoadingDialog()
+                
+                // Проверяем, что фрагмент все еще активен
+                if (isAdded && !isRemoving && !isDetached) {
+                    // Показываем диалог успеха
+                    showSuccessDialog("Успешно", it)
+                    // Очищаем сообщение после показа диалога
+                    viewModel.clearSuccessMessage()
+                }
+            }
+        }
+
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             // Показываем/скрываем индикатор загрузки
             if (isLoading) {
@@ -195,12 +245,16 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
                 unpublishButton.visibility = View.GONE
             } else {
                 // Обычная логика для владельцев и обычных деревьев
-                val canEdit = tree?.let { viewModel.canEditTree() } ?: false
-                val canSendForModeration = tree?.let { viewModel.canSendForModeration() } ?: false
-                val canUnpublish = tree?.let { viewModel.canUnpublishTree() } ?: false
+                val canEdit = tree?.let { viewModel.canEditTree() && !it.pendingChanges } ?: false // Нельзя редактировать если изменения на модерации
+                val canSendForModeration = tree?.let { viewModel.canSendForModeration() && !it.pendingChanges } ?: false // Нельзя отправлять на модерацию если уже есть изменения на модерации
+                val canUnpublish = tree?.let { viewModel.canUnpublishTree() && !it.pendingChanges } ?: false // Нельзя снимать с публикации если есть изменения на модерации
                 
-                saveButton.visibility = if (canEdit) View.VISIBLE else View.GONE
-                saveButton.isEnabled = !isLoading && canEdit
+                // Блокируем поля ввода если есть изменения на модерации
+                nameEditText.isEnabled = !isLoading && canEdit && !(tree?.pendingChanges ?: false)
+                descriptionEditText.isEnabled = !isLoading && canEdit && !(tree?.pendingChanges ?: false)
+                
+                saveButton.visibility = if (canEdit && !(tree?.pendingChanges ?: false)) View.VISIBLE else View.GONE
+                saveButton.isEnabled = !isLoading && canEdit && !(tree?.pendingChanges ?: false)
                 editGenealogyButton.isEnabled = !isLoading && canEdit
                 sendForModerationButton.isEnabled = !isLoading && canSendForModeration
                 unpublishButton.isEnabled = !isLoading && canUnpublish
@@ -314,12 +368,33 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
 
-            wasSaved = true
-            viewModel.updateFamilyTree(
-                id = treeId,
-                name = name,
-                description = description
-            )
+            val currentTree = viewModel.familyTree.value
+            if (currentTree != null && currentTree.publicationStatus == ru.sevostyanov.aiscemetery.models.PublicationStatus.PUBLISHED) {
+                // Для публичных деревьев показываем диалог подтверждения
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Изменения будут отправлены на модерацию")
+                    .setMessage("Дерево является публичным. Ваши изменения будут отправлены на рассмотрение администраторам.\n\n" +
+                            "После одобрения изменения будут применены к дереву.")
+                    .setPositiveButton("Отправить на модерацию") { _, _ ->
+                        wasSaved = true
+                        viewModel.submitTreeChangesForModeration(
+                            id = treeId,
+                            name = name,
+                            description = description,
+                            message = "Изменения в названии и/или описании дерева"
+                        )
+                    }
+                    .setNegativeButton("Отмена", null)
+                    .show()
+            } else {
+                // Для приватных деревьев сохраняем изменения напрямую
+                wasSaved = true
+                viewModel.updateFamilyTree(
+                    id = treeId,
+                    name = name,
+                    description = description
+                )
+            }
         }
 
         viewGenealogyButton.setOnClickListener {
@@ -335,7 +410,7 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
                 // В обычном режиме переходим к фрагменту просмотра генеалогии
                 try {
                     val bundle = Bundle().apply {
-                        putLong("treeId", treeId)
+                        putLong("familyTreeId", treeId)  // Изменено с "treeId" на "familyTreeId"
                         putBoolean("isDraft", isDraftTree)
                     }
                     findNavController().navigate(R.id.action_familyTreesListFragment_to_genealogyTreeFragment, bundle)
@@ -411,6 +486,25 @@ class FamilyTreeFragment : BottomSheetDialogFragment() {
             .setTitle(title)
             .setMessage(message)
             .setPositiveButton("OK", null)
+            .show()
+    }
+    
+    private fun showSuccessDialog(title: String, message: String) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("OK") { _, _ ->
+                // Проверяем, что фрагмент все еще добавлен к менеджеру
+                if (isAdded && !isRemoving && !isDetached) {
+                    try {
+                        // Закрываем диалог после успешной отправки на модерацию
+                        setFragmentResult("family_tree_updated", Bundle())
+                        dismiss()
+                    } catch (e: Exception) {
+                        Log.e("FamilyTreeFragment", "Error closing dialog: ${e.message}", e)
+                    }
+                }
+            }
             .show()
     }
     

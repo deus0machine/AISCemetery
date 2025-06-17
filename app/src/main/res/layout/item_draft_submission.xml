@@ -126,8 +126,26 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:orientation="horizontal"
-            android:gravity="end">
+            android:gravity="center_vertical">
 
+            <!-- Кнопка удаления слева -->
+            <ImageButton
+                android:id="@+id/button_delete"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_delete"
+                android:contentDescription="Удалить уведомление"
+                android:layout_marginEnd="8dp"
+                app:tint="@android:color/darker_gray" />
+
+            <!-- Spacer для разделения кнопки удаления и кнопок действий -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Кнопки действий справа -->
             <Button
                 android:id="@+id/button_reject"
                 style="@style/Widget.Material3.Button.OutlinedButton"
