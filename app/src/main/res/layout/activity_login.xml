@@ -132,6 +132,30 @@
                     app:elevation="4dp"
                     style="@style/Widget.MaterialComponents.Button" />
 
+                <!-- Loading Progress Bar -->
+                <ProgressBar
+                    android:id="@+id/login_progress"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone"
+                    android:indeterminateTint="@color/purple_500"
+                    style="?android:attr/progressBarStyle" />
+
+                <!-- Error Message Text -->
+                <TextView
+                    android:id="@+id/error_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center"
+                    android:textColor="@color/red"
+                    android:textSize="14sp"
+                    android:visibility="gone"
+                    android:padding="8dp"
+                    android:background="@drawable/error_background" />
+
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>

@@ -30,10 +30,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="Создать аккаунт"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            android:textColor="@color/primary_text"
-            android:fontFamily="sans-serif-medium"
+            style="@style/HeaderTextStyle"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/app_logo" />
@@ -44,9 +41,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="Заполните все поля для регистрации"
-            android:textSize="14sp"
-            android:textColor="@color/secondary_text"
-            android:fontFamily="sans-serif"
+            style="@style/SubHeaderTextStyle"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/register_title" />
@@ -77,12 +72,9 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:hint="ФИО"
-                    app:boxStrokeColor="@color/purple_500"
-                    app:boxStrokeWidth="2dp"
-                    app:hintTextColor="@color/purple_500"
                     app:startIconDrawable="@drawable/ic_person"
                     app:startIconTint="@color/purple_500"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    style="@style/CustomTextInputLayout">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/fio_input"
@@ -100,12 +92,9 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:hint="Логин"
-                    app:boxStrokeColor="@color/purple_500"
-                    app:boxStrokeWidth="2dp"
-                    app:hintTextColor="@color/purple_500"
                     app:startIconDrawable="@android:drawable/ic_dialog_email"
                     app:startIconTint="@color/purple_500"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    style="@style/CustomTextInputLayout">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/login_input"
@@ -123,14 +112,11 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:hint="Пароль"
-                    app:boxStrokeColor="@color/purple_500"
-                    app:boxStrokeWidth="2dp"
-                    app:hintTextColor="@color/purple_500"
                     app:startIconDrawable="@android:drawable/ic_lock_lock"
                     app:startIconTint="@color/purple_500"
                     app:endIconMode="password_toggle"
                     app:endIconTint="@color/purple_500"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    style="@style/CustomTextInputLayout">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/password_input"
@@ -148,12 +134,9 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="20dp"
                     android:hint="Контакты (email или телефон)"
-                    app:boxStrokeColor="@color/purple_500"
-                    app:boxStrokeWidth="2dp"
-                    app:hintTextColor="@color/purple_500"
                     app:startIconDrawable="@android:drawable/stat_notify_chat"
                     app:startIconTint="@color/purple_500"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    style="@style/CustomTextInputLayout">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/contacts_input"
@@ -216,14 +199,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:text="Зарегистрироваться"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@android:color/white"
                     android:enabled="false"
-                    app:backgroundTint="@color/purple_500"
-                    app:cornerRadius="12dp"
-                    app:elevation="4dp"
-                    style="@style/Widget.MaterialComponents.Button" />
+                    style="@style/RegisterButton" />
 
             </LinearLayout>
 

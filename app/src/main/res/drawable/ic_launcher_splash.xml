@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Белый круглый фон -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#FFFFFF" />
+        </shape>
+    </item>
+    
+    <!-- PNG логотип с большими отступами для системного splash -->
+    <item android:drawable="@drawable/mesto_pamatyu"
+        android:left="35dp"
+        android:right="35dp"
+        android:top="35dp"
+        android:bottom="35dp" />
+</layer-list> 

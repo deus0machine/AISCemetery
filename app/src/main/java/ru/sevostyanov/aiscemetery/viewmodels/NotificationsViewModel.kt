@@ -12,6 +12,7 @@ import ru.sevostyanov.aiscemetery.models.MemorialOwnershipRequest
 import ru.sevostyanov.aiscemetery.models.Notification
 import ru.sevostyanov.aiscemetery.models.NotificationStatus
 import ru.sevostyanov.aiscemetery.models.NotificationType
+import ru.sevostyanov.aiscemetery.models.DraftSubmission
 import javax.inject.Inject
 
 @HiltViewModel
@@ -23,6 +24,13 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
 
     private val _sentNotifications = MutableLiveData<List<Notification>>()
     val sentNotifications: LiveData<List<Notification>> = _sentNotifications
+
+    // Добавляем LiveData для уведомлений о черновиках
+    private val _incomingDraftSubmissions = MutableLiveData<List<DraftSubmission>>()
+    val incomingDraftSubmissions: LiveData<List<DraftSubmission>> = _incomingDraftSubmissions
+
+    private val _outgoingDraftSubmissions = MutableLiveData<List<DraftSubmission>>()
+    val outgoingDraftSubmissions: LiveData<List<DraftSubmission>> = _outgoingDraftSubmissions
 
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
@@ -184,71 +192,77 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
     fun respondToNotification(notificationId: Long, accept: Boolean) {
         viewModelScope.launch {
             try {
-                Log.d(TAG, "Отвечаем на уведомление id=$notificationId, accept=$accept")
                 _isLoading.value = true
                 val requestData = mapOf("accept" to accept)
                 val response = apiService.respondToNotification(notificationId, requestData)
                 
-                // Извлекаем данные из обёртки ResponseWrapper
-                val updated = response.data
-                Log.d(TAG, "Успешно обновлен статус уведомления с ID: ${updated.id}")
+                Log.d(TAG, "Получен ответ от сервера: status='${response.status}', message='${response.message}'")
                 
-                // Если принято уведомление о совместном владении, добавляем редактора
-                if (accept && updated.type == NotificationType.MEMORIAL_OWNERSHIP && updated.relatedEntityId != null) {
-                    try {
-                        Log.d(TAG, "Добавляем редактора для мемориала ${updated.relatedEntityId}")
-                        // Здесь в реальном приложении должен быть вызов API для добавления редактора
-                        // Это автоматически обрабатывается на сервере при ответе на уведомление
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Ошибка при добавлении редактора: ${e.message}", e)
-                    }
-                }
-                
-                // Обновляем список входящих
-                val currentIncomingList = _incomingNotifications.value?.toMutableList() ?: mutableListOf()
-                val index = currentIncomingList.indexOfFirst { it.id == notificationId }
-                if (index != -1) {
-                    currentIncomingList[index] = updated
-                    _incomingNotifications.value = currentIncomingList
-                    Log.d(TAG, "Обновлено уведомление в списке входящих")
+                if (response.status.equals("success", ignoreCase = true)) {
+                    Log.d(TAG, "Ответ на уведомление отправлен успешно")
+                    // Перезагружаем уведомления без показа ошибок пользователю
+                    loadIncomingNotificationsSilently()
                 } else {
-                    Log.w(TAG, "Не найдено уведомление с ID $notificationId в списке входящих")
-                }
-                
-                // После ответа на уведомление удаляем соответствующее исходящее уведомление
-                // из списка, чтобы не показывать пользователю уведомления, на которые он уже ответил
-                if (updated.relatedEntityId != null) {
-                    val currentSentList = _sentNotifications.value?.toMutableList() ?: mutableListOf()
-                    
-                    // Удаляем все исходящие уведомления, которые относятся к тому же объекту
-                    // и имеют тот же тип, но еще не имеют статуса ACCEPTED или REJECTED
-                    val toRemove = currentSentList.filter { 
-                        it.relatedEntityId == updated.relatedEntityId &&
-                        it.type == updated.type &&
-                        it.status == NotificationStatus.PENDING
-                    }
-                    
-                    if (toRemove.isNotEmpty()) {
-                        Log.d(TAG, "Удаляем ${toRemove.size} исходящих уведомлений после ответа")
-                        
-                        // Удаляем эти уведомления из списка исходящих
-                        currentSentList.removeAll(toRemove)
-                        _sentNotifications.value = currentSentList
-                        
-                        // Также удаляем их физически с сервера
-                        toRemove.forEach { notification ->
-                            try {
-                                apiService.deleteNotification(notification.id)
-                                Log.d(TAG, "Удалено исходящее уведомление ${notification.id}")
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Ошибка удаления уведомления ${notification.id}: ${e.message}")
-                            }
-                        }
-                    }
+                    Log.e(TAG, "Сервер вернул неуспешный статус: '${response.status}'")
+                    _error.value = "Ошибка при ответе на уведомление: ${response.message}"
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Ошибка при ответе на уведомление: ${e.message}", e)
-                _error.value = e.message
+                Log.e(TAG, "Ошибка при ответе на уведомление", e)
+                _error.value = "Ошибка при ответе на уведомление: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    // Загрузка входящих уведомлений без показа ошибок пользователю (для внутреннего использования)
+    private fun loadIncomingNotificationsSilently() {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Тихая загрузка входящих уведомлений")
+                val notifications = apiService.getMyNotifications()
+                Log.d(TAG, "Получены входящие уведомления (тихо): ${notifications.size}")
+                
+                _incomingNotifications.value = notifications
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при тихой загрузке входящих уведомлений: ${e.message}", e)
+                // НЕ устанавливаем _error.value, чтобы не показывать ошибку пользователю
+                // В случае ошибки оставляем текущий список без изменений
+            }
+        }
+    }
+
+    // Ответ на запрос доступа к семейному дереву
+    fun respondToFamilyTreeAccessRequest(notificationId: Long, approve: Boolean) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                val response = apiService.respondToFamilyTreeAccessRequest(notificationId, approve, null)
+                
+                Log.d(TAG, "Ответ на запрос доступа к дереву отправлен успешно: $response")
+                // Перезагружаем уведомления без показа ошибок пользователю
+                loadIncomingNotificationsSilently()
+            } catch (e: retrofit2.HttpException) {
+                if (e.code() == 200) {
+                    // Успешный ответ, но проблема с десериализацией
+                    Log.d(TAG, "Ответ на запрос доступа к дереву отправлен успешно (HTTP 200)")
+                    loadIncomingNotificationsSilently()
+                } else {
+                    Log.e(TAG, "HTTP ошибка при ответе на запрос доступа к дереву: ${e.code()}", e)
+                    _error.value = "Ошибка при ответе на запрос доступа к дереву: ${e.message()}"
+                }
+            } catch (e: Exception) {
+                val errorMessage = when {
+                    e.message?.contains("JSON") == true -> {
+                        Log.d(TAG, "JSON ошибка, но запрос успешен")
+                        loadIncomingNotificationsSilently()
+                        return@launch
+                    }
+                    else -> "Ошибка при ответе на запрос доступа к дереву: ${e.message}"
+                }
+                
+                Log.e(TAG, "Ошибка при ответе на запрос доступа к дереву", e)
+                _error.value = errorMessage
             } finally {
                 _isLoading.value = false
             }
@@ -327,6 +341,122 @@ class NotificationsViewModel @Inject constructor() : ViewModel() {
             } catch (e: Exception) {
                 Log.e(TAG, "Ошибка при отправке технического уведомления: ${e.message}", e)
                 _error.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    // Методы для работы с уведомлениями о черновиках
+    
+    // Загрузка входящих уведомлений о черновиках (для владельцев деревьев)
+    fun loadIncomingDraftSubmissions() {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Загружаем входящие уведомления о черновиках")
+                _isLoading.value = true
+                _error.value = null
+                
+                val userId = RetrofitClient.getCurrentUserId()
+                val submissions = apiService.getIncomingDraftSubmissions(userId)
+                Log.d(TAG, "Получены входящие уведомления о черновиках: ${submissions.size}")
+                
+                _incomingDraftSubmissions.value = submissions
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при загрузке входящих уведомлений о черновиках: ${e.message}", e)
+                _error.value = "Ошибка загрузки уведомлений о черновиках: ${e.message}"
+                _incomingDraftSubmissions.value = emptyList()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    // Загрузка исходящих уведомлений о черновиках (для редакторов)
+    fun loadOutgoingDraftSubmissions() {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Загружаем исходящие уведомления о черновиках")
+                _isLoading.value = true
+                _error.value = null
+                
+                val userId = RetrofitClient.getCurrentUserId()
+                val submissions = apiService.getOutgoingDraftSubmissions(userId)
+                Log.d(TAG, "Получены исходящие уведомления о черновиках: ${submissions.size}")
+                
+                _outgoingDraftSubmissions.value = submissions
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при загрузке исходящих уведомлений о черновиках: ${e.message}", e)
+                _error.value = "Ошибка загрузки уведомлений о черновиках: ${e.message}"
+                _outgoingDraftSubmissions.value = emptyList()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    // Ответить на уведомление о черновике (одобрить/отклонить)
+    fun respondToDraftSubmission(submissionId: Long, approved: Boolean, reviewMessage: String?) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Отвечаем на уведомление о черновике: submissionId=$submissionId, approved=$approved")
+                _isLoading.value = true
+                
+                val request = ru.sevostyanov.aiscemetery.models.RespondToSubmissionRequest(
+                    approved = approved,
+                    reviewMessage = reviewMessage
+                )
+                
+                apiService.respondToDraftSubmission(submissionId, request)
+                Log.d(TAG, "Ответ на уведомление о черновике отправлен успешно")
+                
+                // Перезагружаем входящие уведомления о черновиках
+                loadIncomingDraftSubmissions()
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при ответе на уведомление о черновике: ${e.message}", e)
+                _error.value = "Ошибка при ответе на уведомление о черновике: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    // Получить конкретное уведомление о черновике по ID
+    suspend fun getDraftSubmissionById(submissionId: Long): DraftSubmission? {
+        return try {
+            Log.d(TAG, "Получаем уведомление о черновике по ID: $submissionId")
+            val submission = apiService.getDraftSubmissionById(submissionId)
+            Log.d(TAG, "Получено уведомление о черновике: ${submission.id}")
+            submission
+        } catch (e: Exception) {
+            Log.e(TAG, "Ошибка при получении уведомления о черновике: ${e.message}", e)
+            null
+        }
+    }
+    
+    // Удалить уведомление о черновике
+    fun deleteDraftSubmission(submissionId: Long) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Удаляем уведомление о черновике: submissionId=$submissionId")
+                _isLoading.value = true
+                
+                val response = apiService.deleteDraftSubmission(submissionId)
+                if (response.isSuccessful) {
+                    Log.d(TAG, "Уведомление о черновике успешно удалено")
+                    
+                    // Перезагружаем списки уведомлений о черновиках
+                    loadIncomingDraftSubmissions()
+                    loadOutgoingDraftSubmissions()
+                } else {
+                    Log.e(TAG, "Ошибка при удалении уведомления о черновике: ${response.code()}")
+                    _error.value = "Ошибка при удалении уведомления: ${response.code()}"
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при удалении уведомления о черновике: ${e.message}", e)
+                _error.value = "Ошибка при удалении уведомления: ${e.message}"
             } finally {
                 _isLoading.value = false
             }

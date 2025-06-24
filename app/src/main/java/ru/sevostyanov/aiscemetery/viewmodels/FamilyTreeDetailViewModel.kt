@@ -40,6 +40,9 @@ class FamilyTreeDetailViewModel @Inject constructor(
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
+    private val _successMessage = MutableLiveData<String?>()
+    val successMessage: LiveData<String?> = _successMessage
+
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -82,6 +85,8 @@ class FamilyTreeDetailViewModel @Inject constructor(
     }
 
     fun loadGenealogyData(treeId: Long) {
+        Log.d("FamilyTreeDetailVM", "loadGenealogyData: начинаем загрузку дерева с ID = $treeId")
+        
         viewModelScope.launch {
             try {
                 _isLoading.value = true
@@ -89,7 +94,9 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 
                 // Пробуем загрузить полные данные одним запросом
                 try {
+                    Log.d("FamilyTreeDetailVM", "loadGenealogyData: вызываем getFamilyTreeFullData($treeId)")
                     val fullData = RetrofitClient.getApiService().getFamilyTreeFullData(treeId)
+                    Log.d("FamilyTreeDetailVM", "loadGenealogyData: получены данные дерева: ${fullData.familyTree.name}")
                     _familyTree.value = fullData.familyTree
                     _memorialRelations.value = fullData.relations
                     
@@ -123,6 +130,46 @@ class FamilyTreeDetailViewModel @Inject constructor(
         }
     }
 
+    fun loadDraftGenealogyData(treeId: Long) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _error.value = null
+                
+                // Загружаем данные черновика
+                try {
+                    Log.d("FamilyTreeDetailVM", "Loading draft data for tree ID: $treeId")
+                    Log.d("FamilyTreeDetailVM", "Current user ID: ${RetrofitClient.getCurrentUserId()}")
+                    
+                    val draftMemorials = RetrofitClient.getApiService().getDraftMemorials(treeId)
+                    val draftRelations = RetrofitClient.getApiService().getDraftRelations(treeId)
+                    val familyTree = repository.getFamilyTreeById(treeId)
+                    
+                    Log.d("FamilyTreeDetailVM", "Draft data loaded:")
+                    Log.d("FamilyTreeDetailVM", "  Draft memorials count: ${draftMemorials.size}")
+                    Log.d("FamilyTreeDetailVM", "  Draft relations count: ${draftRelations.size}")
+                    Log.d("FamilyTreeDetailVM", "  Original tree memorial count: ${familyTree.memorialCount}")
+                    
+                    _familyTree.value = familyTree
+                    _memorialRelations.value = draftRelations
+                    
+                    // Используем мемориалы черновика напрямую
+                    _availableMemorials.value = draftMemorials
+                    
+                } catch (e: Exception) {
+                    Log.e("FamilyTreeDetailVM", "Error loading draft data: ${e.message}")
+                    handleError(e)
+                }
+                
+                _isAuthorized.value = true
+            } catch (e: Exception) {
+                handleError(e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     private fun loadMemorialRelations(familyTreeId: Long) {
         viewModelScope.launch {
             try {
@@ -143,7 +190,16 @@ class FamilyTreeDetailViewModel @Inject constructor(
             try {
                 _isLoading.value = true
                 _error.value = null
-                _availableMemorials.value = memorialRepository.getMyMemorials()
+                
+                val familyTreeId = _familyTree.value?.id
+                if (familyTreeId != null) {
+                    // Используем новый метод для получения доступных мемориалов
+                    _availableMemorials.value = memorialRepository.getAvailableMemorialsForTree(familyTreeId)
+                } else {
+                    // Fallback на старый метод, если ID дерева недоступен
+                    _availableMemorials.value = memorialRepository.getMyMemorials()
+                }
+                
                 _isAuthorized.value = true
             } catch (e: Exception) {
                 handleError(e)
@@ -192,7 +248,18 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 _memorialRelations.value = currentList
                 _isAuthorized.value = true
             } catch (e: Exception) {
-                handleError(e)
+                // Специальная обработка для редакторов
+                when {
+                    e.message?.contains("Editors must use draft system") == true -> {
+                        _error.value = "Редакторы должны использовать систему черновиков для внесения изменений. Нажмите кнопку 'Создать черновик изменений' для работы с деревом."
+                    }
+                    e.message?.contains("Insufficient permissions") == true -> {
+                        _error.value = "Недостаточно прав для выполнения этого действия. Если вы редактор, используйте систему черновиков."
+                    }
+                    else -> {
+                        handleError(e)
+                    }
+                }
             } finally {
                 _isLoading.value = false
             }
@@ -215,7 +282,18 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 }
                 _isAuthorized.value = true
             } catch (e: Exception) {
-                handleError(e)
+                // Специальная обработка для редакторов
+                when {
+                    e.message?.contains("Editors must use draft system") == true -> {
+                        _error.value = "Редакторы должны использовать систему черновиков для внесения изменений. Нажмите кнопку 'Создать черновик изменений' для работы с деревом."
+                    }
+                    e.message?.contains("Insufficient permissions") == true -> {
+                        _error.value = "Недостаточно прав для выполнения этого действия. Если вы редактор, используйте систему черновиков."
+                    }
+                    else -> {
+                        handleError(e)
+                    }
+                }
             } finally {
                 _isLoading.value = false
             }
@@ -235,7 +313,18 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 _memorialRelations.value = currentList
                 _isAuthorized.value = true
             } catch (e: Exception) {
-                handleError(e)
+                // Специальная обработка для редакторов
+                when {
+                    e.message?.contains("Editors must use draft system") == true -> {
+                        _error.value = "Редакторы должны использовать систему черновиков для внесения изменений. Нажмите кнопку 'Создать черновик изменений' для работы с деревом."
+                    }
+                    e.message?.contains("Insufficient permissions") == true -> {
+                        _error.value = "Недостаточно прав для выполнения этого действия. Если вы редактор, используйте систему черновиков."
+                    }
+                    else -> {
+                        handleError(e)
+                    }
+                }
             } finally {
                 _isLoading.value = false
             }
@@ -272,11 +361,63 @@ class FamilyTreeDetailViewModel @Inject constructor(
                 )
                 _familyTree.value = repository.updateFamilyTree(id, updatedTree)
             } catch (e: Exception) {
+                // Специальная обработка для редакторов
+                when {
+                    e.message?.contains("Editors must use draft system") == true -> {
+                        _error.value = "Редакторы должны использовать систему черновиков для внесения изменений. Нажмите кнопку 'Создать черновик изменений' для работы с деревом."
+                    }
+                    e.message?.contains("Insufficient permissions") == true -> {
+                        _error.value = "Недостаточно прав для редактирования дерева. Если вы редактор, используйте систему черновиков."
+                    }
+                    else -> {
+                        handleError(e)
+                    }
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun submitTreeChangesForModeration(id: Long, name: String, description: String, message: String) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _error.value = null
+                
+                val currentTree = _familyTree.value ?: return@launch
+                val currentUser = UserManager.getCurrentUser() ?: UserManager.loadUserFromPreferences(context)
+                if (currentUser == null) {
+                    _error.value = "Пользователь не авторизован"
+                    return@launch
+                }
+
+                // Отправляем изменения на модерацию
+                repository.submitTreeChangesForModeration(id, name, description, message)
+                
+                // Помечаем дерево как "изменения на модерации"
+                val updatedTree = currentTree.copy(
+                    pendingChanges = true,
+                    pendingName = name,
+                    pendingDescription = description
+                )
+                _familyTree.value = updatedTree
+                
+                // Показываем сообщение об успешной отправке
+                _successMessage.value = "Изменения отправлены на модерацию администраторам. Вы получите уведомление о результате рассмотрения."
+                
+                Log.d("FamilyTreeDetailViewModel", "Tree changes submitted for moderation successfully")
+            } catch (e: Exception) {
+                Log.e("FamilyTreeDetailViewModel", "Error submitting tree changes for moderation: ${e.message}", e)
                 handleError(e)
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    fun clearSuccessMessage() {
+        _successMessage.value = null
     }
 
     // Методы для модерации семейных деревьев

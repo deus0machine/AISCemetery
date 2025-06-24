@@ -113,6 +113,8 @@ class EditGenealogyTreeFragment : Fragment() {
     private fun setupObservers() {
         viewModel.familyTree.observe(viewLifecycleOwner) { tree ->
             binding.textTreeName.text = tree.name
+            // Проверяем режим черновика после загрузки дерева
+            viewModel.checkDraftMode()
         }
 
         viewModel.treeMemorials.observe(viewLifecycleOwner) { memorials ->
@@ -149,6 +151,29 @@ class EditGenealogyTreeFragment : Fragment() {
                 viewModel.clearSuccess()
             }
         }
+        
+        // Новые наблюдатели для черновиков
+        viewModel.isDraftMode.observe(viewLifecycleOwner) { isDraftMode ->
+            binding.fabSubmitDraft.visibility = View.GONE // Убираем кнопку "Отправить владельцу"
+            
+            // Обновляем заголовок тулбара
+            if (isDraftMode) {
+                binding.toolbar.title = "Редактирование дерева (черновик)"
+                binding.toolbar.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.teal_700))
+                binding.textTreeName.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.teal_700))
+            } else {
+                binding.toolbar.title = "Редактирование дерева"
+                binding.toolbar.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.purple_700))
+                binding.textTreeName.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.purple_700))
+            }
+        }
+        
+        viewModel.submitMessage.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                viewModel.clearSubmitMessage()
+            }
+        }
     }
 
     private fun setupClickListeners() {
@@ -168,9 +193,11 @@ class EditGenealogyTreeFragment : Fragment() {
 
     private fun showCreateRelationDialog(preselectedMemorial: Memorial? = null) {
         val treeMemorials = viewModel.treeMemorials.value ?: return
+        val existingRelations = viewModel.memorialRelations.value ?: emptyList()
         
         CreateRelationDialogFragment.newInstance(
             memorials = treeMemorials,
+            existingRelations = existingRelations,
             preselectedMemorial = preselectedMemorial,
             onRelationCreated = { source, target, type ->
                 viewModel.createMemorialRelation(source, target, type)
@@ -180,9 +207,11 @@ class EditGenealogyTreeFragment : Fragment() {
 
     private fun showEditRelationDialog(relation: MemorialRelation) {
         val treeMemorials = viewModel.treeMemorials.value ?: return
+        val existingRelations = viewModel.memorialRelations.value ?: emptyList()
         
         CreateRelationDialogFragment.newInstance(
             memorials = treeMemorials,
+            existingRelations = existingRelations,
             existingRelation = relation,
             onRelationCreated = { _, _, _ -> 
                 // Не используется при редактировании

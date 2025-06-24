@@ -33,14 +33,18 @@ import ru.sevostyanov.aiscemetery.models.FamilyTreeUpdateDTO
 import ru.sevostyanov.aiscemetery.models.Memorial
 import ru.sevostyanov.aiscemetery.models.MemorialOwnershipRequest
 import ru.sevostyanov.aiscemetery.models.MemorialRelation
+import ru.sevostyanov.aiscemetery.models.MemorialSearchRequest
+import ru.sevostyanov.aiscemetery.models.MemorialSearchStats
 import ru.sevostyanov.aiscemetery.models.Notification
 import ru.sevostyanov.aiscemetery.models.PagedResponse
+import ru.sevostyanov.aiscemetery.models.UpdateDraftRequest
+import ru.sevostyanov.aiscemetery.models.ReviewRequest
 import ru.sevostyanov.aiscemetery.user.Guest
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private const val TAG = "RetrofitClient"
-    private const val BASE_URL = "http://192.168.0.101:8080/"
+    private const val BASE_URL = "https://6cb1-195-54-33-12.ngrok-free.app/"
     private const val TOKEN_KEY = "auth_token"
     private const val USER_ID_KEY = "user_id"
     private const val PREF_NAME = "app_prefs"
@@ -258,8 +262,17 @@ object RetrofitClient {
         @GET("/api/memorials/{id}/editors")
         suspend fun getMemorialEditors(@Path("id") id: Long): List<ru.sevostyanov.aiscemetery.user.Guest>
 
+        @GET("/api/memorials/available-for-tree/{familyTreeId}")
+        suspend fun getAvailableMemorialsForTree(@Path("familyTreeId") familyTreeId: Long): List<Memorial>
+
         @POST("/api/memorials/{id}/editors")
         suspend fun manageEditor(@Path("id") id: Long, @Body request: EditorRequest): Memorial
+
+        @DELETE("/api/memorials/{id}/editors/{editorId}")
+        suspend fun removeEditor(@Path("id") id: Long, @Path("editorId") editorId: Long): Memorial
+
+        @POST("/api/memorials/{id}/editors/resign")
+        suspend fun resignFromEditing(@Path("id") id: Long): Memorial
 
         @POST("/api/memorials/{id}/approve-changes")
         suspend fun approveChanges(@Path("id") id: Long, @Body request: ApproveChangesRequest): Memorial
@@ -281,6 +294,9 @@ object RetrofitClient {
         @POST("/api/memorials/{id}/document")
         suspend fun uploadMemorialDocument(@Path("id") id: Long, @Part document: MultipartBody.Part): ResponseBody
 
+        @DELETE("/api/memorials/{id}/document")
+        suspend fun deleteMemorialDocument(@Path("id") id: Long)
+
         @GET("/api/memorials/search")
         suspend fun searchMemorials(
             @Query("query") query: String,
@@ -301,6 +317,52 @@ object RetrofitClient {
             @Query("size") size: Int
         ): PagedResponse<Memorial>
 
+        // Расширенный поиск мемориалов
+        @GET("/api/memorials/search/advanced")
+        suspend fun advancedSearchMemorials(
+            @Query("firstName") firstName: String?,
+            @Query("lastName") lastName: String?,
+            @Query("middleName") middleName: String?,
+            @Query("birthDateFrom") birthDateFrom: String?,
+            @Query("birthDateTo") birthDateTo: String?,
+            @Query("deathDateFrom") deathDateFrom: String?,
+            @Query("deathDateTo") deathDateTo: String?,
+            @Query("location") location: String?,
+            @Query("query") query: String?,
+            @Query("isPublic") isPublic: Boolean?,
+            @Query("sortBy") sortBy: String?,
+            @Query("sortDirection") sortDirection: String?,
+            @Query("page") page: Int = 0,
+            @Query("size") size: Int = 10
+        ): PagedResponse<Memorial>
+
+        // Быстрый поиск для автодополнения
+        @GET("/api/memorials/search/quick")
+        suspend fun quickSearchMemorials(
+            @Query("query") query: String,
+            @Query("limit") limit: Int = 10
+        ): List<Memorial>
+
+        // Поиск по годовщинам
+        @GET("/api/memorials/search/anniversaries")
+        suspend fun searchAnniversaries(
+            @Query("month") month: Int?,
+            @Query("day") day: Int?,
+            @Query("type") type: String?, // "birth" или "death"
+            @Query("page") page: Int = 0,
+            @Query("size") size: Int = 10
+        ): PagedResponse<Memorial>
+
+        // Поиск с фильтрами через POST
+        @POST("/api/memorials/search/filter")
+        suspend fun searchMemorialsWithFilter(
+            @Body searchRequest: MemorialSearchRequest
+        ): PagedResponse<Memorial>
+
+        // Статистика поиска
+        @GET("/api/memorials/search/stats")
+        suspend fun getSearchStats(): MemorialSearchStats
+
         @GET("api/family-trees/my")
         suspend fun getMyFamilyTrees(): List<FamilyTree>
 
@@ -309,6 +371,9 @@ object RetrofitClient {
 
         @GET("api/family-trees/accessible")
         suspend fun getAccessibleFamilyTrees(): List<FamilyTree>
+
+        @GET("api/family-trees/shared")
+        suspend fun getSharedFamilyTrees(): List<FamilyTree>
 
         @GET("api/family-trees/{id}")
         suspend fun getFamilyTreeById(@Path("id") id: Long): FamilyTree
@@ -459,5 +524,163 @@ object RetrofitClient {
         
         @POST("api/family-trees/{id}/reject")
         suspend fun rejectFamilyTree(@Path("id") id: Long, @Body reason: String): FamilyTree
+
+        @POST("api/family-trees/{id}/submit-changes-for-moderation")
+        suspend fun submitTreeChangesForModeration(
+            @Path("id") id: Long,
+            @Query("name") name: String,
+            @Query("description") description: String,
+            @Query("message") message: String
+        ): Response<Unit>
+
+        // Методы для запросов доступа к семейным деревьям
+        @POST("api/family-trees/{familyTreeId}/access/request")
+        suspend fun requestFamilyTreeAccess(
+            @Path("familyTreeId") familyTreeId: Long,
+            @Body request: ru.sevostyanov.aiscemetery.models.FamilyTreeAccessRequest
+        ): String
+
+        @POST("api/family-trees/access/requests/{notificationId}/respond")
+        suspend fun respondToFamilyTreeAccessRequest(
+            @Path("notificationId") notificationId: Long,
+            @Query("approve") approve: Boolean,
+            @Query("message") message: String?
+        ): String
+
+        // Методы для работы с ожидающими изменениями в деревьях
+        @GET("api/family-trees/{treeId}/pending-changes")
+        suspend fun getFamilyTreePendingChanges(@Path("treeId") treeId: Long): List<ru.sevostyanov.aiscemetery.models.FamilyTreePendingChange>
+
+        @POST("api/family-trees/{treeId}/pending-changes")
+        suspend fun createFamilyTreePendingChange(
+            @Path("treeId") treeId: Long,
+            @Body change: ru.sevostyanov.aiscemetery.models.FamilyTreePendingChange
+        ): ru.sevostyanov.aiscemetery.models.FamilyTreePendingChange
+
+        @POST("api/family-trees/pending-changes/{changeId}/approve")
+        suspend fun approveFamilyTreeChange(
+            @Path("changeId") changeId: Long,
+            @Query("message") message: String?
+        ): ru.sevostyanov.aiscemetery.models.FamilyTreePendingChange
+
+        @POST("api/family-trees/pending-changes/{changeId}/reject")
+        suspend fun rejectFamilyTreeChange(
+            @Path("changeId") changeId: Long,
+            @Query("message") message: String?
+        ): ru.sevostyanov.aiscemetery.models.FamilyTreePendingChange
+
+        @GET("api/family-trees/pending-changes/my")
+        suspend fun getMyFamilyTreePendingChanges(): List<ru.sevostyanov.aiscemetery.models.FamilyTreePendingChange>
+
+        // Методы для работы с черновиками изменений семейных деревьев
+        @GET("api/family-tree-drafts/tree/{familyTreeId}/editor/{editorId}")
+        suspend fun getOrCreateActiveDraft(
+            @Path("familyTreeId") familyTreeId: Long,
+            @Path("editorId") editorId: Long
+        ): ru.sevostyanov.aiscemetery.models.FamilyTreeDraft
+
+        @PUT("api/family-tree-drafts/{draftId}")
+        suspend fun updateDraft(
+            @Path("draftId") draftId: Long,
+            @Body request: ru.sevostyanov.aiscemetery.models.UpdateDraftRequest
+        ): ru.sevostyanov.aiscemetery.models.FamilyTreeDraft
+
+        @POST("api/family-tree-drafts/{draftId}/submit")
+        suspend fun submitDraft(
+            @Path("draftId") draftId: Long,
+            @Body request: Map<String, String>
+        ): ru.sevostyanov.aiscemetery.models.FamilyTreeDraft
+
+        @GET("api/family-tree-drafts/owner/{ownerId}/submitted")
+        suspend fun getSubmittedDraftsForOwner(@Path("ownerId") ownerId: Long): List<ru.sevostyanov.aiscemetery.models.FamilyTreeDraft>
+
+        @POST("api/family-tree-drafts/{draftId}/approve")
+        suspend fun approveDraft(
+            @Path("draftId") draftId: Long,
+            @Body request: ru.sevostyanov.aiscemetery.models.ReviewRequest
+        ): ru.sevostyanov.aiscemetery.models.FamilyTreeDraft
+
+        @POST("api/family-tree-drafts/{draftId}/reject")
+        suspend fun rejectDraft(
+            @Path("draftId") draftId: Long,
+            @Body request: ru.sevostyanov.aiscemetery.models.ReviewRequest
+        ): ru.sevostyanov.aiscemetery.models.FamilyTreeDraft
+        
+        // Методы для работы с мемориалами в черновиках
+        @POST("api/family-tree-drafts/tree/{familyTreeId}/memorials/{memorialId}")
+        suspend fun addMemorialToDraft(
+            @Path("familyTreeId") familyTreeId: Long,
+            @Path("memorialId") memorialId: Long
+        ): ResponseBody
+        
+        @DELETE("api/family-tree-drafts/tree/{familyTreeId}/memorials/{memorialId}")
+        suspend fun removeMemorialFromDraft(
+            @Path("familyTreeId") familyTreeId: Long,
+            @Path("memorialId") memorialId: Long
+        ): ResponseBody
+        
+        @POST("api/family-tree-drafts/tree/{familyTreeId}/relations")
+        suspend fun addRelationToDraft(
+            @Path("familyTreeId") familyTreeId: Long,
+            @Body relation: MemorialRelation
+        ): ResponseBody
+        
+        @DELETE("api/family-tree-drafts/tree/{familyTreeId}/relations/{relationId}")
+        suspend fun removeRelationFromDraft(
+            @Path("familyTreeId") familyTreeId: Long,
+            @Path("relationId") relationId: Long
+        ): ResponseBody
+        
+        @GET("api/family-tree-drafts/tree/{familyTreeId}/memorials")
+        suspend fun getDraftMemorials(
+            @Path("familyTreeId") familyTreeId: Long
+        ): List<Memorial>
+        
+        @GET("api/family-tree-drafts/tree/{familyTreeId}/relations")
+        suspend fun getDraftRelations(
+            @Path("familyTreeId") familyTreeId: Long
+        ): List<MemorialRelation>
+        
+        @GET("api/family-tree-drafts/{draftId}/relations")
+        suspend fun getDraftRelationsByDraftId(
+            @Path("draftId") draftId: Long
+        ): List<MemorialRelation>
+        
+        // Метод для получения черновиков редактора
+        @GET("api/family-tree-drafts/my")
+        suspend fun getMyDrafts(): List<ru.sevostyanov.aiscemetery.models.FamilyTreeDraft>
+
+        @POST("api/family-tree-drafts/create/{familyTreeId}")
+        suspend fun createDraft(@Path("familyTreeId") familyTreeId: Long): ResponseBody
+        
+        // Методы для работы с уведомлениями о черновиках
+        @GET("api/draft-submissions/incoming/{ownerId}")
+        suspend fun getIncomingDraftSubmissions(@Path("ownerId") ownerId: Long): List<ru.sevostyanov.aiscemetery.models.DraftSubmission>
+        
+        @GET("api/draft-submissions/outgoing/{editorId}")
+        suspend fun getOutgoingDraftSubmissions(@Path("editorId") editorId: Long): List<ru.sevostyanov.aiscemetery.models.DraftSubmission>
+        
+        @GET("api/draft-submissions/{submissionId}")
+        suspend fun getDraftSubmissionById(@Path("submissionId") submissionId: Long): ru.sevostyanov.aiscemetery.models.DraftSubmission
+        
+        @POST("api/draft-submissions/{submissionId}/respond")
+        suspend fun respondToDraftSubmission(
+            @Path("submissionId") submissionId: Long,
+            @Body request: ru.sevostyanov.aiscemetery.models.RespondToSubmissionRequest
+        ): ResponseBody
+        
+        @DELETE("api/draft-submissions/{submissionId}")
+        suspend fun deleteDraftSubmission(@Path("submissionId") submissionId: Long): Response<Unit>
+        
+        // Метод для географического поиска мемориалов в заданных границах
+        @GET("/api/memorials/search/bounds")
+        suspend fun getMemorialsInBounds(
+            @Query("minLat") minLat: Double,
+            @Query("maxLat") maxLat: Double,
+            @Query("minLng") minLng: Double,
+            @Query("maxLng") maxLng: Double,
+            @Query("page") page: Int = 0,
+            @Query("size") size: Int = 100
+        ): PagedResponse<Memorial>
     }
 }

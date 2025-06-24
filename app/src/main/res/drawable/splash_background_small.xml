@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- White background -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF" />
+        </shape>
+    </item>
+    
+    <!-- PNG logo in center - minimal size to prevent clipping -->
+    <item
+        android:drawable="@drawable/mesto_pamatyu"
+        android:gravity="center"
+        android:width="32dp"
+        android:height="32dp" />
+</layer-list> 

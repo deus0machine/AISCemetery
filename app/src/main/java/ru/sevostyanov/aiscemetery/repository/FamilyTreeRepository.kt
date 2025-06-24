@@ -44,6 +44,15 @@ class FamilyTreeRepository @Inject constructor() {
         }
     }
 
+    suspend fun getSharedFamilyTrees(): List<FamilyTree> = withContext(Dispatchers.IO) {
+        try {
+            apiService.getSharedFamilyTrees()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Ошибка при получении деревьев с совместным доступом: ${e.message}")
+        }
+    }
+
     suspend fun getFamilyTreeById(id: Long): FamilyTree = withContext(Dispatchers.IO) {
         try {
             apiService.getFamilyTreeById(id)
@@ -174,6 +183,15 @@ class FamilyTreeRepository @Inject constructor() {
         }
     }
 
+    suspend fun getMyDrafts(): List<ru.sevostyanov.aiscemetery.models.FamilyTreeDraft> = withContext(Dispatchers.IO) {
+        try {
+            apiService.getMyDrafts()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Ошибка при получении черновиков: ${e.message}")
+        }
+    }
+
     // Методы для модерации семейных деревьев
     suspend fun sendFamilyTreeForModeration(id: Long): FamilyTree = withContext(Dispatchers.IO) {
         try {
@@ -244,6 +262,15 @@ class FamilyTreeRepository @Inject constructor() {
         } catch (e: Exception) {
             e.printStackTrace()
             throw Exception("Не удалось снять дерево с публикации: ${e.message}")
+        }
+    }
+
+    suspend fun submitTreeChangesForModeration(id: Long, name: String, description: String, message: String) = withContext(Dispatchers.IO) {
+        try {
+            apiService.submitTreeChangesForModeration(id, name, description, message)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw Exception("Ошибка при отправке изменений на модерацию: ${e.message}")
         }
     }
 

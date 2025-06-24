@@ -8,6 +8,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParseException
 import java.lang.reflect.Type
 import ru.sevostyanov.aiscemetery.user.UserManager
+import android.util.Log
 
 // Класс для информации о пользователе
 data class UserInfo(
@@ -53,13 +54,24 @@ data class FamilyTree(
     val updatedAt: String? = null,
     
     @SerializedName("memorialRelations")
+    @JsonAdapter(MemorialRelationListDeserializer::class)
     val memorialRelations: List<MemorialRelation>? = null,
     
     @SerializedName("memorialCount")
     val memorialCount: Int? = null,
     
     @SerializedName("accessList")
-    val accessList: List<FamilyTreeAccess>? = null
+    val accessList: List<FamilyTreeAccess>? = null,
+    
+    // Поля для отслеживания изменений на модерации
+    @SerializedName("pendingChanges")
+    val pendingChanges: Boolean = false,
+    
+    @SerializedName("pendingName")
+    val pendingName: String? = null,
+    
+    @SerializedName("pendingDescription")
+    val pendingDescription: String? = null
 ) {
     fun toUpdateDTO() = FamilyTreeUpdateDTO(
         id = id,
@@ -75,6 +87,36 @@ data class FamilyTree(
             return currentUser?.id == userId
         }
     
+    // Метод для проверки, имеет ли пользователь доступ к дереву
+    fun hasUserAccess(): Boolean {
+        val currentUser = UserManager.getCurrentUser()
+        val currentUserId = currentUser?.id ?: return false
+        
+        // Владелец всегда имеет доступ
+        if (currentUserId == userId) return true
+        
+        // Проверяем список доступа
+        return accessList?.any { it.userId == currentUserId } == true
+    }
+    
+    // Метод для получения уровня доступа пользователя
+    fun getUserAccessLevel(): AccessLevel? {
+        val currentUser = UserManager.getCurrentUser()
+        val currentUserId = currentUser?.id ?: return null
+        
+        // Владелец имеет уровень ADMIN
+        if (currentUserId == userId) return AccessLevel.ADMIN
+        
+        // Ищем в списке доступа
+        return accessList?.find { it.userId == currentUserId }?.accessLevel
+    }
+    
+    // Метод для проверки, может ли пользователь редактировать дерево
+    fun canUserEdit(): Boolean {
+        val accessLevel = getUserAccessLevel()
+        return accessLevel == AccessLevel.ADMIN || accessLevel == AccessLevel.EDITOR
+    }
+    
     // Метод для проверки, может ли дерево быть отредактировано
     fun canEdit(): Boolean {
         // Если дерево на модерации, запрещаем его редактирование
@@ -82,7 +124,7 @@ data class FamilyTree(
             return false
         }
         
-        return isUserOwner
+        return canUserEdit()
     }
     
     // Метод для получения статуса публикации в виде строки
@@ -188,11 +230,11 @@ class MemorialInRelationDeserializer : JsonDeserializer<Memorial?> {
                     // Если стандартная десериализация не удалась, создаем минимальный Memorial
                     val jsonObj = json.asJsonObject
                     Memorial(
-                        id = jsonObj.get("id")?.asLong,
-                        fio = jsonObj.get("fio")?.asString ?: "Неизвестно",
-                        birthDate = jsonObj.get("birthDate")?.asString,
-                        deathDate = jsonObj.get("deathDate")?.asString,
-                        biography = jsonObj.get("biography")?.asString,
+                        id = jsonObj.get("id")?.takeIf { !it.isJsonNull }?.asLong,
+                        fio = jsonObj.get("fio")?.takeIf { !it.isJsonNull }?.asString ?: "Неизвестно",
+                        birthDate = jsonObj.get("birthDate")?.takeIf { !it.isJsonNull }?.asString,
+                        deathDate = jsonObj.get("deathDate")?.takeIf { !it.isJsonNull }?.asString,
+                        biography = jsonObj.get("biography")?.takeIf { !it.isJsonNull }?.asString,
                         mainLocation = null,
                         burialLocation = null
                     )
@@ -200,6 +242,68 @@ class MemorialInRelationDeserializer : JsonDeserializer<Memorial?> {
             }
             else -> null
         }
+    }
+}
+
+// Custom deserializer для списка MemorialRelation
+class MemorialRelationListDeserializer : JsonDeserializer<List<MemorialRelation>> {
+    override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext?): List<MemorialRelation> {
+        if (json == null || !json.isJsonArray) {
+            return emptyList()
+        }
+        
+        val relations = mutableListOf<MemorialRelation>()
+        val jsonArray = json.asJsonArray
+        
+        for (element in jsonArray) {
+            try {
+                when {
+                    element.isJsonObject -> {
+                        // Это полный объект связи
+                        val relation = context?.deserialize<MemorialRelation>(element, MemorialRelation::class.java)
+                        relation?.let { relations.add(it) }
+                    }
+                    element.isJsonPrimitive && element.asJsonPrimitive.isNumber -> {
+                        // Это ID связи - создаем заглушку для совместимости
+                        val relationId = element.asLong
+                        Log.d("MemorialRelationDeserializer", "Creating placeholder for relation ID: $relationId")
+                        
+                        // Создаем заглушку связи с минимальной информацией
+                        val placeholderRelation = MemorialRelation(
+                            id = relationId,
+                            familyTreeId = 0L, // Заглушка
+                            sourceMemorial = Memorial(
+                                id = 0L,
+                                fio = "Загрузка...",
+                                birthDate = null,
+                                deathDate = null,
+                                biography = null,
+                                mainLocation = null,
+                                burialLocation = null
+                            ),
+                            targetMemorial = Memorial(
+                                id = 0L,
+                                fio = "Загрузка...",
+                                birthDate = null,
+                                deathDate = null,
+                                biography = null,
+                                mainLocation = null,
+                                burialLocation = null
+                            ),
+                            relationType = RelationType.PARENT // Заглушка
+                        )
+                        relations.add(placeholderRelation)
+                    }
+                    else -> {
+                        Log.w("MemorialRelationDeserializer", "Unknown element type in relations array: $element")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MemorialRelationDeserializer", "Error deserializing relation: ${e.message}", e)
+            }
+        }
+        
+        return relations
     }
 }
 
@@ -271,3 +375,41 @@ data class OptimizedFamilyTree(
     @SerializedName("relations")
     val relations: List<TreeRelation>
 )
+
+// Модель для отображения связей в дереве
+data class FamilyTreeConnection(
+    val id: Long,
+    val relationType: RelationType,
+    val sourcePersonName: String,
+    val targetPersonName: String,
+    val details: String? = null
+) {
+    fun getRelationTypeText(): String {
+        return when (relationType) {
+            RelationType.PARENT -> "Родитель"
+            RelationType.CHILD -> "Ребенок"
+            RelationType.SPOUSE -> "Супруг(а)"
+            RelationType.SIBLING -> "Брат/Сестра"
+            RelationType.GRANDPARENT -> "Дедушка/Бабушка"
+            RelationType.GRANDCHILD -> "Внук/Внучка"
+            RelationType.UNCLE_AUNT -> "Дядя/Тетя"
+            RelationType.NEPHEW_NIECE -> "Племянник/Племянница"
+            RelationType.PLACEHOLDER -> "Связь"
+        }
+    }
+    
+    fun getRelationEmoji(): String {
+        return when (relationType) {
+            RelationType.PARENT -> "👨‍👩‍👧‍👦"
+            RelationType.CHILD -> "👶"
+            RelationType.SPOUSE -> "💑"
+            RelationType.SIBLING -> "👫"
+            RelationType.GRANDPARENT -> "👴👵"
+            RelationType.GRANDCHILD -> "👶"
+            RelationType.UNCLE_AUNT -> "👨‍👩"
+            RelationType.NEPHEW_NIECE -> "👦👧"
+            RelationType.PLACEHOLDER -> "🔗"
+        }
+    }
+}
+

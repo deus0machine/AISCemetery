@@ -20,6 +20,7 @@
     <color name="green">#4CAF50</color> <!-- Зеленый цвет для одобренных уведомлений -->
     <color name="gold">#FFC107</color> <!-- Золотой цвет для совместных мемориалов -->
     <color name="orange">#FF9800</color>
+    <color name="orange_700">#F57C00</color>
     <color name="moderation_background">#22FF9800</color> <!-- Полупрозрачный оранжевый для мемориалов на модерации -->
     
     <!-- Новые цвета для профиля -->

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Семейное дерево</title>
+    <script src="https://unpkg.com/@balkangraph/familytree.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8fafc;
+            overflow: hidden;
+        }
+        
+        #tree {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* Принудительно скрываем все элементы поиска при загрузке */
+        #tree * {
+            outline: none !important;
+        }
+        
+        #tree input,
+        #tree textarea,
+        #tree select {
+            display: none !important;
+        }
+        
+        /* Кастомные стили для карточек */
+        .ft-node {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .ft-node:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+        }
+        
+        /* Стили для связей */
+        .ft-link {
+            stroke-width: 3px;
+            stroke: #6366f1;
+        }
+        
+        .ft-link.spouse {
+            stroke: #ec4899;
+            stroke-width: 4px;
+        }
+        
+        /* Анимация появления */
+        @keyframes nodeAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .ft-node {
+            animation: nodeAppear 0.5s ease-out;
+        }
+        
+        /* Черный текст для лучшей читаемости в светлой теме */
+        .ft-node text {
+            fill: #000000 !important;
+            font-weight: 500;
+        }
+        
+        /* Стили для темной темы */
+        body.dark-theme {
+            background: linear-gradient(135deg, #1a1a2e, #16213e) !important;
+        }
+        
+        body.dark-theme .ft-node text {
+            fill: #ffffff !important;
+        }
+        
+        body.dark-theme .ft-link {
+            stroke: #4f46e5 !important;
+        }
+        
+        body.dark-theme .ft-link.spouse {
+            stroke: #ec4899 !important;
+        }
+        
+        /* Стили для фотографий */
+        .ft-node image {
+            border-radius: 50%;
+        }
+        
+        .ft-node .ft-img {
+            border-radius: 50%;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Полностью скрываем поисковую строку и все связанные элементы */
+        .ft-search-input,
+        .ft-search,
+        .ft-search-field,
+        .ft-search-container,
+        .ft-toolbar,
+        .ft-export,
+        [data-search],
+        input[type="search"],
+        input[type="text"],
+        .bft-form,
+        .bft-form-field,
+        .bft-form-field input {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            width: 0 !important;
+            position: absolute !important;
+            left: -9999px !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="tree"></div>
+
+    <script>
+        // Конфигурация FamilyTree
+        const config = {
+            target: "#tree",
+            
+            // Настройки отображения
+            scaleInitial: 0.8,
+            siblingSeparation: 250,
+            subtreeSeparation: 250,
+            levelSeparation: 200,
+            partnerSeparation: 250,
+            cousinsInterval: 200,
+            minPartnerSeparation: 200,
+            
+            // Режим отображения
+            mode: "light",
+            template: "john",
+            
+            // Включаем панорамирование и масштабирование
+            enableDragDrop: false,
+            enableZoom: true,
+            enablePan: true,
+            
+            // Настройки узлов
+            nodeBinding: {
+                field_0: "name",
+                field_1: "title", 
+                img_0: "img"
+            },
+            
+            // Настройки редактирования (отключаем для просмотра)
+            editForm: {
+                readOnly: true
+            },
+            
+            // Отключаем встроенную панель инструментов
+            toolbar: false,
+            
+            // Отключаем поиск полностью
+            searchFields: [],
+            search: false,
+            
+            // Отключаем все дополнительные элементы интерфейса
+            menu: false,
+            miniMap: false,
+            showXScroll: false,
+            showYScroll: false,
+            
+            // Кастомные сообщения
+            emptyMessage: "Семейное дерево пустое или не загрузилось",
+            
+            // Настройки экспорта
+            exportMenu: {
+                pdf: "Экспорт в PDF",
+                png: "Экспорт в PNG",
+                svg: "Экспорт в SVG"
+            }
+        };
+
+        // Инициализация дерева
+        let family;
+        try {
+            family = new FamilyTree(document.getElementById("tree"), config);
+            console.log("FamilyTree успешно инициализирован");
+            
+            // Заменяем стандартное сообщение на русское
+            family.config.emptyMessage = "Загрузка семейного дерева...";
+        } catch (error) {
+            console.error("Ошибка инициализации FamilyTree:", error);
+        }
+        
+        // Функция для загрузки данных из Android
+        function loadFamilyData(jsonData) {
+            try {
+                if (!family) {
+                    console.error("FamilyTree не инициализирован");
+                    return "Error: FamilyTree not initialized";
+                }
+                console.log("Получены данные для загрузки:", jsonData.substring(0, 100) + "...");
+                const data = JSON.parse(jsonData);
+                console.log("Парсинг данных успешен, количество узлов:", data.length);
+                
+                if (data.length === 0) {
+                    console.warn("Получен пустой массив данных");
+                    family.config.emptyMessage = "Семейное дерево пустое";
+                    family.draw();
+                    return "Empty data";
+                }
+                
+                family.load(data);
+                console.log("Семейное дерево загружено:", data);
+                return "Success";
+            } catch (error) {
+                console.error("Ошибка загрузки данных:", error);
+                family.config.emptyMessage = "Ошибка загрузки дерева: " + error.message;
+                family.draw();
+                return "Error: " + error.message;
+            }
+        }
+        
+        // Функция для установки темы
+        function setTheme(themeName) {
+            family.config.template = themeName;
+            family.draw();
+        }
+        
+        // Функция для переключения темы
+        function toggleTheme(mode) {
+            try {
+                if (!family) {
+                    console.error("FamilyTree не инициализирован");
+                    return;
+                }
+                
+                const body = document.body;
+                const treeContainer = document.getElementById("tree");
+                
+                if (mode === "dark") {
+                    // Темная тема
+                    body.className = "dark-theme";
+                    body.style.background = "linear-gradient(135deg, #1a1a2e, #16213e)";
+                    treeContainer.style.background = "linear-gradient(135deg, #1a1a2e, #16213e)";
+                    family.config.mode = "dark";
+                    console.log("Переключено на темную тему");
+                } else {
+                    // Светлая тема
+                    body.className = "";
+                    body.style.background = "#f8fafc";
+                    treeContainer.style.background = "#f8fafc";
+                    family.config.mode = "light";
+                    console.log("Переключено на светлую тему");
+                }
+                
+                // Перерисовываем дерево
+                family.draw();
+                
+            } catch (error) {
+                console.error("Ошибка переключения темы:", error);
+            }
+        }
+        
+        // Функция для центрирования дерева
+        function centerTree() {
+            family.center();
+        }
+        
+        // Функция для масштабирования
+        function zoomTo(scale) {
+            family.zoom(scale);
+        }
+        
+        // Событие клика по узлу
+        family.on('click', function(sender, args) {
+            if (window.Android) {
+                window.Android.onNodeClick(JSON.stringify(args.node));
+            }
+        });
+        
+        // Событие обновления дерева
+        family.on('updated', function(sender, args) {
+            console.log("Дерево обновлено");
+        });
+        
+        // Тестовые данные (будут заменены реальными)
+        const sampleData = [
+            { 
+                id: 1, 
+                name: "Дедушка Иван", 
+                title: "1930-2010",
+                gender: "male",
+                img: ""
+            },
+            { 
+                id: 2, 
+                name: "Бабушка Мария", 
+                title: "1935-2015",
+                gender: "female", 
+                pids: [1],
+                img: ""
+            },
+            { 
+                id: 3, 
+                name: "Папа Алексей", 
+                title: "1960-",
+                gender: "male",
+                fid: 1,
+                mid: 2,
+                img: ""
+            },
+            { 
+                id: 4, 
+                name: "Мама Елена", 
+                title: "1965-",
+                gender: "female",
+                pids: [3],
+                img: ""
+            },
+            { 
+                id: 5, 
+                name: "Я", 
+                title: "1990-",
+                gender: "male",
+                fid: 3,
+                mid: 4,
+                img: ""
+            }
+        ];
+        
+        // Не загружаем тестовые данные, ждем реальные данные из Android
+        
+        // Уведомляем Android о готовности
+        if (window.Android) {
+            window.Android.onTreeReady();
+        }
+        
+        console.log("FamilyTree.js инициализирован");
+        
+        // Функция для удаления всех элементов поиска
+        function removeSearchElements() {
+            const searchSelectors = [
+                'input[type="search"]',
+                'input[type="text"]',
+                '.ft-search',
+                '.ft-search-input',
+                '.ft-search-field',
+                '.ft-search-container',
+                '.ft-toolbar',
+                '.bft-form',
+                '.bft-form-field'
+            ];
+            
+            searchSelectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                    element.style.display = 'none';
+                    element.style.visibility = 'hidden';
+                    element.style.opacity = '0';
+                    element.remove();
+                });
+            });
+        }
+        
+        // Удаляем элементы поиска сразу и через интервалы
+        removeSearchElements();
+        setInterval(removeSearchElements, 1000);
+        
+        // Уведомляем Android о готовности с задержкой
+        setTimeout(function() {
+            if (window.Android) {
+                window.Android.onTreeReady();
+                console.log("Android уведомлен о готовности дерева");
+            }
+        }, 500);
+    </script>
+</body>
+</html> 

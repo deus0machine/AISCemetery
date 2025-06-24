@@ -30,7 +30,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:background="@android:color/transparent"
-                android:hint="Поиск мемориала или места"
+                android:hint="Поиск города, улицы или мемориала"
                 android:inputType="text"
                 android:padding="8dp"
                 android:maxLines="1"

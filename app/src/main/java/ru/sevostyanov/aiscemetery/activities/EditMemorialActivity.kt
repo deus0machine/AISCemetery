@@ -15,6 +15,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -26,6 +27,8 @@ import androidx.cardview.widget.CardView
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import android.os.VibrationEffect
+import android.os.Vibrator
 import kotlinx.coroutines.launch
 import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.databinding.ActivityEditMemorialBinding
@@ -36,6 +39,7 @@ import ru.sevostyanov.aiscemetery.models.PublicationStatus
 import ru.sevostyanov.aiscemetery.repository.MemorialRepository
 import ru.sevostyanov.aiscemetery.util.GlideHelper
 import ru.sevostyanov.aiscemetery.util.NetworkUtil
+import ru.sevostyanov.aiscemetery.util.SubscriptionUtils
 import ru.sevostyanov.aiscemetery.views.NameInputView
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -68,6 +72,7 @@ class EditMemorialActivity : AppCompatActivity() {
     private var mainLocation: Location? = null
     private var burialLocation: Location? = null
     private var shouldDeletePhoto: Boolean = false
+    private var shouldDeleteDocument: Boolean = false
     private var hasSubscription: Boolean = false
     private var currentDocumentUrl: String? = null
 
@@ -82,6 +87,10 @@ class EditMemorialActivity : AppCompatActivity() {
     private lateinit var buttonSave: Button
     private lateinit var dateFormatter: SimpleDateFormat
     private var memorialId: Long = -1L
+    
+    // Элементы индикатора загрузки
+    private lateinit var loadingOverlay: FrameLayout
+    private lateinit var loadingText: TextView
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { selectedUri ->
@@ -145,6 +154,7 @@ class EditMemorialActivity : AppCompatActivity() {
                 }
 
                 selectedDocumentUri = selectedUri
+                shouldDeleteDocument = false
                 updateDocumentUI(getFileName(selectedUri))
             } catch (e: Exception) {
                 showError("Ошибка при выборе документа: ${e.message}")
@@ -171,6 +181,7 @@ class EditMemorialActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
+        supportActionBar?.title = getString(R.string.app_name)
 
         // Инициализация репозитория
         repository = MemorialRepository()
@@ -194,6 +205,10 @@ class EditMemorialActivity : AppCompatActivity() {
         buttonSave = binding.buttonSave
         photoImageView = binding.photoImageView
         nameInputView = binding.nameInputView
+        
+        // Инициализация элементов загрузки
+        loadingOverlay = binding.loadingOverlay
+        loadingText = binding.loadingText
         
         // Инициализация элементов документа
         documentCard = binding.documentCard
@@ -356,8 +371,26 @@ class EditMemorialActivity : AppCompatActivity() {
         }
         
         documentDelete.setOnClickListener {
+            println("DEBUG: Пользователь нажал кнопку удаления документа")
+            println("DEBUG: currentDocumentUrl до удаления: $currentDocumentUrl")
+            
+            // Проверяем, не является ли мемориал опубликованным
+            val currentMemorial = memorial
+            val isPublishedMemorial = currentMemorial?.publicationStatus == PublicationStatus.PUBLISHED
+            
+            if (isPublishedMemorial) {
+                println("DEBUG: Попытка удалить документ из опубликованного мемориала - блокируем")
+                MaterialAlertDialogBuilder(this@EditMemorialActivity)
+                    .setTitle("Удаление невозможно")
+                    .setMessage("Нельзя удалить документ из опубликованного мемориала. Для внесения изменений в опубликованный мемориал используйте функцию редактирования, которая отправит изменения на модерацию.")
+                    .setPositiveButton("Понятно", null)
+                    .show()
+                return@setOnClickListener
+            }
+            
             selectedDocumentUri = null
-            currentDocumentUrl = null
+            shouldDeleteDocument = true
+            println("DEBUG: shouldDeleteDocument установлен в: $shouldDeleteDocument")
             updateDocumentUI("")
         }
     }
@@ -762,6 +795,8 @@ class EditMemorialActivity : AppCompatActivity() {
     
     // Метод для сохранения мемориала и отправки изменений на модерацию
     private fun performSaveAndSendForModeration(newMemorial: Memorial, activityContext: Context) {
+        showLoading("Сохранение и отправка на модерацию...")
+        
         lifecycleScope.launch {
             try {
                 // Сначала сохраняем изменения
@@ -780,11 +815,39 @@ class EditMemorialActivity : AppCompatActivity() {
                         savedMemorial.id?.let { id ->
                             repository.deletePhoto(id)
                             runOnUiThread {
-                                loadMemorial(memorialId)
+                                if (!isFinishing && !isDestroyed) {
+                                    loadMemorial(memorialId)
+                                }
                             }
                         }
                     } catch (e: Exception) {
                         showError("Ошибка при удалении фото: ${e.message}")
+                        return@launch
+                    }
+                }
+
+                // Если нужно удалить документ
+                if (shouldDeleteDocument) {
+                    // Дополнительная проверка на случай, если статус изменился
+                    val isPublishedMemorial = savedMemorial.publicationStatus == PublicationStatus.PUBLISHED
+                    if (isPublishedMemorial) {
+                        println("DEBUG (performSaveAndSendForModeration): Попытка удалить документ из опубликованного мемориала - блокируем")
+                        showError("Нельзя удалить документ из опубликованного мемориала")
+                        return@launch
+                    }
+                    
+                    try {
+                        savedMemorial.id?.let { id ->
+                            println("DEBUG (performSaveAndSendForModeration): Попытка удалить документ для мемориала ID: $id")
+                            println("DEBUG (performSaveAndSendForModeration): currentDocumentUrl: $currentDocumentUrl")
+                            repository.deleteDocument(id)
+                            println("DEBUG (performSaveAndSendForModeration): Документ успешно удален")
+                            currentDocumentUrl = null
+                        }
+                    } catch (e: Exception) {
+                        println("DEBUG (performSaveAndSendForModeration): Ошибка при удалении документа: ${e.message}")
+                        e.printStackTrace()
+                        showError("Ошибка при удалении документа: ${e.message}")
                         return@launch
                     }
                 }
@@ -854,24 +917,26 @@ class EditMemorialActivity : AppCompatActivity() {
                     finalMemorial.id?.let { id ->
                         val moderatedMemorial = repository.sendChangesForModeration(id)
                         
-                        runOnUiThread {
-                            showMessage("Изменения сохранены и отправлены на модерацию")
-                        }
+                        // Обновляем локальный мемориал для возврата результата
+                        memorial = moderatedMemorial
                         
-                        // Возвращаем результат
-                        val resultIntent = Intent().apply {
-                            putExtra(EXTRA_MEMORIAL, moderatedMemorial)
+                        runOnUiThread {
+                            // Проверяем, что активность еще жива
+                            if (!isFinishing && !isDestroyed) {
+                                hideLoading()
+                                showMessage("Изменения сохранены и отправлены на модерацию")
+                            }
                         }
-                        setResult(Activity.RESULT_OK, resultIntent)
-                        finish()
                     }
                 } catch (e: Exception) {
+                    hideLoading()
                     showError("Ошибка при отправке на модерацию: ${e.message}")
                     return@launch
                 }
                 
             } catch (e: Exception) {
                 e.printStackTrace()
+                hideLoading()
                 showError("Ошибка при сохранении: ${e.message}")
             }
         }
@@ -879,6 +944,11 @@ class EditMemorialActivity : AppCompatActivity() {
 
     // Выносим логику сохранения в отдельный метод
     private fun performSave(newMemorial: Memorial, activityContext: Context) {
+        println("DEBUG: performSave начат")
+        println("DEBUG: shouldDeleteDocument = $shouldDeleteDocument")
+        println("DEBUG: currentDocumentUrl = $currentDocumentUrl")
+        showLoading("Сохранение мемориала...")
+        
         lifecycleScope.launch {
             try {
                 var savedMemorial = if (newMemorial.id == null) {
@@ -901,11 +971,39 @@ class EditMemorialActivity : AppCompatActivity() {
                         savedMemorial.id?.let { id ->
                             repository.deletePhoto(id)
                             runOnUiThread {
-                                loadMemorial(memorialId)
+                                if (!isFinishing && !isDestroyed) {
+                                    loadMemorial(memorialId)
+                                }
                             }
                         }
                     } catch (e: Exception) {
                         showError("Ошибка при удалении фото: ${e.message}")
+                        return@launch
+                    }
+                }
+
+                // Если нужно удалить документ
+                if (shouldDeleteDocument) {
+                    // Дополнительная проверка на случай, если статус изменился
+                    val isPublishedMemorial = savedMemorial.publicationStatus == PublicationStatus.PUBLISHED
+                    if (isPublishedMemorial) {
+                        println("DEBUG (performSave): Попытка удалить документ из опубликованного мемориала - блокируем")
+                        showError("Нельзя удалить документ из опубликованного мемориала")
+                        return@launch
+                    }
+                    
+                    try {
+                        savedMemorial.id?.let { id ->
+                            println("DEBUG (performSave): Попытка удалить документ для мемориала ID: $id")
+                            println("DEBUG (performSave): currentDocumentUrl: $currentDocumentUrl")
+                            repository.deleteDocument(id)
+                            println("DEBUG (performSave): Документ успешно удален")
+                            currentDocumentUrl = null
+                        }
+                    } catch (e: Exception) {
+                        println("DEBUG (performSave): Ошибка при удалении документа: ${e.message}")
+                        e.printStackTrace()
+                        showError("Ошибка при удалении документа: ${e.message}")
                         return@launch
                     }
                 }
@@ -967,7 +1065,9 @@ class EditMemorialActivity : AppCompatActivity() {
                                     // Обновляем локальную переменную и UI
                                     memorial = savedMemorial
                                     runOnUiThread {
-                                        loadMemorial(memorialId)
+                                        if (!isFinishing && !isDestroyed) {
+                                            loadMemorial(memorialId)
+                                        }
                                     }
                                 } catch (e: Exception) {
                                     e.printStackTrace()
@@ -977,10 +1077,12 @@ class EditMemorialActivity : AppCompatActivity() {
                             }
                         } catch (e: Exception) {
                             e.printStackTrace()
+                            hideLoading()
                             showError("Ошибка при загрузке фото: ${e.message}")
                             return@launch
                         }
                     } catch (e: Exception) {
+                        hideLoading()
                         showError("Ошибка при загрузке фото: ${e.message}")
                         return@launch
                     }
@@ -1012,39 +1114,43 @@ class EditMemorialActivity : AppCompatActivity() {
                                 // Обновляем currentDocumentUrl для отображения в UI
                                 currentDocumentUrl = documentUrl
                                 runOnUiThread {
-                                    showMessage("Документ успешно загружен")
+                                    if (!isFinishing && !isDestroyed) {
+                                        showMessage("Документ успешно загружен")
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
                             e.printStackTrace()
+                            hideLoading()
                             showError("Ошибка при загрузке документа: ${e.message}")
                             return@launch
                         }
                     } catch (e: Exception) {
+                        hideLoading()
                         showError("Ошибка при загрузке документа: ${e.message}")
                         return@launch
                     }
                 }
 
+                // Обновляем локальный мемориал для возврата результата
+                memorial = savedMemorial
+                
                 // Показываем сообщение в зависимости от статуса (редактор или владелец)
                 runOnUiThread {
-                    // Если пользователь редактор (но не владелец) и это существующий мемориал
-                    if (newMemorial.isEditor && savedMemorial.isUserOwner != true && newMemorial.id != null) {
-                        showMessage("Ваши изменения отправлены на рассмотрение владельцу мемориала")
-                    } else {
-                        showMessage("Мемориал успешно сохранен")
+                    // Проверяем, что активность еще жива
+                    if (!isFinishing && !isDestroyed) {
+                        hideLoading()
+                        // Если пользователь редактор (но не владелец) и это существующий мемориал
+                        if (newMemorial.isEditor && savedMemorial.isUserOwner != true && newMemorial.id != null) {
+                            showMessage("Ваши изменения отправлены на рассмотрение владельцу мемориала")
+                        } else {
+                            showMessage("Мемориал успешно сохранен")
+                        }
                     }
                 }
-
-                // Возвращаем обновленный мемориал
-                val resultIntent = Intent().apply {
-                    putExtra(EXTRA_MEMORIAL, savedMemorial)
-                }
-                println("Возвращаем результат: $savedMemorial")
-                setResult(Activity.RESULT_OK, resultIntent)
-                finish()
             } catch (e: Exception) {
                 e.printStackTrace()
+                hideLoading()
                 showError("Ошибка при сохранении: ${e.message}")
             }
         }
@@ -1057,11 +1163,142 @@ class EditMemorialActivity : AppCompatActivity() {
     }
 
     private fun showError(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        // Проверяем, что активность еще жива
+        if (!isFinishing && !isDestroyed) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Ошибка")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show()
+        }
     }
 
     private fun showMessage(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        // Проверяем, что активность еще жива
+        if (!isFinishing && !isDestroyed) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Успешно")
+                .setMessage(message)
+                .setPositiveButton("OK") { _, _ ->
+                    // Закрываем активность только после нажатия OK
+                    finishActivity()
+                }
+                .show()
+        } else {
+            // Если активность уже закрывается, просто завершаем ее
+            finishActivity()
+        }
+    }
+    
+    private fun finishActivity() {
+        // Сбрасываем флаги удаления после успешного сохранения
+        shouldDeletePhoto = false
+        shouldDeleteDocument = false
+        
+        val savedMemorial = memorial
+        if (savedMemorial != null) {
+            val resultIntent = Intent().apply {
+                putExtra(EXTRA_MEMORIAL, savedMemorial)
+            }
+            setResult(Activity.RESULT_OK, resultIntent)
+        }
+        finish()
+    }
+    
+    /**
+     * Показать индикатор загрузки
+     */
+    private fun showLoading(message: String = "Сохранение мемориала...") {
+        runOnUiThread {
+            loadingText.text = message
+            
+            // Легкая вибрация для обратной связи
+            try {
+                val vibrator = getSystemService(android.content.Context.VIBRATOR_SERVICE) as Vibrator
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(50)
+                }
+            } catch (e: Exception) {
+                // Игнорируем ошибки вибрации
+            }
+            
+            // Показываем с анимацией fade in и scale
+            loadingOverlay.alpha = 0f
+            loadingOverlay.visibility = View.VISIBLE
+            
+            // Находим карточку для анимации масштабирования
+            val card = loadingOverlay.getChildAt(0)
+            card.scaleX = 0.8f
+            card.scaleY = 0.8f
+            
+            loadingOverlay.animate()
+                .alpha(1f)
+                .setDuration(250)
+                .start()
+                
+            card.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(250)
+                .start()
+            
+            // Отключаем все интерактивные элементы
+            buttonSave.isEnabled = false
+            photoImageView.isClickable = false
+            buttonBirthDate.isEnabled = false
+            buttonDeathDate.isEnabled = false
+            mainLocationButton.isEnabled = false
+            burialLocationButton.isEnabled = false
+            nameInputView.isEnabled = false
+            editBiography.isEnabled = false
+            
+            // Отключаем кнопку назад
+            supportActionBar?.setDisplayHomeAsUpEnabled(false)
+        }
+    }
+    
+    /**
+     * Скрыть индикатор загрузки
+     */
+    private fun hideLoading() {
+        runOnUiThread {
+            // Скрываем с анимацией fade out и scale
+            val card = loadingOverlay.getChildAt(0)
+            
+            loadingOverlay.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction {
+                    loadingOverlay.visibility = View.GONE
+                }
+                .start()
+                
+            card.animate()
+                .scaleX(0.8f)
+                .scaleY(0.8f)
+                .setDuration(200)
+                .start()
+            
+            // Включаем обратно все интерактивные элементы
+            buttonSave.isEnabled = true
+            photoImageView.isClickable = true
+            buttonBirthDate.isEnabled = true
+            buttonDeathDate.isEnabled = true
+            nameInputView.isEnabled = true
+            editBiography.isEnabled = true
+            
+            // Восстанавливаем состояние кнопок местоположения
+            val isEditor = memorial?.isEditor == true || memorial?.isUserEditor == true
+            val canEditLocation = hasSubscription || isEditor
+            mainLocationButton.isEnabled = canEditLocation
+            burialLocationButton.isEnabled = canEditLocation
+            
+            // Включаем кнопку назад
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        }
     }
 
     private fun showLocationPicker(isMainLocation: Boolean) {
@@ -1079,8 +1316,7 @@ class EditMemorialActivity : AppCompatActivity() {
             .setTitle("Требуется подписка")
             .setMessage("Для использования возможности указания местоположения требуется подписка")
             .setPositiveButton("Информация о подписке") { _, _ ->
-                // Здесь можно открыть экран с информацией о подписке
-                Toast.makeText(this, "Информация о подписке", Toast.LENGTH_SHORT).show()
+                SubscriptionUtils.showSubscriptionInfoDialog(this)
             }
             .setNegativeButton("Отмена", null)
             .show()
@@ -1126,6 +1362,22 @@ class EditMemorialActivity : AppCompatActivity() {
             documentUploadLayout.visibility = View.GONE
             documentUploadedLayout.visibility = View.VISIBLE
             documentName.text = fileName
+            
+            // Проверяем, можно ли удалять документ (не для опубликованных мемориалов)
+            val currentMemorial = memorial
+            val isPublishedMemorial = currentMemorial?.publicationStatus == PublicationStatus.PUBLISHED
+            
+            if (isPublishedMemorial) {
+                // Для опубликованных мемориалов блокируем кнопку удаления
+                documentDelete.isEnabled = false
+                documentDelete.alpha = 0.5f
+                println("DEBUG: Кнопка удаления документа заблокирована для опубликованного мемориала")
+            } else {
+                // Для неопубликованных мемориалов разрешаем удаление
+                documentDelete.isEnabled = true
+                documentDelete.alpha = 1.0f
+            }
+            
             Toast.makeText(this, "Выбран документ: $fileName", Toast.LENGTH_SHORT).show()
         } else {
             // Показываем UI для загрузки документа

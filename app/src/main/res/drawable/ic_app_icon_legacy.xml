@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    
+    <!-- Background circle with gradient -->
+    <path
+        android:pathData="M24,24m-24,0a24,24 0,1 1,48 0a24,24 0,1 1,-48 0">
+        <aapt:attr name="android:fillColor" xmlns:aapt="http://schemas.android.com/aapt">
+            <gradient
+                android:startColor="#6A1B9A"
+                android:endColor="#8E24AA"
+                android:angle="45"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+    
+    <!-- Tree icon -->
+    <group android:scaleX="0.5" android:scaleY="0.5" android:pivotX="24" android:pivotY="24">
+        <!-- Heart in the center -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M24,28L15,19c-2.5,-2.5 -2.5,-6.5 0,-9c2.5,-2.5 6.5,-2.5 9,0c2.5,-2.5 6.5,-2.5 9,0c2.5,2.5 2.5,6.5 0,9L24,28z"/>
+        
+        <!-- Main trunk -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M22,28L22,40Q22,42 26,42Q30,42 30,40L30,28"/>
+        
+        <!-- Left main branch -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:pathData="M19,24Q8,18 2,12"/>
+        
+        <!-- Right main branch -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:pathData="M29,24Q40,18 46,12"/>
+        
+        <!-- Small leaves -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M2,12c-1,0 -1.5,-0.5 -1.5,-1.5s0.5,-1.5 1.5,-1.5s1.5,0.5 1.5,1.5S3,12 2,12z"/>
+        
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M46,12c-1,0 -1.5,-0.5 -1.5,-1.5s0.5,-1.5 1.5,-1.5s1.5,0.5 1.5,1.5S47,12 46,12z"/>
+    </group>
+</vector> 

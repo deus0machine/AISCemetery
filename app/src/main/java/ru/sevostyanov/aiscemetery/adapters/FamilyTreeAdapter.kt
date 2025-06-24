@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Button
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -20,13 +21,23 @@ import java.util.*
 class FamilyTreeAdapter(
     private val onItemClick: (FamilyTree) -> Unit,
     private val onEditClick: (FamilyTree) -> Unit,
-    private val onDeleteClick: (FamilyTree) -> Unit
+    private val onDeleteClick: (FamilyTree) -> Unit,
+    private val onSubmitDraftClick: (FamilyTree) -> Unit = {},
+    private var isMyTreesTab: Boolean = true // true для "Мои", false для "Публичные"
 ) : ListAdapter<FamilyTree, FamilyTreeAdapter.FamilyTreeViewHolder>(FamilyTreeDiffCallback()) {
+
+    /**
+     * Обновляет состояние текущей вкладки
+     */
+    fun updateTabState(isMyTreesTab: Boolean) {
+        this.isMyTreesTab = isMyTreesTab
+        notifyDataSetChanged() // Перерисовываем все элементы
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FamilyTreeViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_family_tree, parent, false)
-        return FamilyTreeViewHolder(view, onItemClick, onEditClick, onDeleteClick)
+        return FamilyTreeViewHolder(view, onItemClick, onEditClick, onDeleteClick, onSubmitDraftClick, isMyTreesTab)
     }
 
     override fun onBindViewHolder(holder: FamilyTreeViewHolder, position: Int) {
@@ -37,7 +48,9 @@ class FamilyTreeAdapter(
         itemView: View,
         private val onItemClick: (FamilyTree) -> Unit,
         private val onEditClick: (FamilyTree) -> Unit,
-        private val onDeleteClick: (FamilyTree) -> Unit
+        private val onDeleteClick: (FamilyTree) -> Unit,
+        private val onSubmitDraftClick: (FamilyTree) -> Unit,
+        private val isMyTreesTab: Boolean
     ) : RecyclerView.ViewHolder(itemView) {
         private val cardView: MaterialCardView = itemView as MaterialCardView
         private val nameTextView: TextView = itemView.findViewById(R.id.text_name)
@@ -48,15 +61,38 @@ class FamilyTreeAdapter(
         private val memorialCountTextView: TextView = itemView.findViewById(R.id.text_memorial_count)
         private val editButton: ImageButton = itemView.findViewById(R.id.button_edit)
         private val deleteButton: ImageButton = itemView.findViewById(R.id.button_delete)
+        private val submitDraftButton: Button = itemView.findViewById(R.id.button_submit_draft)
 
         fun bind(tree: FamilyTree) {
             nameTextView.text = tree.name
             descriptionTextView.text = tree.description ?: "Нет описания"
             
-            // Отображаем ФИО владельца вместо ID
+            // Отображаем ФИО владельца и информацию о доступе
             val ownerDisplayText = when {
-                tree.owner?.fio?.isNotBlank() == true -> "Владелец: ${tree.owner.fio}"
-                tree.owner?.login?.isNotBlank() == true -> "Владелец: ${tree.owner.login}"
+                tree.owner?.fio?.isNotBlank() == true -> {
+                    if (tree.hasUserAccess() && !tree.isUserOwner) {
+                        val accessLevel = when (tree.getUserAccessLevel()) {
+                            ru.sevostyanov.aiscemetery.models.AccessLevel.EDITOR -> " (Редактор)"
+                            ru.sevostyanov.aiscemetery.models.AccessLevel.VIEWER -> " (Просмотр)"
+                            else -> " (Совместный доступ)"
+                        }
+                        "Владелец: ${tree.owner.fio}$accessLevel"
+                    } else {
+                        "Владелец: ${tree.owner.fio}"
+                    }
+                }
+                tree.owner?.login?.isNotBlank() == true -> {
+                    if (tree.hasUserAccess() && !tree.isUserOwner) {
+                        val accessLevel = when (tree.getUserAccessLevel()) {
+                            ru.sevostyanov.aiscemetery.models.AccessLevel.EDITOR -> " (Редактор)"
+                            ru.sevostyanov.aiscemetery.models.AccessLevel.VIEWER -> " (Просмотр)"
+                            else -> " (Совместный доступ)"
+                        }
+                        "Владелец: ${tree.owner.login}$accessLevel"
+                    } else {
+                        "Владелец: ${tree.owner.login}"
+                    }
+                }
                 tree.userId != null -> "Владелец ID: ${tree.userId}"
                 else -> "Владелец: Неизвестно"
             }
@@ -101,14 +137,19 @@ class FamilyTreeAdapter(
             }
             statusTextView.setTextColor(statusColor)
 
-            // Устанавливаем цвет обводки в зависимости от статуса публикации
-            val strokeColor = when (tree.publicationStatus) {
-                PublicationStatus.PUBLISHED -> ContextCompat.getColor(context, android.R.color.holo_green_dark)
-                PublicationStatus.PENDING_MODERATION -> ContextCompat.getColor(context, android.R.color.holo_orange_dark)
-                PublicationStatus.REJECTED -> ContextCompat.getColor(context, android.R.color.holo_red_dark)
-                PublicationStatus.DRAFT -> ContextCompat.getColor(context, android.R.color.darker_gray)
-                null -> if (tree.isPublic) ContextCompat.getColor(context, android.R.color.holo_green_dark) 
-                       else ContextCompat.getColor(context, android.R.color.darker_gray)
+            // Устанавливаем цвет обводки в зависимости от статуса публикации и доступа
+            val strokeColor = if (tree.hasUserAccess() && !tree.isUserOwner) {
+                // Для деревьев с совместным доступом используем синий цвет
+                ContextCompat.getColor(context, android.R.color.holo_blue_dark)
+            } else {
+                when (tree.publicationStatus) {
+                    PublicationStatus.PUBLISHED -> ContextCompat.getColor(context, android.R.color.holo_green_dark)
+                    PublicationStatus.PENDING_MODERATION -> ContextCompat.getColor(context, android.R.color.holo_orange_dark)
+                    PublicationStatus.REJECTED -> ContextCompat.getColor(context, android.R.color.holo_red_dark)
+                    PublicationStatus.DRAFT -> ContextCompat.getColor(context, android.R.color.darker_gray)
+                    null -> if (tree.isPublic) ContextCompat.getColor(context, android.R.color.holo_green_dark) 
+                           else ContextCompat.getColor(context, android.R.color.darker_gray)
+                }
             }
             
             cardView.strokeColor = strokeColor
@@ -117,14 +158,25 @@ class FamilyTreeAdapter(
             itemView.setOnClickListener { onItemClick(tree) }
             editButton.setOnClickListener { onEditClick(tree) }
             deleteButton.setOnClickListener { onDeleteClick(tree) }
+            submitDraftButton.setOnClickListener { onSubmitDraftClick(tree) }
 
-            // Проверяем, является ли текущий пользователь владельцем дерева
-            val currentUserId = RetrofitClient.getCurrentUserId()
-            val isOwner = currentUserId != -1L && currentUserId == tree.userId
+            // Показываем кнопки в зависимости от прав доступа
+            // В разделе "Публичные" редакторы не должны видеть кнопку редактирования
+            val canShowEditButton = when {
+                // Если дерево на модерации, кнопка редактирования недоступна
+                tree.publicationStatus == PublicationStatus.PENDING_MODERATION -> false
+                tree.isUserOwner -> true // Владельцы всегда могут редактировать (кроме модерации)
+                tree.name.contains("(черновик)") -> true // Черновики всегда можно редактировать
+                isMyTreesTab && tree.canUserEdit() -> true // В "Мои деревья" редакторы могут редактировать
+                else -> false // В "Публичные" редакторы не могут редактировать
+            }
             
-            // Показываем кнопки редактирования и удаления только владельцу
-            editButton.visibility = if (isOwner) View.VISIBLE else View.GONE
-            deleteButton.visibility = if (isOwner) View.VISIBLE else View.GONE
+            editButton.visibility = if (canShowEditButton) View.VISIBLE else View.GONE
+            deleteButton.visibility = if (tree.isUserOwner) View.VISIBLE else View.GONE
+            
+            // Показываем кнопку отправки черновика только для редакторов черновиков (не владельцев)
+            val canShowSubmitButton = tree.name.contains("(черновик)") && !tree.isUserOwner
+            submitDraftButton.visibility = if (canShowSubmitButton) View.VISIBLE else View.GONE
         }
     }
 

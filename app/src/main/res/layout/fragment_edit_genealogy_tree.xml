@@ -83,5 +83,19 @@
         android:src="@drawable/ic_relation"
         android:contentDescription="Добавить связь"
         app:tint="@android:color/white" />
+        
+    <!-- Кнопка для отправки черновика владельцу (только для редакторов) -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_submit_draft"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="16dp"
+        android:text="Отправить владельцу"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/purple_700"
+        android:visibility="gone"
+        app:icon="@drawable/ic_save"
+        app:iconTint="@android:color/white" />
 
 </FrameLayout> 

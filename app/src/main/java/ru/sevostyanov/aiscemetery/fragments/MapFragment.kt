@@ -22,6 +22,12 @@ import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
+import com.yandex.mapkit.search.SearchFactory
+import com.yandex.mapkit.search.SearchManager
+import com.yandex.mapkit.search.SearchManagerType
+import com.yandex.mapkit.search.SearchOptions
+import com.yandex.mapkit.search.Session
+import com.yandex.runtime.Error
 import com.yandex.mapkit.map.ClusterizedPlacemarkCollection
 import com.yandex.mapkit.map.IconStyle
 import com.yandex.mapkit.map.MapObject
@@ -44,9 +50,12 @@ import android.view.inputmethod.InputMethodManager
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import android.view.GestureDetector
 import android.view.MotionEvent
+import com.yandex.mapkit.map.CameraListener
+import com.yandex.mapkit.map.CameraUpdateReason
+import com.yandex.mapkit.map.Map
 
 @AndroidEntryPoint
-class MapFragment : Fragment(), MapObjectTapListener {
+class MapFragment : Fragment(), MapObjectTapListener, Session.SearchListener, CameraListener {
     private lateinit var mapView: MapView
     private lateinit var infoCardView: CardView
     private lateinit var memorialPhoto: ImageView
@@ -66,10 +75,23 @@ class MapFragment : Fragment(), MapObjectTapListener {
     private var markerMemorialMap = mutableMapOf<PlacemarkMapObject, Memorial>()
     private var markerTypeMap = mutableMapOf<PlacemarkMapObject, Boolean>() // true для основного местоположения, false для захоронения
     private var allMemorials = listOf<Memorial>()
+    private var isMemorialsLoaded = false // Флаг для предотвращения повторных загрузок
+    
+    // Поиск по географическим местам
+    private var searchManager: SearchManager? = null
+    private var searchSession: Session? = null
+    private var currentSearchQuery: String = ""
     
     private val DEFAULT_LATITUDE = 55.751574 // Москва
     private val DEFAULT_LONGITUDE = 37.573856
     private val DEFAULT_ZOOM = 9.0f
+    
+    // Упрощенные настройки производительности
+    private var currentZoomLevel = DEFAULT_ZOOM
+    
+    // Статистика производительности (упрощенная версия)
+    private var markersCount = 0
+    private var lastUpdateTime = 0L
     
     // Создаем простую цветную иконку маркера программно с обводкой
     private fun createPlaceholderBitmap(size: Int, color: Int): Bitmap {
@@ -124,6 +146,9 @@ class MapFragment : Fragment(), MapObjectTapListener {
         legendButton = view.findViewById(R.id.legend_button)
         legendCloseButton = view.findViewById(R.id.legend_close_button)
         infoCloseButton = view.findViewById(R.id.info_close_button)
+        
+        // Инициализируем поисковый менеджер
+        searchManager = SearchFactory.getInstance().createSearchManager(SearchManagerType.COMBINED)
         
         // Настраиваем поисковую строку
         setupSearch()
@@ -192,49 +217,76 @@ class MapFragment : Fragment(), MapObjectTapListener {
             }
         }
 
+        // Добавляем слушатель изменения камеры для viewport-based loading
+        mapView.map.addCameraListener(this)
+
         // Загружаем и отображаем мемориалы на карте
         println("DEBUG_MAP: Вызываем loadMemorials()")
         loadMemorials()
     }
 
-    private fun loadMemorials() {
+    private fun loadMemorials(forceReload: Boolean = false) {
         if (!NetworkUtil.checkInternetAndShowMessage(requireContext())) {
             println("DEBUG_MAP: Нет интернет-соединения")
             return
         }
         
-        println("DEBUG_MAP: Начинаем загрузку мемориалов")
-        
-        // Проверяем, правильно ли инициализирована Яндекс Карта
-        if (!this::mapView.isInitialized) {
-            println("DEBUG_MAP: Ошибка - mapView не инициализирован")
+        // Если данные уже загружены и не требуется принудительная перезагрузка
+        if (isMemorialsLoaded && !forceReload) {
+            println("DEBUG_MAP: Мемориалы уже загружены, пропускаем загрузку")
             return
         }
         
-        if (clusterizedCollection == null) {
-            println("DEBUG_MAP: Ошибка - clusterizedCollection не инициализирован")
+        println("DEBUG_MAP: Начинаем загрузку мемориалов (forceReload: $forceReload)")
+        
+        if (!this::mapView.isInitialized || clusterizedCollection == null) {
+            println("DEBUG_MAP: Ошибка - mapView или clusterizedCollection не инициализированы")
             return
+        }
+        
+        // Сбрасываем состояние при принудительной перезагрузке
+        if (forceReload) {
+            // Очищаем только то, что у нас есть
+            clusterizedCollection?.clear()
+            markerMemorialMap.clear()
+            markerTypeMap.clear()
         }
         
         lifecycleScope.launch {
             try {
-                val memorials = repository.getPublicMemorials()
-                println("DEBUG_MAP: Получено мемориалов: ${memorials.size}")
+                // Загружаем первую порцию мемориалов (для инициализации)
+                val initialMemorials = repository.getPublicMemorials(0, 100) // Первые 100 мемориалов
+                val memorials = initialMemorials.content
+                
+                println("DEBUG_MAP: Получено мемориалов для инициализации: ${memorials.size}")
                 
                 // Сохраняем мемориалы для поиска
                 allMemorials = memorials
-                
-                // Выводим информацию о каждом мемориале
-                memorials.forEach { memorial ->
-                    println("DEBUG_MAP: Мемориал: ${memorial.id} - ${memorial.fio}")
-                    println("DEBUG_MAP: mainLocation: ${memorial.mainLocation}")
-                    println("DEBUG_MAP: burialLocation: ${memorial.burialLocation}")
-                }
+                isMemorialsLoaded = true
                 
                 addMemorialsToMap(memorials)
+                
+                // Центрируем карту на первом маркере
+                memorials.firstOrNull { it.mainLocation != null }?.let { memorial ->
+                    memorial.mainLocation?.let { location ->
+                        println("DEBUG_MAP: Центрируем карту на: ${location.latitude}, ${location.longitude}")
+                        mapView.map.move(
+                            CameraPosition(
+                                Point(location.latitude, location.longitude),
+                                DEFAULT_ZOOM,
+                                0.0f,
+                                0.0f
+                            ),
+                            Animation(Animation.Type.SMOOTH, 0.5f),
+                            null
+                        )
+                    }
+                }
+                
             } catch (e: Exception) {
                 println("DEBUG_MAP: Ошибка при загрузке мемориалов: ${e.message}")
                 e.printStackTrace()
+                isMemorialsLoaded = false
                 Toast.makeText(context, "Ошибка при загрузке мемориалов: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
@@ -421,8 +473,13 @@ class MapFragment : Fragment(), MapObjectTapListener {
     
     override fun onResume() {
         super.onResume()
-        // Обновляем данные при возвращении к фрагменту
-        loadMemorials()
+        // Загружаем мемориалы только если они еще не были загружены
+        if (!isMemorialsLoaded) {
+            println("DEBUG_MAP: onResume - мемориалы не загружены, загружаем")
+            loadMemorials()
+        } else {
+            println("DEBUG_MAP: onResume - мемориалы уже загружены, пропускаем")
+        }
     }
 
     // Настраиваем поисковую строку
@@ -513,7 +570,7 @@ class MapFragment : Fragment(), MapObjectTapListener {
     
     // Выполняем поиск
     private fun performSearch() {
-        val query = searchEditText.text.toString().trim().lowercase()
+        val query = searchEditText.text.toString().trim()
         
         // Скрываем клавиатуру
         val imm = requireActivity().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -524,34 +581,58 @@ class MapFragment : Fragment(), MapObjectTapListener {
             return
         }
         
-        // Отладочный вывод для проверки данных
-        println("DEBUG_SEARCH: Выполняем поиск по запросу: '$query'")
+        currentSearchQuery = query
+        println("DEBUG_SEARCH: Выполняем многоуровневый поиск по запросу: '$query'")
+        
+        // 1. Сначала ищем географические места через Яндекс.Геокодер
+        searchGeographicalPlaces(query)
+    }
+    
+    // Поиск географических мест через Яндекс.Геокодер
+    private fun searchGeographicalPlaces(query: String) {
+        println("DEBUG_SEARCH: Ищем географические места для: '$query'")
+        
+        searchManager?.let { manager ->
+            // Отменяем предыдущий поиск
+            searchSession?.cancel()
+            
+            // Создаем новую сессию поиска
+            searchSession = manager.submit(
+                query,
+                com.yandex.mapkit.geometry.Geometry.fromPoint(
+                    Point(DEFAULT_LATITUDE, DEFAULT_LONGITUDE)
+                ),
+                SearchOptions().apply {
+                    resultPageSize = 5 // Ограничиваем количество результатов
+                },
+                this
+            )
+        } ?: run {
+            println("DEBUG_SEARCH: SearchManager не инициализирован, переходим к поиску мемориалов")
+            searchMemorials(query)
+        }
+    }
+    
+    // Поиск среди мемориалов (старая логика)
+    private fun searchMemorials(query: String) {
+        val queryLower = query.lowercase()
+        println("DEBUG_SEARCH: Ищем среди мемориалов: '$queryLower'")
         println("DEBUG_SEARCH: Доступно мемориалов для поиска: ${allMemorials.size}")
         
-        // Для тестирования выводим все мемориалы, доступные для поиска
-        allMemorials.forEach { memorial ->
-            println("DEBUG_SEARCH: Мемориал для поиска: ${memorial.id} - ${memorial.fio}, " +
-                    "mainLocation: ${memorial.mainLocation}, " +
-                    "burialLocation: ${memorial.burialLocation}")
-        }
-        
-        // Сначала ищем мемориал по имени (с подробным логированием)
+        // Сначала ищем мемориал по имени
         val foundMemorial = allMemorials.find { 
-            val containsName = it.fio.lowercase().contains(query)
-            println("DEBUG_SEARCH: Проверяем '${it.fio}' - содержит '$query': $containsName")
+            val containsName = it.fio.lowercase().contains(queryLower)
+            println("DEBUG_SEARCH: Проверяем '${it.fio}' - содержит '$queryLower': $containsName")
             containsName
         }
         
         if (foundMemorial != null && (foundMemorial.mainLocation != null || foundMemorial.burialLocation != null)) {
             println("DEBUG_SEARCH: Найден мемориал по имени: ${foundMemorial.fio}")
-            // Определяем местоположение для фокуса (предпочитаем основное)
             val location = foundMemorial.mainLocation ?: foundMemorial.burialLocation
             location?.let {
                 val point = Point(it.latitude, it.longitude)
-                println("DEBUG_SEARCH: Перемещаем карту на: ${it.latitude}, ${it.longitude}")
-                // Центрируем карту и приближаем к найденному мемориалу
+                println("DEBUG_SEARCH: Перемещаем карту на мемориал: ${it.latitude}, ${it.longitude}")
                 moveCamera(point, 15f)
-                // Показываем информацию о мемориале, используя точную точку маркера
                 val isMainLocation = location == foundMemorial.mainLocation
                 showMemorialInfo(foundMemorial, point, isMainLocation)
                 return
@@ -560,21 +641,20 @@ class MapFragment : Fragment(), MapObjectTapListener {
         
         println("DEBUG_SEARCH: Мемориал по имени не найден, ищем по адресу")
         
-        // Если мемориал не найден, пробуем искать по адресу (с подробным логированием)
+        // Если мемориал не найден, пробуем искать по адресу
         val memorialWithAddress = allMemorials.find { memorial ->
-            val mainLocationContains = memorial.mainLocation?.address?.lowercase()?.contains(query) == true
-            val burialLocationContains = memorial.burialLocation?.address?.lowercase()?.contains(query) == true
+            val mainLocationContains = memorial.mainLocation?.address?.lowercase()?.contains(queryLower) == true
+            val burialLocationContains = memorial.burialLocation?.address?.lowercase()?.contains(queryLower) == true
             
-            println("DEBUG_SEARCH: Проверяем адрес '${memorial.mainLocation?.address}' - содержит '$query': $mainLocationContains")
-            println("DEBUG_SEARCH: Проверяем адрес '${memorial.burialLocation?.address}' - содержит '$query': $burialLocationContains")
+            println("DEBUG_SEARCH: Проверяем адрес '${memorial.mainLocation?.address}' - содержит '$queryLower': $mainLocationContains")
+            println("DEBUG_SEARCH: Проверяем адрес '${memorial.burialLocation?.address}' - содержит '$queryLower': $burialLocationContains")
             
             mainLocationContains || burialLocationContains
         }
         
         if (memorialWithAddress != null) {
             println("DEBUG_SEARCH: Найден мемориал по адресу: ${memorialWithAddress.fio}")
-            // Определяем местоположение для фокуса
-            val isMainLocation = memorialWithAddress.mainLocation?.address?.lowercase()?.contains(query) == true
+            val isMainLocation = memorialWithAddress.mainLocation?.address?.lowercase()?.contains(queryLower) == true
             val location = if (isMainLocation) 
                 memorialWithAddress.mainLocation 
             else 
@@ -582,7 +662,7 @@ class MapFragment : Fragment(), MapObjectTapListener {
                 
             location?.let {
                 val point = Point(it.latitude, it.longitude)
-                println("DEBUG_SEARCH: Перемещаем карту на: ${it.latitude}, ${it.longitude}")
+                println("DEBUG_SEARCH: Перемещаем карту на мемориал по адресу: ${it.latitude}, ${it.longitude}")
                 moveCamera(point, 15f)
                 val isMainLocation = location == memorialWithAddress.mainLocation
                 showMemorialInfo(memorialWithAddress, point, isMainLocation)
@@ -644,5 +724,136 @@ class MapFragment : Fragment(), MapObjectTapListener {
         
         // Показываем диалог
         dialog.show()
+    }
+    
+    /**
+     * Публичный метод для принудительного обновления мемориалов на карте
+     * Используется когда нужно обновить данные после добавления/изменения мемориала
+     */
+    fun refreshMemorials(forceReload: Boolean = true) {
+        println("DEBUG_MAP_PERFORMANCE: Принудительное обновление мемориалов")
+        
+        // Очищаем все состояние
+        clusterizedCollection?.clear()
+        markerMemorialMap.clear()
+        markerTypeMap.clear()
+        isMemorialsLoaded = false
+        
+        // Перезагружаем
+        loadMemorials(forceReload)
+    }
+    
+    // Обработчики для поиска географических мест
+    override fun onSearchResponse(response: com.yandex.mapkit.search.Response) {
+        println("DEBUG_SEARCH: Получен ответ от геокодера, результатов: ${response.collection.children.size}")
+        
+        if (response.collection.children.isNotEmpty()) {
+            // Берем первый результат поиска
+            val firstResult = response.collection.children.first()
+            val geoObject = firstResult.obj
+            
+            if (geoObject != null) {
+                val point = geoObject.geometry.firstOrNull()?.point
+                val name = geoObject.name ?: currentSearchQuery
+                val description = geoObject.descriptionText ?: ""
+                
+                println("DEBUG_SEARCH: Найдено географическое место: '$name' в точке: ${point?.latitude}, ${point?.longitude}")
+                println("DEBUG_SEARCH: Описание: '$description'")
+                
+                point?.let {
+                    // Определяем подходящий зум в зависимости от типа места
+                    val zoom = determineZoomLevel(description, name)
+                    println("DEBUG_SEARCH: Перемещаем карту на географическое место с зумом: $zoom")
+                    
+                    moveCamera(it, zoom)
+                    
+                    // Показываем уведомление о найденном месте
+                    Toast.makeText(context, "Найдено: $name", Toast.LENGTH_SHORT).show()
+                    
+                    // Скрываем информационную карточку мемориала, если она была открыта
+                    hideMemorialInfo()
+                    return
+                }
+            }
+        }
+        
+        println("DEBUG_SEARCH: Географические места не найдены, переходим к поиску мемориалов")
+        // Если географические места не найдены, ищем среди мемориалов
+        searchMemorials(currentSearchQuery)
+    }
+    
+    override fun onSearchError(error: Error) {
+        println("DEBUG_SEARCH: Ошибка поиска географических мест: $error")
+        // При ошибке геокодера переходим к поиску мемориалов
+        searchMemorials(currentSearchQuery)
+    }
+    
+    // Определяем подходящий уровень зума в зависимости от типа места
+    private fun determineZoomLevel(description: String, name: String): Float {
+        val descLower = description.lowercase()
+        val nameLower = name.lowercase()
+        
+        return when {
+            // Страны - самый дальний зум
+            descLower.contains("страна") || descLower.contains("country") -> 4f
+            
+            // Регионы, области, края
+            descLower.contains("область") || descLower.contains("край") || 
+            descLower.contains("регион") || descLower.contains("republic") -> 6f
+            
+            // Города - средний зум
+            descLower.contains("город") || descLower.contains("city") ||
+            descLower.contains("поселок") || descLower.contains("село") ||
+            descLower.contains("деревня") || nameLower.contains("москва") ||
+            nameLower.contains("санкт-петербург") || nameLower.contains("владимир") -> 10f
+            
+            // Районы городов
+            descLower.contains("район") || descLower.contains("округ") -> 12f
+            
+            // Улицы, проспекты - близкий зум
+            descLower.contains("улица") || descLower.contains("проспект") ||
+            descLower.contains("переулок") || descLower.contains("бульвар") ||
+            descLower.contains("street") || descLower.contains("avenue") -> 15f
+            
+            // Конкретные адреса, здания - самый близкий зум
+            descLower.contains("дом") || descLower.contains("building") ||
+            descLower.contains("№") || descLower.matches(Regex(".*\\d+.*")) -> 17f
+            
+            // По умолчанию - средний зум для городов
+            else -> 11f
+        }
+    }
+
+    // Упрощенная реализация CameraListener
+    override fun onCameraPositionChanged(
+        map: Map,
+        cameraPosition: CameraPosition,
+        cameraUpdateReason: CameraUpdateReason,
+        finished: Boolean
+    ) {
+        if (!finished) return // Ждем завершения анимации
+        
+        currentZoomLevel = cameraPosition.zoom
+        
+        // Простое логирование без сложных операций
+        println("DEBUG_MAP: Изменение камеры - зум: $currentZoomLevel")
+    }
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    override fun onDestroyView() {
+        // Удаляем слушатель камеры
+        if (this::mapView.isInitialized) {
+            mapView.map.removeCameraListener(this)
+        }
+        super.onDestroyView()
     }
 } 

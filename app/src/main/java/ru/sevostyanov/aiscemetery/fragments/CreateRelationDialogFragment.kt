@@ -23,6 +23,7 @@ class CreateRelationDialogFragment : DialogFragment() {
     companion object {
         fun newInstance(
             memorials: List<Memorial>,
+            existingRelations: List<MemorialRelation> = emptyList(),
             preselectedMemorial: Memorial? = null,
             existingRelation: MemorialRelation? = null,
             onRelationCreated: (Memorial, Memorial, RelationType) -> Unit,
@@ -30,6 +31,7 @@ class CreateRelationDialogFragment : DialogFragment() {
         ): CreateRelationDialogFragment {
             return CreateRelationDialogFragment().apply {
                 this.memorials = memorials
+                this.existingRelations = existingRelations
                 this.preselectedMemorial = preselectedMemorial
                 this.existingRelation = existingRelation
                 this.onRelationCreated = onRelationCreated
@@ -39,6 +41,7 @@ class CreateRelationDialogFragment : DialogFragment() {
     }
 
     private var memorials: List<Memorial> = emptyList()
+    private var existingRelations: List<MemorialRelation> = emptyList()
     private var preselectedMemorial: Memorial? = null
     private var existingRelation: MemorialRelation? = null
     private var onRelationCreated: ((Memorial, Memorial, RelationType) -> Unit)? = null
@@ -300,6 +303,25 @@ class CreateRelationDialogFragment : DialogFragment() {
         // Проверка одинаковых мемориалов (уже есть в updateSaveButtonState, но дублируем для надежности)
         if (source.id == target.id) {
             return "Нельзя создать связь мемориала с самим собой"
+        }
+        
+        // Проверка дублирования связей - между двумя людьми может быть только одна связь
+        val existingRelationBetweenPeople = existingRelations.find { relation ->
+            // Проверяем связь в обе стороны
+            val isDirectRelation = (relation.sourceMemorial.id == source.id && relation.targetMemorial.id == target.id)
+            val isReverseRelation = (relation.sourceMemorial.id == target.id && relation.targetMemorial.id == source.id)
+            
+            // Если мы редактируем существующую связь, исключаем её из проверки
+            val isCurrentRelation = existingRelation?.id == relation.id
+            
+            (isDirectRelation || isReverseRelation) && !isCurrentRelation
+        }
+        
+        if (existingRelationBetweenPeople != null) {
+            val existingRelationType = getRelationTypeTitle(existingRelationBetweenPeople.relationType)
+            return "Между ${source.fio} и ${target.fio} уже существует связь типа \"$existingRelationType\". " +
+                   "Между двумя людьми может быть только одна связь. " +
+                   "Удалите существующую связь или отредактируйте её."
         }
         
         // Используем новый утилитный класс для валидации

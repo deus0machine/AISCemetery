@@ -32,7 +32,7 @@ data class Notification(
     val message: String,
     
     @SerializedName("status")
-    val status: NotificationStatus,
+    val status: NotificationStatus?,
     
     @SerializedName("read")
     val isRead: Boolean,
@@ -162,6 +162,9 @@ enum class NotificationType {
     @SerializedName("FAMILY_TREE_MODERATION")
     FAMILY_TREE_MODERATION,
     
+    @SerializedName("FAMILY_TREE_ACCESS_REQUEST")
+    FAMILY_TREE_ACCESS_REQUEST,
+    
     @SerializedName("FAMILY_TREE_APPROVED")
     FAMILY_TREE_APPROVED,
     
@@ -172,7 +175,23 @@ enum class NotificationType {
     FAMILY_TREE_ACCESS_GRANTED,
     
     @SerializedName("FAMILY_TREE_ACCESS_REVOKED")
-    FAMILY_TREE_ACCESS_REVOKED
+    FAMILY_TREE_ACCESS_REVOKED,
+    
+    @SerializedName("MEMORIAL_EDITOR_REMOVED")
+    MEMORIAL_EDITOR_REMOVED,
+    
+    @SerializedName("MEMORIAL_EDITOR_RESIGNED")
+    MEMORIAL_EDITOR_RESIGNED,
+    
+    // Типы уведомлений для черновиков семейных деревьев
+    @SerializedName("DRAFT_SUBMITTED")
+    DRAFT_SUBMITTED,
+    
+    @SerializedName("DRAFT_APPROVED")
+    DRAFT_APPROVED,
+    
+    @SerializedName("DRAFT_REJECTED")
+    DRAFT_REJECTED
 }
 
 enum class NotificationStatus {

@@ -16,6 +16,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import ru.sevostyanov.aiscemetery.LoginActivity
 import ru.sevostyanov.aiscemetery.R
 import ru.sevostyanov.aiscemetery.user.UserManager
+import ru.sevostyanov.aiscemetery.util.SubscriptionUtils
 import ru.sevostyanov.aiscemetery.viewmodels.NotificationsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -82,9 +83,11 @@ class ProfileFragment : Fragment() {
         }
 
         topupButton.setOnClickListener {
-            Toast.makeText(requireContext(), "TODO: Информация о подписке", Toast.LENGTH_SHORT).show()
+            SubscriptionUtils.showSubscriptionInfoDialog(requireContext())
         }
     }
+    
+
     
     private fun showSupportDialog() {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_support, null)

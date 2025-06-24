@@ -175,6 +175,51 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
             }
         }
+        
+        // Обработка открытия дерева
+        val openFamilyTree = intent.getBooleanExtra("open_family_tree", false)
+        if (openFamilyTree) {
+            val familyTreeId = intent.getLongExtra("family_tree_id", -1L)
+            if (familyTreeId != -1L) {
+                // Переходим к фрагменту деревьев
+                navController.navigate(R.id.familyTreesListFragment)
+                
+                // Передаем ID дерева для открытия
+                val bundle = Bundle().apply {
+                    putLong("family_tree_id", familyTreeId)
+                }
+                
+                // Пытаемся открыть конкретное дерево
+                try {
+                    // Небольшая задержка чтобы фрагмент успел загрузиться
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        openSpecificFamilyTree(familyTreeId)
+                    }, 500)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Не удалось открыть дерево напрямую: ${e.message}")
+                }
+            }
+        }
+    }
+    
+    private fun openSpecificFamilyTree(treeId: Long) {
+        try {
+            Log.d(TAG, "openSpecificFamilyTree: попытка открыть дерево с ID = $treeId")
+            
+            // Создаем Bundle с ID дерева
+            val bundle = Bundle().apply {
+                putLong("familyTreeId", treeId)
+            }
+            
+            Log.d(TAG, "openSpecificFamilyTree: создан Bundle с familyTreeId = $treeId")
+            
+            // Переходим к фрагменту просмотра дерева
+            navController.navigate(R.id.genealogyTreeFragment, bundle)
+            
+            Log.d(TAG, "openSpecificFamilyTree: навигация к genealogyTreeFragment выполнена")
+        } catch (e: Exception) {
+            Log.e(TAG, "Ошибка при открытии дерева ID=$treeId: ${e.message}", e)
+        }
     }
     
     private fun loadNotifications() {

@@ -25,7 +25,7 @@ import retrofit2.HttpException
 import android.util.Log
 
 class MemorialRepository {
-    private val apiService = RetrofitClient.getApiService()
+    private val apiService by lazy { RetrofitClient.getApiService() }
 
     suspend fun getAllMemorials(): List<Memorial> = withContext(Dispatchers.IO) {
         apiService.getAllMemorials()
@@ -210,6 +210,22 @@ class MemorialRepository {
         } catch (e: Exception) {
             e.printStackTrace()
             throw Exception("Не удалось получить список редакторов: ${e.message}")
+        }
+    }
+
+    // Получение доступных мемориалов для добавления в дерево
+    suspend fun getAvailableMemorialsForTree(familyTreeId: Long): List<Memorial> = withContext(Dispatchers.IO) {
+        try {
+            Log.d("MemorialRepository", "Получение доступных мемориалов для дерева ID=$familyTreeId")
+            val result = apiService.getAvailableMemorialsForTree(familyTreeId)
+            Log.d("MemorialRepository", "Получено ${result.size} доступных мемориалов для дерева")
+            result.forEachIndexed { index, memorial ->
+                Log.d("MemorialRepository", "[$index] Доступный мемориал: id=${memorial.id}, fio=${memorial.fio}")
+            }
+            result
+        } catch (e: Exception) {
+            Log.e("MemorialRepository", "Ошибка при получении доступных мемориалов: ${e.message}", e)
+            throw Exception("Не удалось получить доступные мемориалы: ${e.message}")
         }
     }
     
@@ -402,6 +418,18 @@ class MemorialRepository {
         }
     }
 
+    suspend fun deleteDocument(id: Long) = withContext(Dispatchers.IO) {
+        try {
+            println("DEBUG: MemorialRepository.deleteDocument вызван для ID: $id")
+            apiService.deleteMemorialDocument(id)
+            println("DEBUG: MemorialRepository.deleteDocument успешно выполнен")
+        } catch (e: Exception) {
+            println("DEBUG: MemorialRepository.deleteDocument ошибка: ${e.message}")
+            e.printStackTrace()
+            throw Exception("Не удалось удалить документ мемориала: ${e.message}")
+        }
+    }
+
     suspend fun searchMemorials(
         query: String = "",
         location: String? = null,
@@ -424,11 +452,105 @@ class MemorialRepository {
         apiService.searchMemorials(query, location, startDate, endDate, isPublic, page, size)
     }
 
+    // Расширенный поиск мемориалов
+    suspend fun advancedSearchMemorials(
+        firstName: String? = null,
+        lastName: String? = null,
+        middleName: String? = null,
+        birthDateFrom: String? = null,
+        birthDateTo: String? = null,
+        deathDateFrom: String? = null,
+        deathDateTo: String? = null,
+        location: String? = null,
+        query: String? = null,
+        isPublic: Boolean? = null,
+        sortBy: String? = null,
+        sortDirection: String? = null,
+        page: Int = 0,
+        size: Int = 10
+    ): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        apiService.advancedSearchMemorials(
+            firstName, lastName, middleName,
+            birthDateFrom, birthDateTo, deathDateFrom, deathDateTo,
+            location, query, isPublic, sortBy, sortDirection, page, size
+        )
+    }
+
+    // Быстрый поиск для автодополнения
+    suspend fun quickSearchMemorials(
+        query: String,
+        limit: Int = 10
+    ): List<Memorial> = withContext(Dispatchers.IO) {
+        apiService.quickSearchMemorials(query, limit)
+    }
+
+    // Поиск по годовщинам
+    suspend fun searchAnniversaries(
+        month: Int? = null,
+        day: Int? = null,
+        type: String? = null,
+        page: Int = 0,
+        size: Int = 10
+    ): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        apiService.searchAnniversaries(month, day, type, page, size)
+    }
+
+    // Поиск с фильтрами через POST
+    suspend fun searchMemorialsWithFilter(
+        searchRequest: ru.sevostyanov.aiscemetery.models.MemorialSearchRequest
+    ): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        apiService.searchMemorialsWithFilter(searchRequest)
+    }
+
+    // Статистика поиска
+    suspend fun getSearchStats(): ru.sevostyanov.aiscemetery.models.MemorialSearchStats = withContext(Dispatchers.IO) {
+        apiService.getSearchStats()
+    }
+
     // Получить подробности ожидающих изменений мемориала для предпросмотра
     suspend fun getMemorialPendingChanges(id: Long): Memorial = withContext(Dispatchers.IO) {
         val result = apiService.getMemorialPendingChanges(id)
         println("DEBUG - Received pending changes for memorial ID $id")
         result
+    }
+    
+    // Географический поиск мемориалов в заданных границах для оптимизации карты
+    suspend fun getMemorialsInBounds(
+        minLat: Double, 
+        maxLat: Double, 
+        minLng: Double, 
+        maxLng: Double, 
+        page: Int = 0, 
+        size: Int = 100
+    ): PagedResponse<Memorial> = withContext(Dispatchers.IO) {
+        Log.d("MemorialRepository", "=== ЗАПРОС getMemorialsInBounds() ===")
+        Log.d("MemorialRepository", "Границы: minLat=$minLat, maxLat=$maxLat, minLng=$minLng, maxLng=$maxLng")
+        Log.d("MemorialRepository", "Пагинация: page=$page, size=$size")
+        
+        try {
+            val result = apiService.getMemorialsInBounds(minLat, maxLat, minLng, maxLng, page, size)
+            Log.d("MemorialRepository", "Получен PagedResponse для мемориалов в границах:")
+            Log.d("MemorialRepository", "- content.size: ${result.content.size}")
+            Log.d("MemorialRepository", "- page: ${result.page}")
+            Log.d("MemorialRepository", "- totalElements: ${result.totalElements}")
+            Log.d("MemorialRepository", "- totalPages: ${result.totalPages}")
+            Log.d("MemorialRepository", "- hasNext: ${result.hasNext}")
+            
+            result.content.forEachIndexed { index, memorial ->
+                Log.d("MemorialRepository", "[$index] Мемориал в границах: id=${memorial.id}, fio=${memorial.fio}")
+                memorial.mainLocation?.let { loc ->
+                    Log.d("MemorialRepository", "  mainLocation: lat=${loc.latitude}, lng=${loc.longitude}")
+                }
+                memorial.burialLocation?.let { loc ->
+                    Log.d("MemorialRepository", "  burialLocation: lat=${loc.latitude}, lng=${loc.longitude}")
+                }
+            }
+            
+            result
+        } catch (e: Exception) {
+            Log.e("MemorialRepository", "Ошибка в getMemorialsInBounds(): ${e.message}", e)
+            throw e
+        }
     }
 
     // Отправить мемориал на модерацию

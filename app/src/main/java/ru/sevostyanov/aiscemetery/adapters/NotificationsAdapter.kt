@@ -37,8 +37,11 @@ class NotificationsAdapter(
         fun getNotificationTypeBadge(notification: Notification): Pair<String, Int> {
             return when (notification.type) {
                 NotificationType.MEMORIAL_OWNERSHIP -> Pair("ЗАПРОС НА ДОСТУП", R.color.gold)
+                NotificationType.FAMILY_TREE_ACCESS_REQUEST -> Pair("ЗАПРОС НА ДЕРЕВО", R.color.gold)
                 NotificationType.MEMORIAL_CHANGES -> Pair("ИЗМЕНЕНИЯ МЕМОРИАЛА", R.color.green)
                 NotificationType.MEMORIAL_EDIT -> Pair("РЕДАКТИРОВАНИЕ", R.color.orange)
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> Pair("ИСКЛЮЧЕН ИЗ РЕДАКТОРОВ", R.color.red)
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> Pair("РЕДАКТОР ОТКАЗАЛСЯ", R.color.orange)
                 NotificationType.INFO -> Pair("ИНФОРМАЦИЯ", R.color.teal_700)
                 NotificationType.SYSTEM -> {
                     // Проверяем, является ли это ответом на техническое обращение
@@ -94,12 +97,13 @@ class NotificationsAdapter(
             notification.type == NotificationType.ADMIN_SYSTEM ||
             notification.type == NotificationType.ADMIN_WARNING ||
             // Информационные уведомления о семейных деревьях (результаты модерации и изменения доступа)
+            notification.type == NotificationType.FAMILY_TREE_MODERATION ||
             notification.type == NotificationType.FAMILY_TREE_APPROVED ||
             notification.type == NotificationType.FAMILY_TREE_REJECTED ||
             notification.type == NotificationType.FAMILY_TREE_ACCESS_GRANTED ||
             notification.type == NotificationType.FAMILY_TREE_ACCESS_REVOKED -> TYPE_INFO
             
-            // Стандартные уведомления с возможными действиями (включая исходящие технические)
+            // Стандартные уведомления с возможными действиями (включая исходящие технические и запросы доступа к деревьям)
             else -> TYPE_STANDARD
         }
     }
@@ -166,6 +170,14 @@ class NotificationsAdapter(
                         else -> "Запрос на совместное владение"
                     }
                 }
+                NotificationType.FAMILY_TREE_ACCESS_REQUEST -> {
+                    // Для запросов на доступ к дереву учитываем статус
+                    when (notification.status) {
+                        NotificationStatus.ACCEPTED -> notification.title ?: "Запрос на доступ к дереву принят"
+                        NotificationStatus.REJECTED -> notification.title ?: "Запрос на доступ к дереву отклонён"
+                        else -> "Запрос на доступ к дереву"
+                    }
+                }
                 NotificationType.MEMORIAL_CHANGES -> "Запрос на изменение мемориала"
                 NotificationType.MEMORIAL_EDIT -> {
                     // Для уведомлений об изменениях тоже учитываем статус
@@ -175,6 +187,8 @@ class NotificationsAdapter(
                         else -> "Изменения в мемориале"
                     }
                 }
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> notification.title ?: "Исключение из редакторов"
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> notification.title ?: "Отказ от редактирования"
                 NotificationType.INFO -> notification.title ?: "Информация"
                 NotificationType.SYSTEM -> {
                     // Проверяем, является ли это ответом на техническое обращение
@@ -254,31 +268,31 @@ class NotificationsAdapter(
             // Устанавливаем иконку и цвет
             val (iconRes, colorRes) = when (notification.type) {
                 NotificationType.MEMORIAL_OWNERSHIP -> Pair(android.R.drawable.ic_menu_share, R.color.gold)
+                NotificationType.FAMILY_TREE_ACCESS_REQUEST -> Pair(android.R.drawable.ic_menu_share, R.color.gold)
                 NotificationType.MEMORIAL_CHANGES -> Pair(android.R.drawable.ic_menu_edit, R.color.green)
                 NotificationType.MEMORIAL_EDIT -> Pair(android.R.drawable.ic_menu_edit, R.color.orange)
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> Pair(android.R.drawable.ic_menu_delete, R.color.red)
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> Pair(android.R.drawable.ic_menu_close_clear_cancel, R.color.orange)
                 NotificationType.SYSTEM -> {
                     // Проверяем, является ли это ответом на техническое обращение
-                    val isTechnicalResponse = notification.title?.contains("Ответ на техническое обращение") == true ||
-                            notification.relatedEntityName == "Техническая поддержка"
-                    
-                    if (isTechnicalResponse) {
-                        // Ответ технической поддержки
-                        Pair(android.R.drawable.ic_dialog_email, R.color.green)
+                    if (notification.title?.contains("Ответ на техническое обращение") == true ||
+                        notification.relatedEntityName == "Техническая поддержка") {
+                        Pair(android.R.drawable.ic_dialog_info, R.color.green)
                     } else {
-                    // Проверяем текст заголовка для определения типа системного уведомления
-                    val titleContainsPublished = notification.title?.contains("опубликован") == true
-                    val titleContainsNotPublished = notification.title?.contains("не опубликован") == true
-                    val titleContainsRejected = notification.title?.contains("отклонен") == true
-                    
-                    if (titleContainsPublished && !titleContainsNotPublished) {
-                        // Уведомление об одобрении публикации
-                        Pair(android.R.drawable.ic_menu_upload, R.color.green)
-                    } else if (titleContainsNotPublished || titleContainsRejected) {
-                        // Уведомление об отклонении публикации
-                        Pair(android.R.drawable.ic_menu_close_clear_cancel, R.color.red)
-                    } else {
-                        // Обычное системное уведомление
-                        Pair(android.R.drawable.ic_dialog_info, R.color.teal_700)
+                        // Проверяем текст заголовка для определения типа системного уведомления
+                        val titleContainsPublished = notification.title?.contains("опубликован") == true
+                        val titleContainsNotPublished = notification.title?.contains("не опубликован") == true
+                        val titleContainsRejected = notification.title?.contains("отклонен") == true
+                        
+                        if (titleContainsPublished && !titleContainsNotPublished) {
+                            // Уведомление об одобрении публикации
+                            Pair(android.R.drawable.ic_menu_upload, R.color.green)
+                        } else if (titleContainsNotPublished || titleContainsRejected) {
+                            // Уведомление об отклонении публикации
+                            Pair(android.R.drawable.ic_menu_close_clear_cancel, R.color.red)
+                        } else {
+                            // Обычное системное уведомление
+                            Pair(android.R.drawable.ic_dialog_info, R.color.teal_700)
                         }
                     }
                 }
@@ -324,6 +338,14 @@ class NotificationsAdapter(
                 }
                 NotificationType.MEMORIAL_EDIT -> {
                     backgroundColorHex = "#FFECB3" // Light orange
+                    borderColor = ContextCompat.getColor(context, R.color.orange)
+                }
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> {
+                    backgroundColorHex = "#FFEBEE" // Light red
+                    borderColor = ContextCompat.getColor(context, R.color.red)
+                }
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> {
+                    backgroundColorHex = "#FFF3E0" // Light orange
                     borderColor = ContextCompat.getColor(context, R.color.orange)
                 }
                 NotificationType.SYSTEM -> {
@@ -457,25 +479,35 @@ class NotificationsAdapter(
             
             // Настраиваем заголовок в зависимости от типа
             val title = when (notification.type) {
-                    NotificationType.MEMORIAL_OWNERSHIP -> {
-                        // Для запросов на совместное владение учитываем статус
-                        when (notification.status) {
-                            NotificationStatus.ACCEPTED -> notification.title ?: "Запрос на совместное владение принят"
-                            NotificationStatus.REJECTED -> notification.title ?: "Запрос на совместное владение отклонён"
-                            else -> "Запрос на совместное владение"
-                        }
+                NotificationType.MEMORIAL_OWNERSHIP -> {
+                    // Для запросов на совместное владение учитываем статус
+                    when (notification.status) {
+                        NotificationStatus.ACCEPTED -> notification.title ?: "Запрос на совместное владение принят"
+                        NotificationStatus.REJECTED -> notification.title ?: "Запрос на совместное владение отклонён"
+                        else -> "Запрос на совместное владение"
                     }
-                    NotificationType.MEMORIAL_CHANGES -> "Запрос на изменение мемориала"
-                    NotificationType.MEMORIAL_EDIT -> {
-                        // Для уведомлений об изменениях тоже учитываем статус
-                        when (notification.status) {
-                            NotificationStatus.ACCEPTED -> notification.title ?: "Изменения в мемориале приняты"
-                            NotificationStatus.REJECTED -> notification.title ?: "Изменения в мемориале отклонены"
-                            else -> "Изменения в мемориале"
-                        }
+                }
+                NotificationType.FAMILY_TREE_ACCESS_REQUEST -> {
+                    // Для запросов на доступ к дереву учитываем статус
+                    when (notification.status) {
+                        NotificationStatus.ACCEPTED -> notification.title ?: "Запрос на доступ к дереву принят"
+                        NotificationStatus.REJECTED -> notification.title ?: "Запрос на доступ к дереву отклонён"
+                        else -> "Запрос на доступ к дереву"
                     }
+                }
+                NotificationType.MEMORIAL_CHANGES -> "Запрос на изменение мемориала"
+                NotificationType.MEMORIAL_EDIT -> {
+                    // Для уведомлений об изменениях тоже учитываем статус
+                    when (notification.status) {
+                        NotificationStatus.ACCEPTED -> notification.title ?: "Изменения в мемориале приняты"
+                        NotificationStatus.REJECTED -> notification.title ?: "Изменения в мемориале отклонены"
+                        else -> "Изменения в мемориале"
+                    }
+                }
+                NotificationType.MEMORIAL_EDITOR_REMOVED -> notification.title ?: "Исключение из редакторов"
+                NotificationType.MEMORIAL_EDITOR_RESIGNED -> notification.title ?: "Отказ от редактирования"
                 NotificationType.INFO -> notification.title ?: "Информация"
-                    NotificationType.SYSTEM -> {
+                NotificationType.SYSTEM -> {
                     // Проверяем, является ли это ответом на техническое обращение
                     if (notification.title?.contains("Ответ на техническое обращение") == true ||
                         notification.relatedEntityName == "Техническая поддержка") {
@@ -497,8 +529,8 @@ class NotificationsAdapter(
                         notification.title ?: "Системное уведомление"
                         }
                     }
-                    }
-                    NotificationType.MODERATION -> "Запрос на модерацию мемориала"
+                }
+                NotificationType.MODERATION -> "Запрос на модерацию мемориала"
                 NotificationType.TECHNICAL -> {
                     // Для технических уведомлений разные заголовки в зависимости от направления
                     if (isIncoming) {
@@ -696,6 +728,10 @@ class NotificationsAdapter(
                     }
                     
                     notification.type == NotificationType.MEMORIAL_OWNERSHIP -> {
+                        backgroundColorHex = "#FFF8E1" // Light amber
+                        borderColor = ContextCompat.getColor(context, R.color.gold)
+                    }
+                    notification.type == NotificationType.FAMILY_TREE_ACCESS_REQUEST -> {
                         backgroundColorHex = "#FFF8E1" // Light amber
                         borderColor = ContextCompat.getColor(context, R.color.gold)
                     }

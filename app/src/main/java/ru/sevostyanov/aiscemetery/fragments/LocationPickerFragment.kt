@@ -8,6 +8,9 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import android.widget.LinearLayout
 import androidx.fragment.app.DialogFragment
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
@@ -80,12 +83,28 @@ class LocationPickerFragment : DialogFragment(), Session.SearchListener {
 
         // Search button handler
         searchButton.setOnClickListener {
-            val searchText = searchEditText.text.toString()
+            val searchText = searchEditText.text.toString().trim()
             if (searchText.isNotEmpty()) {
+                // Сбрасываем предыдущий выбор для нового поиска
+                selectedPoint = null
+                selectedAddress = null
+                mapObjects?.clear()
+                
                 searchLocation(searchText)
                 selectedLocationText.text = "Поиск..."
             } else {
                 Toast.makeText(context, "Введите текст для поиска", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Поддержка поиска по нажатию Enter
+        searchEditText.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH ||
+                (event != null && event.keyCode == android.view.KeyEvent.KEYCODE_ENTER)) {
+                searchButton.performClick()
+                true
+            } else {
+                false
             }
         }
 
@@ -142,17 +161,23 @@ class LocationPickerFragment : DialogFragment(), Session.SearchListener {
     }
 
     private fun searchLocation(query: String) {
+        // Отменяем предыдущий поиск если он выполняется
+        searchSession?.cancel()
+        
         val searchOptions = SearchOptions().apply {
-            resultPageSize = 1
+            resultPageSize = 10 // Увеличиваем количество результатов
+            searchTypes = com.yandex.mapkit.search.SearchType.GEO.value // Только географические объекты
         }
-        // Create Geometry for search within the visible map area
-        val visibleRegion = mapView.mapWindow.map.visibleRegion
-        val boundingBox = BoundingBox(
-            visibleRegion.bottomLeft,
-            visibleRegion.topRight
+        
+        // Используем глобальный поиск без ограничения по видимой области
+        // Создаем геометрию для всего мира
+        val worldGeometry = Geometry.fromBoundingBox(
+            BoundingBox(
+                Point(-90.0, -180.0), // Южно-западный угол
+                Point(90.0, 180.0)    // Северо-восточный угол
+            )
         )
-        val geometry = Geometry.fromBoundingBox(boundingBox)
-        searchSession = searchManager?.submit(query, geometry, searchOptions, this)
+        searchSession = searchManager?.submit(query, worldGeometry, searchOptions, this)
     }
 
     private fun updateSelectedLocation(address: String?) {
@@ -199,33 +224,74 @@ class LocationPickerFragment : DialogFragment(), Session.SearchListener {
     override fun onSearchResponse(response: com.yandex.mapkit.search.Response) {
         val results = response.collection.children
         if (results.isNotEmpty()) {
-            val firstResult = results[0].obj
-            
-            if (selectedPoint == null && firstResult?.geometry?.firstOrNull()?.point != null) {
-                // This is a response from a text search
-                selectedPoint = firstResult.geometry.first().point
+            // Если это результат поиска по тексту (не обратное геокодирование)
+            if (selectedPoint == null) {
+                // Показываем список результатов для выбора
+                val geoObjects = results.mapNotNull { it.obj }
+                showSearchResults(geoObjects)
+            } else {
+                // Это обратное геокодирование - обрабатываем как раньше
+                val firstResult = results[0].obj
+                val toponymMetadata = firstResult?.metadataContainer
+                    ?.getItem<com.yandex.mapkit.search.ToponymObjectMetadata>(com.yandex.mapkit.search.ToponymObjectMetadata::class.java)
+                
+                val address = toponymMetadata?.address?.formattedAddress ?: firstResult?.name ?: "Адрес не найден"
+                updateSelectedLocation(address)
             }
-            
-            // Get address from toponym metadata
-            val toponymMetadata = firstResult?.metadataContainer
-                ?.getItem<com.yandex.mapkit.search.ToponymObjectMetadata>(com.yandex.mapkit.search.ToponymObjectMetadata::class.java)
-            
-            val address = toponymMetadata?.address?.formattedAddress ?: firstResult?.name ?: "Адрес не найден"
-            
-            updateSelectedLocation(address)
         } else {
             selectedLocationText.text = "Адрес не найден"
+        }
+    }
+    
+    private fun showSearchResults(results: List<com.yandex.mapkit.GeoObject>) {
+        // Берем первый результат автоматически
+        val firstResult = results[0]
+        val point = firstResult.geometry?.firstOrNull()?.point
+        
+        if (point != null) {
+            selectedPoint = point
+            
+            // Получаем адрес
+            val toponymMetadata = firstResult.metadataContainer
+                ?.getItem<com.yandex.mapkit.search.ToponymObjectMetadata>(com.yandex.mapkit.search.ToponymObjectMetadata::class.java)
+            
+            val address = toponymMetadata?.address?.formattedAddress ?: firstResult.name ?: "Адрес не найден"
+            
+            // Показываем информацию о результатах поиска
+            val resultInfo = if (results.size > 1) {
+                "$address\n(найдено ${results.size} результатов)"
+            } else {
+                address
+            }
+            
+            updateSelectedLocation(resultInfo)
+            
+            // Логируем все найденные результаты для отладки
+            results.forEachIndexed { index, geoObject ->
+                val resultPoint = geoObject.geometry?.firstOrNull()?.point
+                val resultMetadata = geoObject.metadataContainer
+                    ?.getItem<com.yandex.mapkit.search.ToponymObjectMetadata>(com.yandex.mapkit.search.ToponymObjectMetadata::class.java)
+                val resultAddress = resultMetadata?.address?.formattedAddress ?: geoObject.name ?: "Неизвестно"
+                
+                println("Результат поиска $index: $resultAddress (${resultPoint?.latitude}, ${resultPoint?.longitude})")
+            }
+            
+        } else {
+            selectedLocationText.text = "Не удалось получить координаты"
         }
     }
 
     override fun onSearchError(error: Error) {
         val errorMessage = when (error) {
-            is RemoteError -> "Ошибка сервера"
-            is NetworkError -> "Ошибка сети"
-            else -> "Неизвестная ошибка"
+            is RemoteError -> "Ошибка сервера поиска"
+            is NetworkError -> "Проверьте подключение к интернету"
+            else -> "Ошибка поиска: ${error.javaClass.simpleName}"
         }
         selectedLocationText.text = "Ошибка: $errorMessage"
-        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+        
+        // Логируем ошибку для отладки
+        println("Ошибка поиска: $error")
     }
 
     override fun onStart() {

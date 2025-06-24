@@ -11,14 +11,25 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import ru.sevostyanov.aiscemetery.user.Guest
 import ru.sevostyanov.aiscemetery.user.UserManager
+import ru.sevostyanov.aiscemetery.util.ValidationUtils
 
 class LoginActivity : AppCompatActivity() {
     private var isInitialized = false
+
+    // UI элементы
+    private lateinit var loginInputLayout: TextInputLayout
+    private lateinit var passwordInputLayout: TextInputLayout
+    private lateinit var loginField: TextInputEditText
+    private lateinit var passwordField: TextInputEditText
+    private lateinit var loginButton: MaterialButton
+    private lateinit var loginProgress: android.widget.ProgressBar
+    private lateinit var errorMessageText: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,32 +54,122 @@ class LoginActivity : AppCompatActivity() {
             setContentView(R.layout.activity_login)
             isInitialized = true
 
-            val loginButton = findViewById<MaterialButton>(R.id.login_button)
-            val registerLink = findViewById<TextView>(R.id.register_link)
-            val loginField = findViewById<TextInputEditText>(R.id.login_email)
-            val passwordField = findViewById<TextInputEditText>(R.id.login_password)
-
-            // Авторизация
-            loginButton.setOnClickListener {
-                val login = loginField.text.toString().trim()
-                val password = passwordField.text.toString().trim()
-
-                if (login.isEmpty() || password.isEmpty()) {
-                    Toast.makeText(this, "Введите логин и пароль", Toast.LENGTH_SHORT).show()
-                } else {
-                    // Показываем состояние загрузки
-                    loginButton.text = "Вход..."
-                    loginButton.isEnabled = false
-                    authenticateUser(login, password)
-                }
-            }
-
-            registerLink.setOnClickListener {
-                startActivity(Intent(this, RegisterActivity::class.java))
-            }
+            initializeViews()
+            setupListeners()
+            
         } catch (e: Exception) {
             Log.e("LoginActivity", "Initialization error", e)
             Toast.makeText(this, "Ошибка инициализации: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun initializeViews() {
+        loginButton = findViewById(R.id.login_button)
+        loginInputLayout = findViewById(R.id.login_input_layout)
+        passwordInputLayout = findViewById(R.id.password_input_layout)
+        loginField = findViewById(R.id.login_email)
+        passwordField = findViewById(R.id.login_password)
+        loginProgress = findViewById(R.id.login_progress)
+        errorMessageText = findViewById(R.id.error_message)
+    }
+
+    private fun setupListeners() {
+        val registerLink = findViewById<TextView>(R.id.register_link)
+
+        // Авторизация
+        loginButton.setOnClickListener {
+            attemptLogin()
+        }
+
+        registerLink.setOnClickListener {
+            startActivity(Intent(this, RegisterActivity::class.java))
+        }
+
+        // Очистка ошибок при вводе текста
+        loginField.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                clearFieldError(loginInputLayout)
+            }
+        })
+        
+        passwordField.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                clearFieldError(passwordInputLayout)
+            }
+        })
+    }
+
+    private fun attemptLogin() {
+        // Очищаем предыдущие ошибки
+        clearAllErrors()
+        
+        val login = loginField.text.toString().trim()
+        val password = passwordField.text.toString().trim()
+
+        // Валидация полей
+        var hasErrors = false
+
+        // Валидация логина
+        val loginError = ValidationUtils.validateLogin(login)
+        if (loginError != null) {
+            showFieldError(loginInputLayout, loginError)
+            hasErrors = true
+        }
+
+        // Валидация пароля
+        val passwordError = ValidationUtils.validatePassword(password)
+        if (passwordError != null) {
+            showFieldError(passwordInputLayout, passwordError)
+            hasErrors = true
+        }
+
+        if (hasErrors) {
+            return
+        }
+
+        // Показываем состояние загрузки
+        setLoadingState(true)
+        authenticateUser(login, password)
+    }
+
+    private fun showFieldError(inputLayout: TextInputLayout, message: String) {
+        inputLayout.error = message
+        inputLayout.isErrorEnabled = true
+    }
+
+    private fun clearFieldError(inputLayout: TextInputLayout) {
+        inputLayout.error = null
+        inputLayout.isErrorEnabled = false
+    }
+
+    private fun clearAllErrors() {
+        clearFieldError(loginInputLayout)
+        clearFieldError(passwordInputLayout)
+        hideErrorMessage()
+    }
+
+    private fun showErrorMessage(message: String) {
+        errorMessageText.text = message
+        errorMessageText.visibility = android.view.View.VISIBLE
+    }
+
+    private fun hideErrorMessage() {
+        errorMessageText.visibility = android.view.View.GONE
+    }
+
+    private fun setLoadingState(loading: Boolean) {
+        if (loading) {
+            loginButton.text = "Вход..."
+            loginButton.isEnabled = false
+            loginProgress.visibility = android.view.View.VISIBLE
+        } else {
+            loginButton.text = "Войти"
+            loginButton.isEnabled = true
+            loginProgress.visibility = android.view.View.GONE
         }
     }
 
@@ -108,59 +209,122 @@ class LoginActivity : AppCompatActivity() {
 
             call.enqueue(object : Callback<RetrofitClient.LoginResponse> {
                 override fun onResponse(call: Call<RetrofitClient.LoginResponse>, response: Response<RetrofitClient.LoginResponse>) {
-                    // Восстанавливаем кнопку
-                    val loginButton = findViewById<MaterialButton>(R.id.login_button)
-                    loginButton.text = "Войти"
-                    loginButton.isEnabled = true
+                    setLoadingState(false)
                     
                     if (response.isSuccessful && response.body()?.status == "SUCCESS") {
-                        val userProfile = response.body()
-                        val token = userProfile?.token ?: ""
-                        Log.d("LoginActivity", "Received token: $token")
-                        
-                        // Сохраняем ID пользователя
-                        val userId = userProfile?.id ?: -1L
-                        if (userId != -1L) {
-                            RetrofitClient.saveUserId(userId)
-                        }
-                        
-                        RetrofitClient.setToken(token)
-                        
-                        val guest = Guest(
-                            id = userId,
-                            fio = userProfile?.fio ?: "",
-                            contacts = userProfile?.contacts ?: "",
-                            dateOfRegistration = userProfile?.dateOfRegistration ?: "",
-                            login = login,
-                            hasSubscription = userProfile?.hasSubscription ?: false,
-                            role = userProfile?.role ?: "USER",
-                            token = token
-                        )
-                        Log.d("LoginActivity", "Created guest object: $guest")
-                        UserManager.saveUserToPreferences(this@LoginActivity, guest)
-                        Log.d("LoginActivity", "Saved user data to preferences")
-                        startMainActivity()
+                        handleSuccessfulLogin(response.body()!!, login)
                     } else {
-                        val errorMessage = response.errorBody()?.string() ?: response.message()
-                        Log.e("LoginActivity", "Login failed: $errorMessage")
-                        Toast.makeText(this@LoginActivity, "Ошибка авторизации: $errorMessage", Toast.LENGTH_SHORT).show()
+                        handleLoginError(response)
                     }
                 }
 
                 override fun onFailure(call: Call<RetrofitClient.LoginResponse>, t: Throwable) {
-                    // Восстанавливаем кнопку
-                    val loginButton = findViewById<MaterialButton>(R.id.login_button)
-                    loginButton.text = "Войти"
-                    loginButton.isEnabled = true
-                    
-                    Log.e("LoginActivity", "Network error", t)
-                    Toast.makeText(this@LoginActivity, "Ошибка сети: ${t.message}", Toast.LENGTH_SHORT).show()
+                    setLoadingState(false)
+                    handleNetworkError(t)
                 }
             })
         } catch (e: Exception) {
+            setLoadingState(false)
             Log.e("LoginActivity", "Authentication error", e)
             Toast.makeText(this, "Ошибка авторизации: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun handleSuccessfulLogin(userProfile: RetrofitClient.LoginResponse, login: String) {
+        val token = userProfile.token ?: ""
+        Log.d("LoginActivity", "Received token: $token")
+        
+        // Сохраняем ID пользователя
+        val userId = userProfile.id ?: -1L
+        if (userId != -1L) {
+            RetrofitClient.saveUserId(userId)
+        }
+        
+        RetrofitClient.setToken(token)
+        
+        val guest = Guest(
+            id = userId,
+            fio = userProfile.fio ?: "",
+            contacts = userProfile.contacts ?: "",
+            dateOfRegistration = userProfile.dateOfRegistration ?: "",
+            login = login,
+            hasSubscription = userProfile.hasSubscription ?: false,
+            role = userProfile.role ?: "USER",
+            token = token
+        )
+        Log.d("LoginActivity", "Created guest object: $guest")
+        UserManager.saveUserToPreferences(this, guest)
+        Log.d("LoginActivity", "Saved user data to preferences")
+        
+        Toast.makeText(this, "Добро пожаловать, ${userProfile.fio}!", Toast.LENGTH_SHORT).show()
+        startMainActivity()
+    }
+
+    private fun handleLoginError(response: Response<RetrofitClient.LoginResponse>) {
+        Log.e("LoginActivity", "Login failed: ${response.code()} - ${response.message()}")
+        
+        when (response.code()) {
+            400 -> {
+                // Неверные учетные данные
+                showFieldError(passwordInputLayout, "Неверный логин или пароль")
+                showErrorMessage("Проверьте правильность введенных данных")
+            }
+            401 -> {
+                // Неавторизован - неверные учетные данные
+                showFieldError(passwordInputLayout, "Неверный логин или пароль")
+                showErrorMessage("Неверный логин или пароль")
+            }
+            403 -> {
+                // Доступ запрещен - аккаунт заблокирован
+                showErrorMessage("Ваш аккаунт заблокирован. Обратитесь к администратору")
+            }
+            404 -> {
+                // Пользователь не найден
+                showFieldError(loginInputLayout, "Пользователь не найден")
+                showErrorMessage("Пользователь с таким логином не найден")
+            }
+            429 -> {
+                // Слишком много попыток входа
+                showErrorMessage("Слишком много попыток входа. Попробуйте позже")
+            }
+            500 -> {
+                // Ошибка сервера
+                showErrorMessage("Ошибка сервера. Попробуйте позже")
+            }
+            else -> {
+                // Другие ошибки
+                val errorMessage = try {
+                    response.errorBody()?.string() ?: "Неизвестная ошибка"
+                } catch (e: Exception) {
+                    "Ошибка авторизации"
+                }
+                showErrorMessage("Ошибка: $errorMessage")
+            }
+        }
+    }
+
+    private fun handleNetworkError(throwable: Throwable) {
+        Log.e("LoginActivity", "Network error", throwable)
+        
+        val errorMessage = when (throwable) {
+            is java.net.UnknownHostException -> {
+                "Нет подключения к интернету. Проверьте сетевое соединение"
+            }
+            is java.net.SocketTimeoutException -> {
+                "Превышено время ожидания. Проверьте подключение и попробуйте снова"
+            }
+            is javax.net.ssl.SSLHandshakeException -> {
+                "Ошибка безопасного соединения. Проверьте настройки сети"
+            }
+            is java.net.ConnectException -> {
+                "Не удается подключиться к серверу. Попробуйте позже"
+            }
+            else -> {
+                "Ошибка сети: ${throwable.localizedMessage ?: "Неизвестная ошибка"}"
+            }
+        }
+        
+        showErrorMessage(errorMessage)
     }
 }
 
