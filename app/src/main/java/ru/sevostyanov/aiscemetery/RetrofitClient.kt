@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private const val TAG = "RetrofitClient"
-    private const val BASE_URL = "https://32c6-195-54-33-12.ngrok-free.app/"
+    private const val BASE_URL = "https://6cb1-195-54-33-12.ngrok-free.app/"
     private const val TOKEN_KEY = "auth_token"
     private const val USER_ID_KEY = "user_id"
     private const val PREF_NAME = "app_prefs"

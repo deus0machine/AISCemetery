@@ -27,7 +27,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import ru.sevostyanov.aiscemetery.RetrofitClient
 import ru.sevostyanov.aiscemetery.activities.FamilyTreeDraftActivity
-import ru.sevostyanov.aiscemetery.ui.genealogy.GenealogyTreeScreen
+import ru.sevostyanov.aiscemetery.ui.genealogy.GenealogyTreeWebView
 import ru.sevostyanov.aiscemetery.viewmodels.FamilyTreeDetailViewModel
 import ru.sevostyanov.aiscemetery.models.RelationType
 import ru.sevostyanov.aiscemetery.models.Memorial
@@ -146,9 +146,12 @@ class GenealogyTreeFragment : Fragment() {
             } else {
                 // Основной контент
                 Box(modifier = Modifier.weight(1f)) {
-                    GenealogyTreeScreen(
+                    GenealogyTreeWebView(
                         memorials = memorials,
-                        relations = relations
+                        relations = relations,
+                        onNodeClick = { memorial ->
+                            // Здесь можно добавить логику при клике на узел
+                        }
                     )
                 }
 
